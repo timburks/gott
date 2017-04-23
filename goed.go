@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"./terminal"
+	"xmachine.net/go/goed/terminal"
 )
 
 const VERSION = "0.0.1"
