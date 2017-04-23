@@ -15,6 +15,8 @@ import (
 const VERSION = "0.0.1"
 
 const (
+	CTRL_A      = 0x01
+	CTRL_E      = 0x05
 	CTRL_Q      = 0x11
 	ARROW_LEFT  = 1000
 	ARROW_RIGHT = 1001
@@ -76,7 +78,7 @@ func (e *Editor) ReadKey() int {
 			time.Sleep(time.Microsecond)
 		}
 	}
-	//e.Message = fmt.Sprintf(" code=%02x", b[0:n])
+	e.Message = fmt.Sprintf(" code=%02x", b[0:n])
 	if err != nil {
 		fmt.Print(err)
 	}
@@ -140,10 +142,16 @@ func (e *Editor) ProcessKeyPress() error {
 		for times := e.EditRows; times > 0; times-- {
 			e.MoveCursor(ARROW_DOWN)
 		}
-	case HOME:
+	case CTRL_A:
 		e.CursorCol = 0
-	case END:
-		e.CursorCol = e.ScreenCols - 1
+	case CTRL_E:
+		e.CursorCol = 0
+		if e.CursorRow < len(e.Rows) {
+			displayText := e.Rows[e.CursorRow].Text
+			displayText = strings.Replace(displayText, "\t", "        ", -1)
+			rowLength := len(displayText)
+			e.CursorCol = rowLength - 1
+		}
 	case ARROW_UP, ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT:
 		e.MoveCursor(key)
 	}
@@ -163,8 +171,6 @@ func (e *Editor) Scroll() {
 	if e.CursorCol-e.ColOffset >= e.EditCols {
 		e.ColOffset = e.CursorCol - e.EditCols + 1
 	}
-
-	e.Message = fmt.Sprintf("(%d,%d)", e.CursorRow, e.CursorCol)
 }
 
 func (e *Editor) RefreshScreen() {
@@ -174,7 +180,7 @@ func (e *Editor) RefreshScreen() {
 	}
 	e.ScreenRows = h
 	e.ScreenCols = w
-	e.EditRows = e.ScreenRows - 1
+	e.EditRows = e.ScreenRows - 2
 	e.EditCols = e.ScreenCols
 
 	e.Scroll()
@@ -198,8 +204,19 @@ func (e *Editor) Exit() {
 
 func (e *Editor) DrawRows(buffer []byte) []byte {
 	for y := 0; y < e.ScreenRows; y++ {
-		if y == e.ScreenRows-1 {
-			buffer = append(buffer, []byte(e.Message)...)
+		if y == e.ScreenRows-2 {
+			buffer = append(buffer, []byte("\x1b[7m")...)
+			text := fmt.Sprintf(" %d/%d ", e.CursorRow, len(e.Rows))
+			for len(text) < e.ScreenCols-1 {
+				text = " " + text
+			}
+			buffer = append(buffer, []byte(text)...)
+			buffer = append(buffer, []byte("\x1b[K")...)
+			buffer = append(buffer, []byte("\x1b[m")...)
+			buffer = append(buffer, []byte("\r\n")...)
+		} else if y == e.ScreenRows-1 {
+			text := "The last word: " + e.Message
+			buffer = append(buffer, []byte(text)...)
 			buffer = append(buffer, []byte("\x1b[K")...)
 		} else if (y + e.RowOffset) < len(e.Rows) {
 			line := e.Rows[y+e.RowOffset].Text
