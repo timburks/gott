@@ -236,15 +236,30 @@ func (e *Editor) DrawRows(buffer []byte) []byte {
 }
 
 func (e *Editor) MoveCursor(key int) {
+
 	switch key {
 	case ARROW_LEFT:
 		if e.CursorCol > 0 {
 			e.CursorCol--
+		} else if e.CursorRow > 0 {
+			e.CursorRow--
+			displayText := e.Rows[e.CursorRow].Text
+			displayText = strings.Replace(displayText, "\t", "        ", -1)
+			rowLength := len(displayText)
+			e.CursorCol = rowLength - 1
 		}
 	case ARROW_RIGHT:
-		//	if e.CursorCol < e.ScreenCols-1 {
-		e.CursorCol++
-	//	}
+		if e.CursorRow < len(e.Rows) {
+			displayText := e.Rows[e.CursorRow].Text
+			displayText = strings.Replace(displayText, "\t", "        ", -1)
+			rowLength := len(displayText)
+			if e.CursorCol < rowLength-1 {
+				e.CursorCol++
+			} else if e.CursorRow < len(e.Rows)-1 {
+				e.CursorRow++
+				e.CursorCol = 0
+			}
+		}
 	case ARROW_UP:
 		if e.CursorRow > 0 {
 			e.CursorRow--
@@ -254,6 +269,19 @@ func (e *Editor) MoveCursor(key int) {
 			e.CursorRow++
 		}
 	}
+
+	if e.CursorRow < len(e.Rows) {
+		displayText := e.Rows[e.CursorRow].Text
+		displayText = strings.Replace(displayText, "\t", "        ", -1)
+		rowLength := len(displayText)
+		if e.CursorCol > rowLength-1 {
+			e.CursorCol = rowLength - 1
+			if e.CursorCol < 0 {
+				e.CursorCol = 0
+			}
+		}
+	}
+
 }
 
 func main() {
