@@ -20,7 +20,9 @@ const (
 	ARROW_DOWN  = 1003
 	PAGE_UP     = 1004
 	PAGE_DOWN   = 1005
-	DELETE      = 1006
+	HOME        = 1006
+	END         = 1007
+	DELETE      = 1008
 )
 
 type Editor struct {
@@ -74,10 +76,30 @@ func (e *Editor) ReadKey() int {
 				return ARROW_RIGHT
 			case 'D':
 				return ARROW_LEFT
+			case 0x31:
+				switch b[3] {
+				case 0x7e:
+					return HOME
+				}
 			case 0x33:
 				switch b[3] {
 				case 0x7e:
 					return DELETE
+				}
+			case 0x34:
+				switch b[3] {
+				case 0x7e:
+					return END
+				}
+			case 0x35:
+				switch b[3] {
+				case 0x7e:
+					return PAGE_UP
+				}
+			case 0x36:
+				switch b[3] {
+				case 0x7e:
+					return PAGE_DOWN
 				}
 			}
 		}
