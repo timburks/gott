@@ -115,6 +115,18 @@ func (e *Editor) ProcessKeyPress() error {
 	case CTRL_Q:
 		e.Exit()
 		return errors.New("quit")
+	case PAGE_UP:
+		for times := e.ScreenRows; times > 0; times-- {
+			e.MoveCursor(ARROW_UP)
+		}
+	case PAGE_DOWN:
+		for times := e.ScreenRows; times > 0; times-- {
+			e.MoveCursor(ARROW_DOWN)
+		}
+	case HOME:
+		e.CursorCol = 0
+	case END:
+		e.CursorCol = e.ScreenCols - 1
 	case ARROW_UP, ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT:
 		e.MoveCursor(key)
 	}
