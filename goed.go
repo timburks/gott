@@ -17,6 +17,34 @@ type Row struct {
 	Text string
 }
 
+func NewRow(text string) Row {
+	r := Row{}
+	r.Text = strings.Replace(text, "\t", "    ", -1)
+	return r
+}
+
+func (r *Row) DisplayText() string {
+	return r.Text
+}
+
+func (r *Row) Length() int {
+	return len(r.DisplayText())
+}
+
+func (r *Row) InsertChar(position int, c rune) {
+	line := ""
+	if position <= len(r.Text) {
+		line += r.Text[0:position]
+	} else {
+		line += r.Text
+	}
+	line += string(c)
+	if position < len(r.Text) {
+		line += r.Text[position+1:]
+	}
+	r.Text = line
+}
+
 type Editor struct {
 	Reader     *bufio.Reader
 	ScreenRows int
@@ -47,7 +75,7 @@ func (e *Editor) ReadFile(path string) error {
 	lines := strings.Split(s, "\n")
 	e.Rows = make([]Row, 0)
 	for _, line := range lines {
-		e.Rows = append(e.Rows, Row{Text: line})
+		e.Rows = append(e.Rows, NewRow(line))
 	}
 	return nil
 }
@@ -68,33 +96,35 @@ func (e *Editor) ProcessKeyPress() error {
 	}
 
 	key := event.Key
-
-	switch key {
-	case termbox.KeyCtrlQ:
-		e.Exit()
-		return errors.New("quit")
-	case termbox.KeyPgup:
-		e.CursorRow = e.RowOffset
-		for i := 0; i < e.EditRows; i++ {
-			e.MoveCursor(termbox.KeyArrowUp)
+	if key != 0 {
+		switch key {
+		case termbox.KeyCtrlQ:
+			e.Exit()
+			return errors.New("quit")
+		case termbox.KeyPgup:
+			e.CursorRow = e.RowOffset
+			for i := 0; i < e.EditRows; i++ {
+				e.MoveCursor(termbox.KeyArrowUp)
+			}
+		case termbox.KeyPgdn:
+			e.CursorRow = e.RowOffset + e.EditRows - 1
+			for i := 0; i < e.EditRows; i++ {
+				e.MoveCursor(termbox.KeyArrowDown)
+			}
+		case termbox.KeyCtrlA, termbox.KeyHome:
+			e.CursorCol = 0
+		case termbox.KeyCtrlE, termbox.KeyEnd:
+			e.CursorCol = 0
+			if e.CursorRow < len(e.Rows) {
+				e.CursorCol = e.Rows[e.CursorRow].Length() - 1
+			}
+		case termbox.KeyArrowUp, termbox.KeyArrowDown, termbox.KeyArrowLeft, termbox.KeyArrowRight:
+			e.MoveCursor(key)
 		}
-	case termbox.KeyPgdn:
-		e.CursorRow = e.RowOffset + e.EditRows - 1
-		for i := 0; i < e.EditRows; i++ {
-			e.MoveCursor(termbox.KeyArrowDown)
-		}
-	case termbox.KeyCtrlA, termbox.KeyHome:
-		e.CursorCol = 0
-	case termbox.KeyCtrlE, termbox.KeyEnd:
-		e.CursorCol = 0
-		if e.CursorRow < len(e.Rows) {
-			displayText := e.Rows[e.CursorRow].Text
-			displayText = strings.Replace(displayText, "\t", "        ", -1)
-			rowLength := len(displayText)
-			e.CursorCol = rowLength - 1
-		}
-	case termbox.KeyArrowUp, termbox.KeyArrowDown, termbox.KeyArrowLeft, termbox.KeyArrowRight:
-		e.MoveCursor(key)
+	}
+	ch := event.Ch
+	if ch != 0 {
+		e.InsertChar(ch)
 	}
 	return nil
 }
@@ -155,12 +185,14 @@ func (e *Editor) DrawRows(buffer []byte) []byte {
 			buffer = append(buffer, []byte("\x1b[m")...)
 			buffer = append(buffer, []byte("\r\n")...)
 		} else if y == e.ScreenRows-1 {
-			text := "The last word: " + e.Message
+			text := e.Message
+			if len(text) > e.ScreenCols {
+				text = text[0:e.ScreenCols]
+			}
 			buffer = append(buffer, []byte(text)...)
 			buffer = append(buffer, []byte("\x1b[K")...)
 		} else if (y + e.RowOffset) < len(e.Rows) {
-			line := e.Rows[y+e.RowOffset].Text
-			line = strings.Replace(line, "\t", "        ", -1)
+			line := e.Rows[y+e.RowOffset].DisplayText()
 
 			if len(line) > e.ColOffset {
 				line = line[e.ColOffset:]
@@ -200,16 +232,11 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 			e.CursorCol--
 		} else if e.CursorRow > 0 {
 			e.CursorRow--
-			displayText := e.Rows[e.CursorRow].Text
-			displayText = strings.Replace(displayText, "\t", "        ", -1)
-			rowLength := len(displayText)
-			e.CursorCol = rowLength - 1
+			e.CursorCol = e.Rows[e.CursorRow].Length() - 1
 		}
 	case termbox.KeyArrowRight:
 		if e.CursorRow < len(e.Rows) {
-			displayText := e.Rows[e.CursorRow].Text
-			displayText = strings.Replace(displayText, "\t", "        ", -1)
-			rowLength := len(displayText)
+			rowLength := e.Rows[e.CursorRow].Length()
 			if e.CursorCol < rowLength-1 {
 				e.CursorCol++
 			} else if e.CursorRow < len(e.Rows)-1 {
@@ -228,9 +255,7 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 	}
 
 	if e.CursorRow < len(e.Rows) {
-		displayText := e.Rows[e.CursorRow].Text
-		displayText = strings.Replace(displayText, "\t", "        ", -1)
-		rowLength := len(displayText)
+		rowLength := e.Rows[e.CursorRow].Length()
 		if e.CursorCol > rowLength-1 {
 			e.CursorCol = rowLength - 1
 			if e.CursorCol < 0 {
@@ -239,6 +264,11 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 		}
 	}
 
+}
+
+func (e *Editor) InsertChar(c rune) {
+	e.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
+	e.CursorCol += 1
 }
 
 func main() {
@@ -250,7 +280,6 @@ func main() {
 
 	e := NewEditor()
 	e.ReadFile("goed.go")
-	// input loop
 	for {
 		e.RefreshScreen()
 		err = e.ProcessKeyPress()
