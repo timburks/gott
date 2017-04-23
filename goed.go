@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,6 +11,7 @@ import (
 
 const VERSION = "0.0.1"
 
+// A row of text in the editor
 type Row struct {
 	Text string
 }
@@ -45,8 +44,8 @@ func (r *Row) InsertChar(position int, c rune) {
 	r.Text = line
 }
 
+// The Editor
 type Editor struct {
-	Reader     *bufio.Reader
 	ScreenRows int
 	ScreenCols int
 	EditRows   int // actual number of rows used for text editing
@@ -57,12 +56,14 @@ type Editor struct {
 	Rows       []Row
 	RowOffset  int
 	ColOffset  int
+	FileName   string
+	Running    bool
 }
 
 func NewEditor() *Editor {
 	e := &Editor{}
-	e.Reader = bufio.NewReader(os.Stdin)
 	e.Rows = make([]Row, 0)
+	e.Running = true
 	return e
 }
 
@@ -77,20 +78,21 @@ func (e *Editor) ReadFile(path string) error {
 	for _, line := range lines {
 		e.Rows = append(e.Rows, NewRow(line))
 	}
+	e.FileName = path
 	return nil
 }
 
-func (e *Editor) ProcessKeyPress() error {
+func (e *Editor) ProcessNextEvent() error {
 	event := termbox.PollEvent()
 
-	e.Message = fmt.Sprintf(" event=%+v", event)
+	e.Message = fmt.Sprintf("event=%+v", event)
 
 	switch event.Type {
-	case termbox.EventKey:
-		break // handle these below
 	case termbox.EventResize:
 		termbox.Flush()
 		return nil
+	case termbox.EventKey:
+		break // handle these below
 	default:
 		return nil
 	}
@@ -99,8 +101,7 @@ func (e *Editor) ProcessKeyPress() error {
 	if key != 0 {
 		switch key {
 		case termbox.KeyCtrlQ:
-			e.Exit()
-			return errors.New("quit")
+			e.Running = false
 		case termbox.KeyPgup:
 			e.CursorRow = e.RowOffset
 			for i := 0; i < e.EditRows; i++ {
@@ -144,7 +145,7 @@ func (e *Editor) Scroll() {
 	}
 }
 
-func (e *Editor) RefreshScreen() {
+func (e *Editor) DrawScreen() {
 	w, h := termbox.Size()
 	e.ScreenRows = h
 	e.ScreenCols = w
@@ -165,26 +166,23 @@ func (e *Editor) RefreshScreen() {
 	os.Stdout.Write(buffer)
 }
 
-func (e *Editor) Exit() {
-	buffer := make([]byte, 0)
-	buffer = append(buffer, []byte("\x1b[2J")...)   // clear screen
-	buffer = append(buffer, []byte("\x1b[1;1H")...) // move cursor to row 1, col 1
-	os.Stdout.Write(buffer)
-}
-
 func (e *Editor) DrawRows(buffer []byte) []byte {
 	for y := 0; y < e.ScreenRows; y++ {
 		if y == e.ScreenRows-2 {
+			// draw status bar
 			buffer = append(buffer, []byte("\x1b[7m")...)
-			text := fmt.Sprintf(" %d/%d ", e.CursorRow, len(e.Rows))
-			for len(text) < e.ScreenCols-1 {
-				text = " " + text
+			finalText := fmt.Sprintf(" %d/%d ", e.CursorRow, len(e.Rows))
+			text := " " + e.FileName + " "
+			for len(text) < e.ScreenCols-len(finalText)-1 {
+				text = text + " "
 			}
+			text += finalText
 			buffer = append(buffer, []byte(text)...)
 			buffer = append(buffer, []byte("\x1b[K")...)
 			buffer = append(buffer, []byte("\x1b[m")...)
 			buffer = append(buffer, []byte("\r\n")...)
 		} else if y == e.ScreenRows-1 {
+			// draw message bar
 			text := e.Message
 			if len(text) > e.ScreenCols {
 				text = text[0:e.ScreenCols]
@@ -192,9 +190,9 @@ func (e *Editor) DrawRows(buffer []byte) []byte {
 			buffer = append(buffer, []byte(text)...)
 			buffer = append(buffer, []byte("\x1b[K")...)
 		} else if (y + e.RowOffset) < len(e.Rows) {
+			// draw editor text
 			line := e.Rows[y+e.RowOffset].DisplayText()
-
-			if len(line) > e.ColOffset {
+			if e.ColOffset < len(line) {
 				line = line[e.ColOffset:]
 			} else {
 				line = ""
@@ -225,12 +223,12 @@ func (e *Editor) DrawRows(buffer []byte) []byte {
 }
 
 func (e *Editor) MoveCursor(key termbox.Key) {
-
 	switch key {
 	case termbox.KeyArrowLeft:
 		if e.CursorCol > 0 {
 			e.CursorCol--
 		} else if e.CursorRow > 0 {
+			// wrap around
 			e.CursorRow--
 			e.CursorCol = e.Rows[e.CursorRow].Length() - 1
 		}
@@ -240,6 +238,7 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 			if e.CursorCol < rowLength-1 {
 				e.CursorCol++
 			} else if e.CursorRow < len(e.Rows)-1 {
+				// wrap around
 				e.CursorRow++
 				e.CursorCol = 0
 			}
@@ -253,7 +252,7 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 			e.CursorRow++
 		}
 	}
-
+	// don't go past the end of the current line
 	if e.CursorRow < len(e.Rows) {
 		rowLength := e.Rows[e.CursorRow].Length()
 		if e.CursorCol > rowLength-1 {
@@ -263,7 +262,6 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 			}
 		}
 	}
-
 }
 
 func (e *Editor) InsertChar(c rune) {
@@ -280,11 +278,8 @@ func main() {
 
 	e := NewEditor()
 	e.ReadFile("goed.go")
-	for {
-		e.RefreshScreen()
-		err = e.ProcessKeyPress()
-		if err != nil {
-			break
-		}
+	for e.Running {
+		e.DrawScreen()
+		e.ProcessNextEvent()
 	}
 }
