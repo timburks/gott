@@ -37,9 +37,21 @@ func (e *Editor) ProcessKeyPress() error {
 	// print out the unicode value i.e. A -> 65, a -> 97
 	fmt.Print(key)
 	if key == CTRL_Q {
+		e.Exit()
 		return errors.New("quit")
 	}
 	return nil
+}
+
+func (e *Editor) RefreshScreen() {
+	os.Stdout.Write([]byte("\x1b[2J"))   // clear screen
+	os.Stdout.Write([]byte("\x1b[1;1H")) // move cursor to row 1, col 1
+}
+
+func (e *Editor) Exit() {
+	os.Stdout.Write([]byte("\x1b[2J"))   // clear screen
+	os.Stdout.Write([]byte("\x1b[1;1H")) // move cursor to row 1, col 1
+
 }
 
 func main() {
@@ -53,7 +65,7 @@ func main() {
 	defer terminal.Restore(0, oldState)
 
 	e := NewEditor()
-
+	e.RefreshScreen()
 	// input loop
 	for {
 		err = e.ProcessKeyPress()
