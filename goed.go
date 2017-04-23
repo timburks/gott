@@ -7,27 +7,11 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"time"
 
-	"xmachine.net/go/goed/terminal"
+	"github.com/nsf/termbox-go"
 )
 
 const VERSION = "0.0.1"
-
-const (
-	CTRL_A      = 0x01
-	CTRL_E      = 0x05
-	CTRL_Q      = 0x11
-	ARROW_LEFT  = 1000
-	ARROW_RIGHT = 1001
-	ARROW_UP    = 1002
-	ARROW_DOWN  = 1003
-	PAGE_UP     = 1004
-	PAGE_DOWN   = 1005
-	HOME        = 1006
-	END         = 1007
-	DELETE      = 1008
-)
 
 type Row struct {
 	Text string
@@ -68,83 +52,40 @@ func (e *Editor) ReadFile(path string) error {
 	return nil
 }
 
-func (e *Editor) ReadKey() int {
-	var err error
-	b := make([]byte, 10)
-	n := 0
-	for n == 0 {
-		n, _ = os.Stdin.Read(b)
-		if n == 0 {
-			time.Sleep(time.Microsecond)
-		}
-	}
-	e.Message = fmt.Sprintf(" code=%02x", b[0:n])
-	if err != nil {
-		fmt.Print(err)
-	}
-	switch b[0] {
-	case 0x1b:
-		switch b[1] {
-		case 0x5b:
-			switch b[2] {
-			case 'A':
-				return ARROW_UP
-			case 'B':
-				return ARROW_DOWN
-			case 'C':
-				return ARROW_RIGHT
-			case 'D':
-				return ARROW_LEFT
-			case 0x31:
-				switch b[3] {
-				case 0x7e:
-					return HOME
-				}
-			case 0x33:
-				switch b[3] {
-				case 0x7e:
-					return DELETE
-				}
-			case 0x34:
-				switch b[3] {
-				case 0x7e:
-					return END
-				}
-			case 0x35:
-				switch b[3] {
-				case 0x7e:
-					return PAGE_UP
-				}
-			case 0x36:
-				switch b[3] {
-				case 0x7e:
-					return PAGE_DOWN
-				}
-			}
-		}
-	}
-	return int(b[0])
-}
-
 func (e *Editor) ProcessKeyPress() error {
-	key := e.ReadKey()
-	//e.Message += fmt.Sprintf(" key=%d", key)
+	event := termbox.PollEvent()
+
+	e.Message = fmt.Sprintf(" event=%+v", event)
+
+	switch event.Type {
+	case termbox.EventKey:
+		break // handle these below
+	case termbox.EventResize:
+		termbox.Flush()
+		return nil
+	default:
+		return nil
+	}
+
+	key := event.Key
 
 	switch key {
-	case CTRL_Q:
+	case termbox.KeyCtrlQ:
 		e.Exit()
 		return errors.New("quit")
-	case PAGE_UP:
-		for times := e.EditRows; times > 0; times-- {
-			e.MoveCursor(ARROW_UP)
+	case termbox.KeyPgup:
+		e.CursorRow = e.RowOffset
+		for i := 0; i < e.EditRows; i++ {
+			e.MoveCursor(termbox.KeyArrowUp)
 		}
-	case PAGE_DOWN:
-		for times := e.EditRows; times > 0; times-- {
-			e.MoveCursor(ARROW_DOWN)
+	case termbox.KeyPgdn:
+		e.CursorRow = e.RowOffset + e.EditRows - 1
+		for i := 0; i < e.EditRows; i++ {
+			e.MoveCursor(termbox.KeyArrowDown)
 		}
-	case CTRL_A:
+	case termbox.KeyCtrlA, termbox.KeyHome:
 		e.CursorCol = 0
-	case CTRL_E:
+	case termbox.KeyCtrlE, termbox.KeyEnd:
 		e.CursorCol = 0
 		if e.CursorRow < len(e.Rows) {
 			displayText := e.Rows[e.CursorRow].Text
@@ -152,7 +93,7 @@ func (e *Editor) ProcessKeyPress() error {
 			rowLength := len(displayText)
 			e.CursorCol = rowLength - 1
 		}
-	case ARROW_UP, ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT:
+	case termbox.KeyArrowUp, termbox.KeyArrowDown, termbox.KeyArrowLeft, termbox.KeyArrowRight:
 		e.MoveCursor(key)
 	}
 	return nil
@@ -174,10 +115,7 @@ func (e *Editor) Scroll() {
 }
 
 func (e *Editor) RefreshScreen() {
-	w, h, err := terminal.GetSize(0)
-	if err != nil {
-		fmt.Print(err)
-	}
+	w, h := termbox.Size()
 	e.ScreenRows = h
 	e.ScreenCols = w
 	e.EditRows = e.ScreenRows - 2
@@ -190,6 +128,8 @@ func (e *Editor) RefreshScreen() {
 	buffer = e.DrawRows(buffer)
 
 	buffer = append(buffer, []byte(fmt.Sprintf("\x1b[%d;%dH", e.CursorRow+1-e.RowOffset, e.CursorCol+1-e.ColOffset))...)
+
+	termbox.SetCursor(e.CursorRow+1-e.RowOffset, e.CursorCol+1-e.ColOffset)
 
 	buffer = append(buffer, []byte("\x1b[?25h")...) // show cursor
 	os.Stdout.Write(buffer)
@@ -252,10 +192,10 @@ func (e *Editor) DrawRows(buffer []byte) []byte {
 	return buffer
 }
 
-func (e *Editor) MoveCursor(key int) {
+func (e *Editor) MoveCursor(key termbox.Key) {
 
 	switch key {
-	case ARROW_LEFT:
+	case termbox.KeyArrowLeft:
 		if e.CursorCol > 0 {
 			e.CursorCol--
 		} else if e.CursorRow > 0 {
@@ -265,7 +205,7 @@ func (e *Editor) MoveCursor(key int) {
 			rowLength := len(displayText)
 			e.CursorCol = rowLength - 1
 		}
-	case ARROW_RIGHT:
+	case termbox.KeyArrowRight:
 		if e.CursorRow < len(e.Rows) {
 			displayText := e.Rows[e.CursorRow].Text
 			displayText = strings.Replace(displayText, "\t", "        ", -1)
@@ -277,11 +217,11 @@ func (e *Editor) MoveCursor(key int) {
 				e.CursorCol = 0
 			}
 		}
-	case ARROW_UP:
+	case termbox.KeyArrowUp:
 		if e.CursorRow > 0 {
 			e.CursorRow--
 		}
-	case ARROW_DOWN:
+	case termbox.KeyArrowDown:
 		if e.CursorRow < len(e.Rows)-1 {
 			e.CursorRow++
 		}
@@ -302,13 +242,11 @@ func (e *Editor) MoveCursor(key int) {
 }
 
 func main() {
-	// put the terminal into raw mode
-	oldState, err := terminal.MakeRaw(0)
+	err := termbox.Init()
 	if err != nil {
 		panic(err)
 	}
-	// restore terminal however we exit
-	defer terminal.Restore(0, oldState)
+	defer termbox.Close()
 
 	e := NewEditor()
 	e.ReadFile("goed.go")
