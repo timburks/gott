@@ -48,36 +48,46 @@ func (r *Row) InsertChar(position int, c rune) {
 	}
 	line += string(c)
 	if position < len(r.Text) {
-		line += r.Text[position+1:]
+		line += r.Text[position:]
 	}
 	r.Text = line
 }
 
+// delete
 func (r *Row) DeleteChar(position int) {
-	if position > r.Length() {
-		position = r.Length() - 1
-	}
-	if position < 0 {
+	if r.Length() == 0 {
 		return
+	}
+	if position > r.Length()-1 {
+		position = r.Length() - 1
 	}
 	r.Text = r.Text[0:position] + r.Text[position+1:]
 }
 
+// split
+func (r *Row) Split(position int) Row {
+	before := r.Text[0:position]
+	after := r.Text[position:]
+	r.Text = before
+	return NewRow(after)
+}
+
 // The Editor
 type Editor struct {
-	Mode       int
-	ScreenRows int
-	ScreenCols int
-	EditRows   int // actual number of rows used for text editing
-	EditCols   int
-	CursorRow  int
-	CursorCol  int
-	Message    string // status message
-	Rows       []Row
-	RowOffset  int
-	ColOffset  int
-	FileName   string
-	Command    string
+	Mode        int
+	ScreenRows  int
+	ScreenCols  int
+	EditRows    int // actual number of rows used for text editing
+	EditCols    int
+	CursorRow   int
+	CursorCol   int
+	Message     string // status message
+	Rows        []Row
+	RowOffset   int
+	ColOffset   int
+	FileName    string
+	Command     string
+	CommandKeys string
 }
 
 func NewEditor() *Editor {
@@ -167,7 +177,7 @@ func (e *Editor) PerformCommand() {
 func (e *Editor) ProcessNextEvent() error {
 	event := termbox.PollEvent()
 
-	e.Message = fmt.Sprintf("event=%+v", event)
+	//e.Message = fmt.Sprintf("event=%+v", event)
 
 	switch event.Type {
 	case termbox.EventResize:
@@ -182,6 +192,20 @@ func (e *Editor) ProcessNextEvent() error {
 	switch e.Mode {
 
 	case ModeEdit:
+
+		if e.CommandKeys == "d" {
+
+			ch := event.Ch
+			if ch != 0 {
+				switch ch {
+				case 'd':
+					e.DeleteRow()
+				}
+			}
+			e.CommandKeys = ""
+			return nil
+		}
+
 		key := event.Key
 		if key != 0 {
 			switch key {
@@ -229,6 +253,8 @@ func (e *Editor) ProcessNextEvent() error {
 				e.Mode = ModeInsert
 			case 'x':
 				e.DeleteChar()
+			case 'd':
+				e.CommandKeys = "d"
 			}
 		}
 
@@ -238,6 +264,12 @@ func (e *Editor) ProcessNextEvent() error {
 			switch key {
 			case termbox.KeyEsc:
 				e.Mode = ModeEdit
+			case termbox.KeyEnter:
+				e.InsertRow()
+				e.CursorRow++
+				e.CursorCol = 0
+			case termbox.KeySpace:
+				e.InsertChar(' ')
 			}
 		}
 		ch := event.Ch
@@ -371,20 +403,12 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 	case termbox.KeyArrowLeft:
 		if e.CursorCol > 0 {
 			e.CursorCol--
-		} else if e.CursorRow > 0 {
-			// wrap around
-			e.CursorRow--
-			e.CursorCol = e.Rows[e.CursorRow].Length() - 1
 		}
 	case termbox.KeyArrowRight:
 		if e.CursorRow < len(e.Rows) {
 			rowLength := e.Rows[e.CursorRow].Length()
 			if e.CursorCol < rowLength-1 {
 				e.CursorCol++
-			} else if e.CursorRow < len(e.Rows)-1 {
-				// wrap around
-				e.CursorRow++
-				e.CursorCol = 0
 			}
 		}
 	case termbox.KeyArrowUp:
@@ -422,7 +446,40 @@ func (e *Editor) DeleteChar() {
 		if e.CursorCol > e.Rows[e.CursorRow].Length()-1 {
 			e.CursorCol--
 		}
+		if e.CursorCol < 0 {
+			e.CursorCol = 0
+		}
 	}
+}
+
+func (e *Editor) InsertRow() {
+	if e.CursorRow > len(e.Rows)-1 {
+		e.Rows = append(e.Rows, NewRow(""))
+		e.CursorRow = len(e.Rows) - 1
+	} else {
+		position := e.CursorRow
+		newRow := e.Rows[position].Split(e.CursorCol)
+		e.Message = newRow.Text
+		i := position + 1
+		e.Rows = append(e.Rows, NewRow(""))
+		copy(e.Rows[i+1:], e.Rows[i:])
+		e.Rows[i] = newRow
+	}
+}
+
+func (e *Editor) DeleteRow() {
+	if len(e.Rows) == 0 {
+		return
+	}
+	position := e.CursorRow
+	e.Rows = append(e.Rows[0:position], e.Rows[position+1:]...)
+	if position > len(e.Rows)-1 {
+		position = len(e.Rows) - 1
+	}
+	if position < 0 {
+		position = 0
+	}
+	e.CursorRow = position
 }
 
 func main() {
