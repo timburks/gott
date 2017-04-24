@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/nsf/termbox-go"
@@ -91,6 +92,43 @@ func (e *Editor) ReadFile(path string) error {
 	return nil
 }
 
+func (e *Editor) PerformCommand() {
+
+	parts := strings.Split(e.Command, " ")
+	if len(parts) > 0 {
+
+		i, err := strconv.ParseInt(parts[0], 10, 64)
+		if err == nil {
+			e.CursorRow = int(i - 1)
+			if e.CursorRow > len(e.Rows)-1 {
+				e.CursorRow = len(e.Rows) - 1
+			}
+			if e.CursorRow < 0 {
+				e.CursorRow = 0
+			}
+		}
+		switch parts[0] {
+		case "q":
+			e.Mode = ModeQuit
+			return
+		case "r":
+			if len(parts) == 2 {
+				filename := parts[1]
+				e.ReadFile(filename)
+			}
+		case "$":
+			e.CursorRow = len(e.Rows) - 1
+			if e.CursorRow < 0 {
+				e.CursorRow = 0
+			}
+		default:
+			e.Message = "hey hey hey"
+		}
+	}
+	e.Command = ""
+	e.Mode = ModeView
+}
+
 func (e *Editor) ProcessNextEvent() error {
 	event := termbox.PollEvent()
 
@@ -130,6 +168,9 @@ func (e *Editor) ProcessNextEvent() error {
 				e.CursorCol = 0
 				if e.CursorRow < len(e.Rows) {
 					e.CursorCol = e.Rows[e.CursorRow].Length() - 1
+					if e.CursorCol < 0 {
+						e.CursorCol = 0
+					}
 				}
 			case termbox.KeyArrowUp, termbox.KeyArrowDown, termbox.KeyArrowLeft, termbox.KeyArrowRight:
 				e.MoveCursor(key)
@@ -137,9 +178,18 @@ func (e *Editor) ProcessNextEvent() error {
 		}
 		ch := event.Ch
 		if ch != 0 {
-			if ch == ':' {
+			switch ch {
+			case ':':
 				e.Mode = ModeCommand
 				e.Command = ""
+			case 'h':
+				e.MoveCursor(termbox.KeyArrowLeft)
+			case 'j':
+				e.MoveCursor(termbox.KeyArrowDown)
+			case 'k':
+				e.MoveCursor(termbox.KeyArrowUp)
+			case 'l':
+				e.MoveCursor(termbox.KeyArrowRight)
 			}
 		}
 
@@ -161,18 +211,13 @@ func (e *Editor) ProcessNextEvent() error {
 		if key != 0 {
 			switch key {
 			case termbox.KeyEnter:
-				if e.Command == "q" {
-					e.Mode = ModeQuit
-					e.Message = "bye!"
-				} else {
-					e.Mode = ModeView
-					e.Message = "hey hey hey"
-					e.Command = ""
-				}
+				e.PerformCommand()
 			case termbox.KeyBackspace2:
 				if len(e.Command) > 0 {
 					e.Command = e.Command[0 : len(e.Command)-1]
 				}
+			case termbox.KeySpace:
+				e.Command += " "
 			}
 		}
 		ch := event.Ch
@@ -337,7 +382,6 @@ func main() {
 	defer termbox.Close()
 
 	e := NewEditor()
-	e.ReadFile("goed.go")
 	for e.Mode != ModeQuit {
 		e.DrawScreen()
 		e.ProcessNextEvent()
