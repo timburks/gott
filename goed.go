@@ -14,7 +14,7 @@ const VERSION = "0.0.1"
 
 // Editor modes
 const (
-	ModeView    = 0
+	ModeEdit    = 0
 	ModeInsert  = 1
 	ModeCommand = 2
 	ModeQuit    = 9999
@@ -53,6 +53,16 @@ func (r *Row) InsertChar(position int, c rune) {
 	r.Text = line
 }
 
+func (r *Row) DeleteChar(position int) {
+	if position > r.Length() {
+		position = r.Length() - 1
+	}
+	if position < 0 {
+		return
+	}
+	r.Text = r.Text[0:position] + r.Text[position+1:]
+}
+
 // The Editor
 type Editor struct {
 	Mode       int
@@ -73,7 +83,7 @@ type Editor struct {
 func NewEditor() *Editor {
 	e := &Editor{}
 	e.Rows = make([]Row, 0)
-	e.Mode = ModeView
+	e.Mode = ModeEdit
 	return e
 }
 
@@ -89,6 +99,23 @@ func (e *Editor) ReadFile(path string) error {
 		e.Rows = append(e.Rows, NewRow(line))
 	}
 	e.FileName = path
+	return nil
+}
+
+func (e *Editor) WriteFile(path string) error {
+	if false {
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		s := string(b)
+		lines := strings.Split(s, "\n")
+		e.Rows = make([]Row, 0)
+		for _, line := range lines {
+			e.Rows = append(e.Rows, NewRow(line))
+		}
+		e.FileName = path
+	}
 	return nil
 }
 
@@ -116,6 +143,14 @@ func (e *Editor) PerformCommand() {
 				filename := parts[1]
 				e.ReadFile(filename)
 			}
+		case "w":
+			var filename string
+			if len(parts) == 2 {
+				filename = parts[2]
+			} else {
+				filename = e.FileName
+			}
+			e.WriteFile(filename)
 		case "$":
 			e.CursorRow = len(e.Rows) - 1
 			if e.CursorRow < 0 {
@@ -126,7 +161,7 @@ func (e *Editor) PerformCommand() {
 		}
 	}
 	e.Command = ""
-	e.Mode = ModeView
+	e.Mode = ModeEdit
 }
 
 func (e *Editor) ProcessNextEvent() error {
@@ -146,7 +181,7 @@ func (e *Editor) ProcessNextEvent() error {
 
 	switch e.Mode {
 
-	case ModeView:
+	case ModeEdit:
 		key := event.Key
 		if key != 0 {
 			switch key {
@@ -190,6 +225,10 @@ func (e *Editor) ProcessNextEvent() error {
 				e.MoveCursor(termbox.KeyArrowUp)
 			case 'l':
 				e.MoveCursor(termbox.KeyArrowRight)
+			case 'i':
+				e.Mode = ModeInsert
+			case 'x':
+				e.DeleteChar()
 			}
 		}
 
@@ -198,7 +237,7 @@ func (e *Editor) ProcessNextEvent() error {
 		if key != 0 {
 			switch key {
 			case termbox.KeyEsc:
-				e.Mode = ModeView
+				e.Mode = ModeEdit
 			}
 		}
 		ch := event.Ch
@@ -370,8 +409,20 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 }
 
 func (e *Editor) InsertChar(c rune) {
+	if len(e.Rows) == 0 {
+		e.Rows = append(e.Rows, NewRow(""))
+	}
 	e.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
 	e.CursorCol += 1
+}
+
+func (e *Editor) DeleteChar() {
+	if len(e.Rows) > 0 {
+		e.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+		if e.CursorCol > e.Rows[e.CursorRow].Length()-1 {
+			e.CursorCol--
+		}
+	}
 }
 
 func main() {
