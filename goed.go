@@ -11,6 +11,14 @@ import (
 
 const VERSION = "0.0.1"
 
+// Editor modes
+const (
+	ModeView    = 0
+	ModeInsert  = 1
+	ModeCommand = 2
+	ModeQuit    = 9999
+)
+
 // A row of text in the editor
 type Row struct {
 	Text string
@@ -46,6 +54,7 @@ func (r *Row) InsertChar(position int, c rune) {
 
 // The Editor
 type Editor struct {
+	Mode       int
 	ScreenRows int
 	ScreenCols int
 	EditRows   int // actual number of rows used for text editing
@@ -57,13 +66,13 @@ type Editor struct {
 	RowOffset  int
 	ColOffset  int
 	FileName   string
-	Running    bool
+	Command    string
 }
 
 func NewEditor() *Editor {
 	e := &Editor{}
 	e.Rows = make([]Row, 0)
-	e.Running = true
+	e.Mode = ModeView
 	return e
 }
 
@@ -97,36 +106,81 @@ func (e *Editor) ProcessNextEvent() error {
 		return nil
 	}
 
-	key := event.Key
-	if key != 0 {
-		switch key {
-		case termbox.KeyCtrlQ:
-			e.Running = false
-		case termbox.KeyPgup:
-			e.CursorRow = e.RowOffset
-			for i := 0; i < e.EditRows; i++ {
-				e.MoveCursor(termbox.KeyArrowUp)
+	switch e.Mode {
+
+	case ModeView:
+		key := event.Key
+		if key != 0 {
+			switch key {
+			case termbox.KeyEsc:
+				break
+			case termbox.KeyPgup:
+				e.CursorRow = e.RowOffset
+				for i := 0; i < e.EditRows; i++ {
+					e.MoveCursor(termbox.KeyArrowUp)
+				}
+			case termbox.KeyPgdn:
+				e.CursorRow = e.RowOffset + e.EditRows - 1
+				for i := 0; i < e.EditRows; i++ {
+					e.MoveCursor(termbox.KeyArrowDown)
+				}
+			case termbox.KeyCtrlA, termbox.KeyHome:
+				e.CursorCol = 0
+			case termbox.KeyCtrlE, termbox.KeyEnd:
+				e.CursorCol = 0
+				if e.CursorRow < len(e.Rows) {
+					e.CursorCol = e.Rows[e.CursorRow].Length() - 1
+				}
+			case termbox.KeyArrowUp, termbox.KeyArrowDown, termbox.KeyArrowLeft, termbox.KeyArrowRight:
+				e.MoveCursor(key)
 			}
-		case termbox.KeyPgdn:
-			e.CursorRow = e.RowOffset + e.EditRows - 1
-			for i := 0; i < e.EditRows; i++ {
-				e.MoveCursor(termbox.KeyArrowDown)
+		}
+		ch := event.Ch
+		if ch != 0 {
+			if ch == ':' {
+				e.Mode = ModeCommand
+				e.Command = ""
 			}
-		case termbox.KeyCtrlA, termbox.KeyHome:
-			e.CursorCol = 0
-		case termbox.KeyCtrlE, termbox.KeyEnd:
-			e.CursorCol = 0
-			if e.CursorRow < len(e.Rows) {
-				e.CursorCol = e.Rows[e.CursorRow].Length() - 1
+		}
+
+	case ModeInsert:
+		key := event.Key
+		if key != 0 {
+			switch key {
+			case termbox.KeyEsc:
+				e.Mode = ModeView
 			}
-		case termbox.KeyArrowUp, termbox.KeyArrowDown, termbox.KeyArrowLeft, termbox.KeyArrowRight:
-			e.MoveCursor(key)
+		}
+		ch := event.Ch
+		if ch != 0 {
+			e.InsertChar(ch)
+		}
+
+	case ModeCommand:
+		key := event.Key
+		if key != 0 {
+			switch key {
+			case termbox.KeyEnter:
+				if e.Command == "q" {
+					e.Mode = ModeQuit
+					e.Message = "bye!"
+				} else {
+					e.Mode = ModeView
+					e.Message = "hey hey hey"
+					e.Command = ""
+				}
+			case termbox.KeyBackspace2:
+				if len(e.Command) > 0 {
+					e.Command = e.Command[0 : len(e.Command)-1]
+				}
+			}
+		}
+		ch := event.Ch
+		if ch != 0 {
+			e.Command = e.Command + string(ch)
 		}
 	}
-	ch := event.Ch
-	if ch != 0 {
-		e.InsertChar(ch)
-	}
+
 	return nil
 }
 
@@ -182,13 +236,19 @@ func (e *Editor) DrawRows(buffer []byte) []byte {
 			buffer = append(buffer, []byte("\x1b[m")...)
 			buffer = append(buffer, []byte("\r\n")...)
 		} else if y == e.ScreenRows-1 {
-			// draw message bar
-			text := e.Message
-			if len(text) > e.ScreenCols {
-				text = text[0:e.ScreenCols]
+
+			if e.Mode == ModeCommand {
+				buffer = append(buffer, []byte(":"+e.Command)...)
+				buffer = append(buffer, []byte("\x1b[K")...)
+			} else {
+				// draw message bar
+				text := e.Message
+				if len(text) > e.ScreenCols {
+					text = text[0:e.ScreenCols]
+				}
+				buffer = append(buffer, []byte(text)...)
+				buffer = append(buffer, []byte("\x1b[K")...)
 			}
-			buffer = append(buffer, []byte(text)...)
-			buffer = append(buffer, []byte("\x1b[K")...)
 		} else if (y + e.RowOffset) < len(e.Rows) {
 			// draw editor text
 			line := e.Rows[y+e.RowOffset].DisplayText()
@@ -278,7 +338,7 @@ func main() {
 
 	e := NewEditor()
 	e.ReadFile("goed.go")
-	for e.Running {
+	for e.Mode != ModeQuit {
 		e.DrawScreen()
 		e.ProcessNextEvent()
 	}
