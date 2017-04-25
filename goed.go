@@ -268,7 +268,6 @@ func (e *Editor) ProcessNextEvent() error {
 	// EDIT MODE
 	//
 	case ModeEdit:
-
 		if e.CommandKeys == "d" {
 			ch := event.Ch
 			if ch != 0 {
@@ -359,6 +358,8 @@ func (e *Editor) ProcessNextEvent() error {
 				e.DeleteCharacterUnderCursor()
 			case 'd':
 				e.CommandKeys = "d"
+			case 'p':
+				e.Paste()
 			case 'n':
 				e.PerformSearch()
 			case 'r':
@@ -615,6 +616,7 @@ func (e *Editor) DeleteRow() {
 		return
 	}
 	position := e.CursorRow
+	e.PasteBoard = e.Rows[position].Text
 	e.Rows = append(e.Rows[0:position], e.Rows[position+1:]...)
 	if position > len(e.Rows)-1 {
 		position = len(e.Rows) - 1
@@ -772,4 +774,11 @@ func (e *Editor) Bytes() []byte {
 		s += row.Text + "\n"
 	}
 	return []byte(s)
+}
+
+func (e *Editor) Paste() {
+	e.InsertLineBelowCursor()
+	for _, c := range e.PasteBoard {
+		e.InsertChar(c)
+	}
 }

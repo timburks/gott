@@ -1,8 +1,6 @@
 
 command multipliers
 
-r  - replace character
-dd,p - cut and paste
 yy - copy
 J - join lines
 
