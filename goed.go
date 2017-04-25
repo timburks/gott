@@ -228,7 +228,12 @@ func (e *Editor) PerformSearch() {
 	col := e.CursorCol + 1
 
 	for {
-		s := e.Rows[row].Text[col:]
+		var s string
+		if col < e.Rows[row].Length() {
+			s = e.Rows[row].Text[col:]
+		} else {
+			s = ""
+		}
 		i := strings.Index(s, e.SearchText)
 		if i != -1 {
 			// found it
