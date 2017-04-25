@@ -621,6 +621,12 @@ func (e *Editor) KeepCursorInRow() {
 	if len(e.Rows) == 0 {
 		e.CursorCol = 0
 	} else {
+		if e.CursorRow >= len(e.Rows) {
+			e.CursorRow = len(e.Rows) - 1
+		}
+		if e.CursorRow < 0 {
+			e.CursorRow = 0
+		}
 		lastIndexInRow := e.Rows[e.CursorRow].Length() - 1
 		if e.CursorCol > lastIndexInRow {
 			e.CursorCol = lastIndexInRow
