@@ -60,6 +60,13 @@ func (r *Row) InsertChar(position int, c rune) {
 	r.Text = line
 }
 
+func (r *Row) ReplaceChar(position int, c rune) {
+	if (position < 0) || (position >= len(r.Text)) {
+		return
+	}
+	r.Text = r.Text[0:position] + string(c) + r.Text[position+1:]
+}
+
 // delete character at position and return the deleted character
 func (r *Row) DeleteChar(position int) rune {
 	if r.Length() == 0 {
@@ -263,7 +270,6 @@ func (e *Editor) ProcessNextEvent() error {
 	case ModeEdit:
 
 		if e.CommandKeys == "d" {
-
 			ch := event.Ch
 			if ch != 0 {
 				switch ch {
@@ -273,6 +279,14 @@ func (e *Editor) ProcessNextEvent() error {
 					e.DeleteWord()
 				}
 				e.KeepCursorInRow()
+			}
+			e.CommandKeys = ""
+			return nil
+		}
+		if e.CommandKeys == "r" {
+			ch := event.Ch
+			if ch != 0 {
+				e.Rows[e.CursorRow].ReplaceChar(e.CursorCol, ch)
 			}
 			e.CommandKeys = ""
 			return nil
@@ -347,6 +361,8 @@ func (e *Editor) ProcessNextEvent() error {
 				e.CommandKeys = "d"
 			case 'n':
 				e.PerformSearch()
+			case 'r':
+				e.CommandKeys = "r"
 			}
 		}
 	//
@@ -698,6 +714,9 @@ func (e *Editor) InsertLineBelowCursor() {
 	e.Rows[i+1] = NewRow("")
 	e.CursorRow = i + 1
 	e.CursorCol = 0
+}
+
+func (e *Editor) ReplaceCharacter() {
 }
 
 func main() {
