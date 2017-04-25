@@ -54,14 +54,16 @@ func (r *Row) InsertChar(position int, c rune) {
 }
 
 // delete
-func (r *Row) DeleteChar(position int) {
+func (r *Row) DeleteChar(position int) rune {
 	if r.Length() == 0 {
-		return
+		return 0
 	}
 	if position > r.Length()-1 {
 		position = r.Length() - 1
 	}
+	ch := rune(r.Text[position])
 	r.Text = r.Text[0:position] + r.Text[position+1:]
+	return ch
 }
 
 // split
@@ -172,7 +174,7 @@ func (e *Editor) PerformCommand() {
 func (e *Editor) ProcessNextEvent() error {
 	event := termbox.PollEvent()
 
-	//e.Message = fmt.Sprintf("event=%+v", event)
+	e.Message = fmt.Sprintf("event=%+v", event)
 
 	switch event.Type {
 	case termbox.EventResize:
@@ -185,7 +187,9 @@ func (e *Editor) ProcessNextEvent() error {
 	}
 
 	switch e.Mode {
-
+	//
+	// EDIT MODE
+	//
 	case ModeEdit:
 
 		if e.CommandKeys == "d" {
@@ -195,7 +199,10 @@ func (e *Editor) ProcessNextEvent() error {
 				switch ch {
 				case 'd':
 					e.DeleteRow()
+				case 'w':
+					e.DeleteWord()
 				}
+				e.KeepCursorInRow()
 			}
 			e.CommandKeys = ""
 			return nil
@@ -246,19 +253,40 @@ func (e *Editor) ProcessNextEvent() error {
 				e.MoveCursor(termbox.KeyArrowRight)
 			case 'i':
 				e.Mode = ModeInsert
+			case 'a':
+				e.CursorCol++
+				e.Mode = ModeInsert
+			case 'I':
+				e.MoveCursorToStartOfLine()
+				e.Mode = ModeInsert
+			case 'A':
+				e.MoveCursorPastEndOfLine()
+				e.Mode = ModeInsert
+			case 'o':
+				e.InsertLineBelowCursor()
+				e.Mode = ModeInsert
+			case 'O':
+				e.InsertLineAboveCursor()
+				e.Mode = ModeInsert
 			case 'x':
-				e.DeleteChar()
+				e.DeleteCharacterUnderCursor()
 			case 'd':
 				e.CommandKeys = "d"
 			}
 		}
-
+	//
+	// INSERT MODE
+	//
 	case ModeInsert:
 		key := event.Key
 		if key != 0 {
 			switch key {
+			case termbox.KeyBackspace2:
+				e.MoveCursor(termbox.KeyArrowLeft)
+				e.DeleteCharacterUnderCursor()
 			case termbox.KeyEsc:
 				e.Mode = ModeEdit
+				e.KeepCursorInRow()
 			case termbox.KeyEnter:
 				e.InsertRow()
 				e.CursorRow++
@@ -272,10 +300,15 @@ func (e *Editor) ProcessNextEvent() error {
 			e.InsertChar(ch)
 		}
 
+	//
+	// COMMAND MODE
+	//
 	case ModeCommand:
 		key := event.Key
 		if key != 0 {
 			switch key {
+			case termbox.KeyEsc:
+				e.Mode = ModeEdit
 			case termbox.KeyEnter:
 				e.PerformCommand()
 			case termbox.KeyBackspace2:
@@ -435,18 +468,6 @@ func (e *Editor) InsertChar(c rune) {
 	e.CursorCol += 1
 }
 
-func (e *Editor) DeleteChar() {
-	if len(e.Rows) > 0 {
-		e.Rows[e.CursorRow].DeleteChar(e.CursorCol)
-		if e.CursorCol > e.Rows[e.CursorRow].Length()-1 {
-			e.CursorCol--
-		}
-		if e.CursorCol < 0 {
-			e.CursorCol = 0
-		}
-	}
-}
-
 func (e *Editor) InsertRow() {
 	if e.CursorRow > len(e.Rows)-1 {
 		e.Rows = append(e.Rows, NewRow(""))
@@ -475,6 +496,91 @@ func (e *Editor) DeleteRow() {
 		position = 0
 	}
 	e.CursorRow = position
+}
+
+func (e *Editor) DeleteWord() {
+	if len(e.Rows) == 0 {
+		return
+	}
+
+	c := e.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+	for {
+		if e.CursorCol > e.Rows[e.CursorRow].Length()-1 {
+			break
+		}
+		if c == ' ' {
+			break
+		}
+		c = e.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+	}
+	if e.CursorCol > e.Rows[e.CursorRow].Length()-1 {
+		e.CursorCol--
+	}
+	if e.CursorCol < 0 {
+		e.CursorCol = 0
+	}
+}
+
+func (e *Editor) DeleteCharacterUnderCursor() {
+	if len(e.Rows) == 0 {
+		return
+	}
+	e.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+	if e.CursorCol > e.Rows[e.CursorRow].Length()-1 {
+		e.CursorCol--
+	}
+	if e.CursorCol < 0 {
+		e.CursorCol = 0
+	}
+}
+
+func (e *Editor) MoveCursorToStartOfLine() {
+	e.CursorCol = 0
+}
+
+func (e *Editor) MoveCursorPastEndOfLine() {
+	if len(e.Rows) == 0 {
+		return
+	}
+	e.CursorCol = e.Rows[e.CursorRow].Length()
+}
+
+func (e *Editor) KeepCursorInRow() {
+	if len(e.Rows) == 0 {
+		e.CursorCol = 0
+	} else {
+		lastIndexInRow := e.Rows[e.CursorRow].Length() - 1
+		if e.CursorCol > lastIndexInRow {
+			e.CursorCol = lastIndexInRow
+		}
+		if e.CursorCol < 0 {
+			e.CursorCol = 0
+		}
+	}
+}
+
+func (e *Editor) InsertLineAboveCursor() {
+	if len(e.Rows) == 0 {
+		e.InsertChar(' ')
+	}
+	i := e.CursorRow
+	e.Rows = append(e.Rows, NewRow(""))
+	copy(e.Rows[i+1:], e.Rows[i:])
+	e.Rows[i] = NewRow("")
+	e.CursorRow = i
+	e.CursorCol = 0
+}
+
+func (e *Editor) InsertLineBelowCursor() {
+	if len(e.Rows) == 0 {
+		e.InsertChar(' ')
+	}
+	i := e.CursorRow
+	e.Rows = append(e.Rows, NewRow(""))
+	copy(e.Rows[i+2:], e.Rows[i+1:])
+	e.Rows[i+1] = NewRow("")
+	e.CursorRow = i + 1
+	e.CursorCol = 0
 }
 
 func main() {
