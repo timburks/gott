@@ -1,16 +1,21 @@
+// a good editor
+
 package main
 
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/nsf/termbox-go"
 )
 
-const VERSION = "0.1.0"
+const VERSION = "0.1.1"
 
 // Editor modes
 const (
@@ -26,9 +31,10 @@ type Row struct {
 	Text string
 }
 
+// We replace any tabs with spaces
 func NewRow(text string) Row {
 	r := Row{}
-	r.Text = strings.Replace(text, "\t", "    ", -1)
+	r.Text = strings.Replace(text, "\t", "        ", -1)
 	return r
 }
 
@@ -54,7 +60,7 @@ func (r *Row) InsertChar(position int, c rune) {
 	r.Text = line
 }
 
-// delete
+// delete character at position and return the deleted character
 func (r *Row) DeleteChar(position int) rune {
 	if r.Length() == 0 {
 		return 0
@@ -67,7 +73,7 @@ func (r *Row) DeleteChar(position int) rune {
 	return ch
 }
 
-// split
+// split row at position, return a new row containing the remaining text.
 func (r *Row) Split(position int) Row {
 	before := r.Text[0:position]
 	after := r.Text[position:]
@@ -93,6 +99,7 @@ type Editor struct {
 	CommandKeys string
 	SearchText  string
 	Debug       bool
+	PasteBoard  string
 }
 
 func NewEditor() *Editor {
@@ -107,14 +114,18 @@ func (e *Editor) ReadFile(path string) error {
 	if err != nil {
 		return err
 	}
+	e.ReadBytes(b)
+	e.FileName = path
+	return nil
+}
+
+func (e *Editor) ReadBytes(b []byte) {
 	s := string(b)
 	lines := strings.Split(s, "\n")
 	e.Rows = make([]Row, 0)
 	for _, line := range lines {
 		e.Rows = append(e.Rows, NewRow(line))
 	}
-	e.FileName = path
-	return nil
 }
 
 func (e *Editor) WriteFile(path string) error {
@@ -123,8 +134,12 @@ func (e *Editor) WriteFile(path string) error {
 		return err
 	}
 	defer f.Close()
-	for _, row := range e.Rows {
-		f.WriteString(row.Text + "\n")
+	b := e.Bytes()
+	out, err := gofmt(e.FileName, b)
+	if err == nil {
+		f.Write(out)
+	} else {
+		f.Write(b)
 	}
 	return nil
 }
@@ -179,6 +194,11 @@ func (e *Editor) PerformCommand() {
 			e.WriteFile(filename)
 			e.Mode = ModeQuit
 			return
+		case "fmt":
+			out, err := gofmt(e.FileName, e.Bytes())
+			if err == nil {
+				e.ReadBytes(out)
+			}
 		case "$":
 			e.CursorRow = len(e.Rows) - 1
 			if e.CursorRow < 0 {
@@ -339,6 +359,14 @@ func (e *Editor) ProcessNextEvent() error {
 			case termbox.KeyBackspace2:
 				e.MoveCursor(termbox.KeyArrowLeft)
 				e.DeleteCharacterUnderCursor()
+			case termbox.KeyTab:
+				e.InsertChar(' ')
+				for {
+					if e.CursorCol%8 == 0 {
+						break
+					}
+					e.InsertChar(' ')
+				}
 			case termbox.KeyEsc:
 				e.Mode = ModeEdit
 				e.KeepCursorInRow()
@@ -492,7 +520,7 @@ func (e *Editor) DrawRows(buffer []byte) []byte {
 			buffer = append(buffer, []byte("\r\n")...)
 		} else {
 			if y == e.ScreenRows/3 {
-				welcome := fmt.Sprintf("goed editor -- version %s", VERSION)
+				welcome := fmt.Sprintf("the goed editor -- version %s", VERSION)
 				padding := (e.ScreenCols - len(welcome)) / 2
 				buffer = append(buffer, []byte("~")...)
 				for i := 1; i <= padding; i++ {
@@ -690,4 +718,39 @@ func main() {
 		e.DrawScreen()
 		e.ProcessNextEvent()
 	}
+}
+
+// Run the gofmt tool.
+func gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error) {
+	if false {
+		return inputBytes, nil
+	}
+	cmd := exec.Command(runtime.GOROOT() + "/bin/gofmt")
+	input, _ := cmd.StdinPipe()
+	output, _ := cmd.StdoutPipe()
+	cmderr, _ := cmd.StderrPipe()
+	err = cmd.Start()
+	if err != nil {
+		return
+	}
+	input.Write(inputBytes)
+	input.Close()
+
+	outputBytes, _ = ioutil.ReadAll(output)
+	errors, _ := ioutil.ReadAll(cmderr)
+	if len(errors) > 0 {
+		errors := strings.Replace(string(errors), "<standard input>", filename, -1)
+		log.Printf("Syntax errors in code:\n%s", errors)
+		return inputBytes, nil
+	}
+
+	return
+}
+
+func (e *Editor) Bytes() []byte {
+	s := ""
+	for _, row := range e.Rows {
+		s += row.Text + "\n"
+	}
+	return []byte(s)
 }
