@@ -107,6 +107,7 @@ type Editor struct {
 	SearchText  string
 	Debug       bool
 	PasteBoard  string
+	Multiplier  string
 }
 
 func NewEditor() *Editor {
@@ -323,6 +324,8 @@ func (e *Editor) ProcessNextEvent() error {
 		ch := event.Ch
 		if ch != 0 {
 			switch ch {
+			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+				e.Multiplier += string(ch)
 			case ':':
 				e.Mode = ModeCommand
 				e.Command = ""
@@ -388,9 +391,7 @@ func (e *Editor) ProcessNextEvent() error {
 				e.Mode = ModeEdit
 				e.KeepCursorInRow()
 			case termbox.KeyEnter:
-				e.InsertRow()
-				e.CursorRow++
-				e.CursorCol = 0
+				e.InsertChar('\n')
 			case termbox.KeySpace:
 				e.InsertChar(' ')
 			}
@@ -589,6 +590,12 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 }
 
 func (e *Editor) InsertChar(c rune) {
+	if c == '\n' {
+		e.InsertRow()
+		e.CursorRow++
+		e.CursorCol = 0
+		return
+	}
 	if len(e.Rows) == 0 {
 		e.Rows = append(e.Rows, NewRow(""))
 	}
@@ -611,20 +618,40 @@ func (e *Editor) InsertRow() {
 	}
 }
 
+func (e *Editor) MultiplierValue() int {
+	if e.Multiplier == "" {
+		return 1
+	}
+	i, err := strconv.ParseInt(e.Multiplier, 10, 64)
+	if err != nil {
+		e.Multiplier = ""
+		return 1
+	}
+	e.Multiplier = ""
+	return int(i)
+}
+
 func (e *Editor) DeleteRow() {
 	if len(e.Rows) == 0 {
 		return
 	}
-	position := e.CursorRow
-	e.PasteBoard = e.Rows[position].Text
-	e.Rows = append(e.Rows[0:position], e.Rows[position+1:]...)
-	if position > len(e.Rows)-1 {
-		position = len(e.Rows) - 1
+	e.PasteBoard = ""
+	N := e.MultiplierValue()
+	for i := 0; i < N; i++ {
+		if i > 0 {
+			e.PasteBoard += "\n"
+		}
+		position := e.CursorRow
+		e.PasteBoard += e.Rows[position].Text
+		e.Rows = append(e.Rows[0:position], e.Rows[position+1:]...)
+		if position > len(e.Rows)-1 {
+			position = len(e.Rows) - 1
+		}
+		if position < 0 {
+			position = 0
+		}
+		e.CursorRow = position
 	}
-	if position < 0 {
-		position = 0
-	}
-	e.CursorRow = position
 }
 
 func (e *Editor) DeleteWord() {
