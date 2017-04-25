@@ -17,6 +17,7 @@ const (
 	ModeEdit    = 0
 	ModeInsert  = 1
 	ModeCommand = 2
+	ModeSearch  = 3
 	ModeQuit    = 9999
 )
 
@@ -90,6 +91,7 @@ type Editor struct {
 	FileName    string
 	Command     string
 	CommandKeys string
+	SearchText  string
 }
 
 func NewEditor() *Editor {
@@ -127,7 +129,6 @@ func (e *Editor) WriteFile(path string) error {
 }
 
 func (e *Editor) PerformCommand() {
-
 	parts := strings.Split(e.Command, " ")
 	if len(parts) > 0 {
 
@@ -179,6 +180,34 @@ func (e *Editor) PerformCommand() {
 	}
 	e.Command = ""
 	e.Mode = ModeEdit
+}
+
+func (e *Editor) PerformSearch() {
+	if len(e.Rows) == 0 {
+		return
+	}
+	row := e.CursorRow
+	col := e.CursorCol + 1
+
+	for {
+		s := e.Rows[row].Text[col:]
+		i := strings.Index(s, e.SearchText)
+		if i != -1 {
+			// found it
+			e.CursorRow = row
+			e.CursorCol = col + i
+			return
+		} else {
+			col = 0
+			row = row + 1
+			if row == len(e.Rows) {
+				row = 0
+			}
+		}
+		if row == e.CursorRow {
+			break
+		}
+	}
 }
 
 func (e *Editor) ProcessNextEvent() error {
@@ -253,6 +282,9 @@ func (e *Editor) ProcessNextEvent() error {
 			case ':':
 				e.Mode = ModeCommand
 				e.Command = ""
+			case '/':
+				e.Mode = ModeSearch
+				e.SearchText = ""
 			case 'h':
 				e.MoveCursor(termbox.KeyArrowLeft)
 			case 'j':
@@ -282,6 +314,8 @@ func (e *Editor) ProcessNextEvent() error {
 				e.DeleteCharacterUnderCursor()
 			case 'd':
 				e.CommandKeys = "d"
+			case 'n':
+				e.PerformSearch()
 			}
 		}
 	//
@@ -332,6 +366,31 @@ func (e *Editor) ProcessNextEvent() error {
 		ch := event.Ch
 		if ch != 0 {
 			e.Command = e.Command + string(ch)
+		}
+
+	//
+	// SEARCH MODE
+	//
+	case ModeSearch:
+		key := event.Key
+		if key != 0 {
+			switch key {
+			case termbox.KeyEsc:
+				e.Mode = ModeEdit
+			case termbox.KeyEnter:
+				e.PerformSearch()
+				e.Mode = ModeEdit
+			case termbox.KeyBackspace2:
+				if len(e.SearchText) > 0 {
+					e.SearchText = e.SearchText[0 : len(e.SearchText)-1]
+				}
+			case termbox.KeySpace:
+				e.SearchText += " "
+			}
+		}
+		ch := event.Ch
+		if ch != 0 {
+			e.SearchText = e.SearchText + string(ch)
 		}
 	}
 
@@ -390,9 +449,12 @@ func (e *Editor) DrawRows(buffer []byte) []byte {
 			buffer = append(buffer, []byte("\x1b[m")...)
 			buffer = append(buffer, []byte("\r\n")...)
 		} else if y == e.ScreenRows-1 {
-
+			// draw bottom bar: message or command line
 			if e.Mode == ModeCommand {
 				buffer = append(buffer, []byte(":"+e.Command)...)
+				buffer = append(buffer, []byte("\x1b[K")...)
+			} else if e.Mode == ModeSearch {
+				buffer = append(buffer, []byte("/"+e.SearchText)...)
 				buffer = append(buffer, []byte("\x1b[K")...)
 			} else {
 				// draw message bar
