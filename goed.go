@@ -158,6 +158,16 @@ func (e *Editor) PerformCommand() {
 				filename = e.FileName
 			}
 			e.WriteFile(filename)
+		case "wq":
+			var filename string
+			if len(parts) == 2 {
+				filename = parts[1]
+			} else {
+				filename = e.FileName
+			}
+			e.WriteFile(filename)
+			e.Mode = ModeQuit
+			return
 		case "$":
 			e.CursorRow = len(e.Rows) - 1
 			if e.CursorRow < 0 {
