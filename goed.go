@@ -113,18 +113,13 @@ func (e *Editor) ReadFile(path string) error {
 }
 
 func (e *Editor) WriteFile(path string) error {
-	if false {
-		b, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		s := string(b)
-		lines := strings.Split(s, "\n")
-		e.Rows = make([]Row, 0)
-		for _, line := range lines {
-			e.Rows = append(e.Rows, NewRow(line))
-		}
-		e.FileName = path
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	for _, row := range e.Rows {
+		f.WriteString(row.Text + "\n")
 	}
 	return nil
 }
@@ -156,7 +151,7 @@ func (e *Editor) PerformCommand() {
 		case "w":
 			var filename string
 			if len(parts) == 2 {
-				filename = parts[2]
+				filename = parts[1]
 			} else {
 				filename = e.FileName
 			}
@@ -490,6 +485,12 @@ func main() {
 	defer termbox.Close()
 
 	e := NewEditor()
+
+	if len(os.Args) > 1 {
+		filename := os.Args[1]
+		e.ReadFile(filename)
+	}
+
 	for e.Mode != ModeQuit {
 		e.DrawScreen()
 		e.ProcessNextEvent()
