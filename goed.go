@@ -92,6 +92,7 @@ type Editor struct {
 	Command     string
 	CommandKeys string
 	SearchText  string
+	Debug       bool
 }
 
 func NewEditor() *Editor {
@@ -150,6 +151,15 @@ func (e *Editor) PerformCommand() {
 			if len(parts) == 2 {
 				filename := parts[1]
 				e.ReadFile(filename)
+			}
+		case "debug":
+			if len(parts) == 2 {
+				if parts[1] == "on" {
+					e.Debug = true
+				} else if parts[1] == "off" {
+					e.Debug = false
+					e.Message = ""
+				}
 			}
 		case "w":
 			var filename string
@@ -213,8 +223,9 @@ func (e *Editor) PerformSearch() {
 func (e *Editor) ProcessNextEvent() error {
 	event := termbox.PollEvent()
 
-	e.Message = fmt.Sprintf("event=%+v", event)
-
+	if e.Debug {
+		e.Message = fmt.Sprintf("event=%+v", event)
+	}
 	switch event.Type {
 	case termbox.EventResize:
 		termbox.Flush()
