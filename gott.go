@@ -543,7 +543,7 @@ func (e *Editor) DrawRows(buffer []byte) []byte {
 			buffer = append(buffer, []byte("\r\n")...)
 		} else {
 			if y == e.ScreenRows/3 {
-				welcome := fmt.Sprintf("the goed editor -- version %s", VERSION)
+				welcome := fmt.Sprintf("the gott editor -- version %s", VERSION)
 				padding := (e.ScreenCols - len(welcome)) / 2
 				buffer = append(buffer, []byte("~")...)
 				for i := 1; i <= padding; i++ {
