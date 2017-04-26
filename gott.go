@@ -296,7 +296,17 @@ func (e *Editor) ProcessNextEvent() error {
 			e.CommandKeys = ""
 			return nil
 		}
-
+		if e.CommandKeys == "y" {
+			ch := event.Ch
+			switch ch {
+			case 'y':
+				e.YankRow()
+			default:
+				break
+			}
+			e.CommandKeys = ""
+			return nil
+		}
 		key := event.Key
 		if key != 0 {
 			switch key {
@@ -366,6 +376,8 @@ func (e *Editor) ProcessNextEvent() error {
 				e.DeleteCharacterUnderCursor()
 			case 'd':
 				e.CommandKeys = "d"
+			case 'y':
+				e.CommandKeys = "y"
 			case 'p':
 				e.Paste()
 			case 'n':
@@ -501,7 +513,7 @@ func (e *Editor) DrawRows(buffer []byte) []byte {
 			// draw status bar
 			buffer = append(buffer, []byte("\x1b[7m")...)
 			finalText := fmt.Sprintf(" %d/%d ", e.CursorRow, len(e.Rows))
-			text := " " + e.FileName + " "
+			text := " the gott editor - " + e.FileName + " "
 			for len(text) < e.ScreenCols-len(finalText)-1 {
 				text = text + " "
 			}
@@ -604,6 +616,9 @@ func (e *Editor) InsertChar(c rune) {
 	if len(e.Rows) == 0 {
 		e.Rows = append(e.Rows, NewRow(""))
 	}
+	for e.CursorRow >= len(e.Rows) {
+		e.Rows = append(e.Rows, NewRow(""))
+	}
 	e.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
 	e.CursorCol += 1
 }
@@ -656,6 +671,23 @@ func (e *Editor) DeleteRow() {
 			position = 0
 		}
 		e.CursorRow = position
+	}
+}
+
+func (e *Editor) YankRow() {
+	if len(e.Rows) == 0 {
+		return
+	}
+	e.PasteBoard = ""
+	N := e.MultiplierValue()
+	for i := 0; i < N; i++ {
+		if i > 0 {
+			e.PasteBoard += "\n"
+		}
+		position := e.CursorRow + i
+		if position < len(e.Rows) {
+			e.PasteBoard += e.Rows[position].Text
+		}
 	}
 }
 
