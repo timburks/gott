@@ -253,22 +253,26 @@ func (e *Editor) PerformSearch() {
 	}
 }
 
-func (e *Editor) ProcessNextEvent() error {
-	event := termbox.PollEvent()
-
+func (e *Editor) ProcessEvent(event termbox.Event) error {
 	if e.Debug {
 		e.Message = fmt.Sprintf("event=%+v", event)
 	}
 	switch event.Type {
 	case termbox.EventResize:
-		termbox.Flush()
-		return nil
+		return e.ProcessResize(event)
 	case termbox.EventKey:
-		break // handle these below
+		return e.ProcessKey(event)
 	default:
 		return nil
 	}
+}
 
+func (e *Editor) ProcessResize(event termbox.Event) error {
+	termbox.Flush()
+	return nil
+}
+
+func (e *Editor) ProcessKey(event termbox.Event) error {
 	switch e.Mode {
 	//
 	// EDIT MODE
@@ -790,7 +794,8 @@ func main() {
 
 	for e.Mode != ModeQuit {
 		e.DrawScreen()
-		e.ProcessNextEvent()
+		event := termbox.PollEvent()
+		e.ProcessEvent(event)
 	}
 }
 
@@ -822,7 +827,7 @@ func gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error) {
 }
 
 func (e *Editor) Bytes() []byte {
-	s := ""
+	var s string
 	for _, row := range e.Rows {
 		s += row.Text + "\n"
 	}
