@@ -471,6 +471,22 @@ func (e *Editor) ProcessNextEvent() error {
 	return nil
 }
 
+func (e *Editor) DrawScreen() {
+	termbox.Clear(termbox.ColorBlack, termbox.ColorWhite)
+	w, h := termbox.Size()
+	e.ScreenRows = h
+	e.ScreenCols = w
+	e.EditRows = e.ScreenRows - 2
+	e.EditCols = e.ScreenCols
+
+	e.Scroll()
+	e.RenderInfoBar()
+	e.RenderMessageBar()
+	e.RenderTextArea()
+	termbox.SetCursor(e.CursorCol-e.ColOffset, e.CursorRow-e.RowOffset)
+	termbox.Flush()
+}
+
 func (e *Editor) Scroll() {
 	if e.CursorRow < e.RowOffset {
 		e.RowOffset = e.CursorRow
@@ -486,90 +502,63 @@ func (e *Editor) Scroll() {
 	}
 }
 
-func (e *Editor) DrawScreen() {
-	w, h := termbox.Size()
-	e.ScreenRows = h
-	e.ScreenCols = w
-	e.EditRows = e.ScreenRows - 2
-	e.EditCols = e.ScreenCols
-
-	e.Scroll()
-	buffer := make([]byte, 0)
-	buffer = append(buffer, []byte("\x1b[?25l")...) // hide cursor
-	buffer = append(buffer, []byte("\x1b[1;1H")...) // move cursor to row 1, col 1
-	buffer = e.DrawRows(buffer)
-
-	buffer = append(buffer, []byte(fmt.Sprintf("\x1b[%d;%dH", e.CursorRow+1-e.RowOffset, e.CursorCol+1-e.ColOffset))...)
-
-	termbox.SetCursor(e.CursorRow+1-e.RowOffset, e.CursorCol+1-e.ColOffset)
-
-	buffer = append(buffer, []byte("\x1b[?25h")...) // show cursor
-	os.Stdout.Write(buffer)
+func (e *Editor) RenderInfoBar() {
+	finalText := fmt.Sprintf(" %d/%d ", e.CursorRow, len(e.Rows))
+	text := " the gott editor - " + e.FileName + " "
+	for len(text) < e.ScreenCols-len(finalText)-1 {
+		text = text + " "
+	}
+	text += finalText
+	for x, c := range text {
+		termbox.SetCell(x, e.ScreenRows-2, rune(c), termbox.ColorWhite, termbox.ColorBlack)
+	}
 }
 
-func (e *Editor) DrawRows(buffer []byte) []byte {
-	for y := 0; y < e.ScreenRows; y++ {
-		if y == e.ScreenRows-2 {
-			// draw status bar
-			buffer = append(buffer, []byte("\x1b[7m")...)
-			finalText := fmt.Sprintf(" %d/%d ", e.CursorRow, len(e.Rows))
-			text := " the gott editor - " + e.FileName + " "
-			for len(text) < e.ScreenCols-len(finalText)-1 {
-				text = text + " "
-			}
-			text += finalText
-			buffer = append(buffer, []byte(text)...)
-			buffer = append(buffer, []byte("\x1b[K")...)
-			buffer = append(buffer, []byte("\x1b[m")...)
-			buffer = append(buffer, []byte("\r\n")...)
-		} else if y == e.ScreenRows-1 {
-			// draw bottom bar: message or command line
-			if e.Mode == ModeCommand {
-				buffer = append(buffer, []byte(":"+e.Command)...)
-				buffer = append(buffer, []byte("\x1b[K")...)
-			} else if e.Mode == ModeSearch {
-				buffer = append(buffer, []byte("/"+e.SearchText)...)
-				buffer = append(buffer, []byte("\x1b[K")...)
-			} else {
-				// draw message bar
-				text := e.Message
-				if len(text) > e.ScreenCols {
-					text = text[0:e.ScreenCols]
-				}
-				buffer = append(buffer, []byte(text)...)
-				buffer = append(buffer, []byte("\x1b[K")...)
-			}
-		} else if (y + e.RowOffset) < len(e.Rows) {
-			// draw editor text
-			line := e.Rows[y+e.RowOffset].DisplayText()
+func (e *Editor) RenderMessageBar() {
+	var line string
+	if e.Mode == ModeCommand {
+		line += ":" + e.Command
+	} else if e.Mode == ModeSearch {
+		line += "/" + e.SearchText
+	} else {
+		line += e.Message
+	}
+	if len(line) > e.ScreenCols {
+		line = line[0:e.ScreenCols]
+	}
+	for x, c := range line {
+		termbox.SetCell(x, e.ScreenRows-1, rune(c), termbox.ColorBlack, termbox.ColorWhite)
+	}
+}
+
+func (e *Editor) RenderTextArea() {
+	for y := 0; y < e.ScreenRows-2; y++ {
+		var line string
+		if (y + e.RowOffset) < len(e.Rows) {
+			line = e.Rows[y+e.RowOffset].DisplayText()
 			if e.ColOffset < len(line) {
 				line = line[e.ColOffset:]
 			} else {
 				line = ""
 			}
-			if len(line) > e.ScreenCols {
-				line = line[0:e.ScreenCols]
-			}
-			buffer = append(buffer, []byte(line)...)
-			buffer = append(buffer, []byte("\x1b[K")...)
-			buffer = append(buffer, []byte("\r\n")...)
 		} else {
+			line = "~"
 			if y == e.ScreenRows/3 {
 				welcome := fmt.Sprintf("the gott editor -- version %s", VERSION)
 				padding := (e.ScreenCols - len(welcome)) / 2
-				buffer = append(buffer, []byte("~")...)
 				for i := 1; i <= padding; i++ {
-					buffer = append(buffer, []byte(" ")...)
+					line = line + " "
 				}
-				buffer = append(buffer, []byte(welcome)...)
-			} else {
-				buffer = append(buffer, []byte("~")...)
+				line += welcome
 			}
-			buffer = append(buffer, []byte("\x1b[K")...)
-			buffer = append(buffer, []byte("\r\n")...)
+		}
+		if len(line) > e.ScreenCols {
+			line = line[0:e.ScreenCols]
+		}
+		for x, c := range line {
+			termbox.SetCell(x, y, rune(c), termbox.ColorBlack, termbox.ColorWhite)
 		}
 	}
-	return buffer
 }
 
 func (e *Editor) MoveCursor(key termbox.Key) {
