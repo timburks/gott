@@ -209,10 +209,11 @@ func (e *Editor) ProcessKey(event termbox.Event) error {
 				switch ch {
 				case 'd':
 					e.DeleteRow()
+					e.KeepCursorInRow()
 				case 'w':
 					e.DeleteWord()
+					e.KeepCursorInRow()
 				}
-				e.KeepCursorInRow()
 			}
 			e.CommandKeys = ""
 			return nil
@@ -401,7 +402,7 @@ func (e *Editor) ProcessKey(event termbox.Event) error {
 }
 
 func (e *Editor) Render() {
-	termbox.Clear(termbox.ColorBlack, termbox.ColorWhite)
+	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
 	w, h := termbox.Size()
 	e.ScreenRows = h
 	e.ScreenCols = w
@@ -411,7 +412,12 @@ func (e *Editor) Render() {
 	e.Scroll()
 	e.RenderInfoBar()
 	e.RenderMessageBar()
-	e.RenderTextArea()
+	e.Buffer.X = 0
+	e.Buffer.Y = 0
+	e.Buffer.W = e.ScreenCols
+	e.Buffer.H = e.ScreenRows - 2
+	e.Buffer.YOffset = e.RowOffset
+	e.Buffer.Render()
 	termbox.SetCursor(e.CursorCol-e.ColOffset, e.CursorRow-e.RowOffset)
 	termbox.Flush()
 }
@@ -439,7 +445,9 @@ func (e *Editor) RenderInfoBar() {
 	}
 	text += finalText
 	for x, c := range text {
-		termbox.SetCell(x, e.ScreenRows-2, rune(c), termbox.ColorWhite, termbox.ColorBlack)
+		termbox.SetCell(x, e.ScreenRows-2,
+			rune(c),
+			termbox.ColorBlack, termbox.ColorWhite)
 	}
 }
 
@@ -457,36 +465,6 @@ func (e *Editor) RenderMessageBar() {
 	}
 	for x, c := range line {
 		termbox.SetCell(x, e.ScreenRows-1, rune(c), termbox.ColorBlack, termbox.ColorWhite)
-	}
-}
-
-func (e *Editor) RenderTextArea() {
-	for y := 0; y < e.ScreenRows-2; y++ {
-		var line string
-		if (y + e.RowOffset) < len(e.Buffer.Rows) {
-			line = e.Buffer.Rows[y+e.RowOffset].DisplayText()
-			if e.ColOffset < len(line) {
-				line = line[e.ColOffset:]
-			} else {
-				line = ""
-			}
-		} else {
-			line = "~"
-			if y == e.ScreenRows/3 {
-				welcome := fmt.Sprintf("the gott editor -- version %s", VERSION)
-				padding := (e.ScreenCols - len(welcome)) / 2
-				for i := 1; i <= padding; i++ {
-					line = line + " "
-				}
-				line += welcome
-			}
-		}
-		if len(line) > e.ScreenCols {
-			line = line[0:e.ScreenCols]
-		}
-		for x, c := range line {
-			termbox.SetCell(x, y, rune(c), termbox.ColorBlack, termbox.ColorWhite)
-		}
 	}
 }
 
@@ -524,38 +502,6 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 	}
 }
 
-func (e *Editor) InsertChar(c rune) {
-	if c == '\n' {
-		e.InsertRow()
-		e.CursorRow++
-		e.CursorCol = 0
-		return
-	}
-	if len(e.Buffer.Rows) == 0 {
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-	}
-	for e.CursorRow >= len(e.Buffer.Rows) {
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-	}
-	e.Buffer.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
-	e.CursorCol += 1
-}
-
-func (e *Editor) InsertRow() {
-	if e.CursorRow > len(e.Buffer.Rows)-1 {
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-		e.CursorRow = len(e.Buffer.Rows) - 1
-	} else {
-		position := e.CursorRow
-		newRow := e.Buffer.Rows[position].Split(e.CursorCol)
-		e.Message = newRow.Text
-		i := position + 1
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-		copy(e.Buffer.Rows[i+1:], e.Buffer.Rows[i:])
-		e.Buffer.Rows[i] = newRow
-	}
-}
-
 func (e *Editor) MultiplierValue() int {
 	if e.Multiplier == "" {
 		return 1
@@ -567,145 +513,4 @@ func (e *Editor) MultiplierValue() int {
 	}
 	e.Multiplier = ""
 	return int(i)
-}
-
-func (e *Editor) DeleteRow() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
-	e.PasteBoard = ""
-	N := e.MultiplierValue()
-	for i := 0; i < N; i++ {
-		if i > 0 {
-			e.PasteBoard += "\n"
-		}
-		position := e.CursorRow
-		e.PasteBoard += e.Buffer.Rows[position].Text
-		e.Buffer.Rows = append(e.Buffer.Rows[0:position], e.Buffer.Rows[position+1:]...)
-		if position > len(e.Buffer.Rows)-1 {
-			position = len(e.Buffer.Rows) - 1
-		}
-		if position < 0 {
-			position = 0
-		}
-		e.CursorRow = position
-	}
-}
-
-func (e *Editor) YankRow() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
-	e.PasteBoard = ""
-	N := e.MultiplierValue()
-	for i := 0; i < N; i++ {
-		if i > 0 {
-			e.PasteBoard += "\n"
-		}
-		position := e.CursorRow + i
-		if position < len(e.Buffer.Rows) {
-			e.PasteBoard += e.Buffer.Rows[position].Text
-		}
-	}
-}
-
-func (e *Editor) DeleteWord() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
-
-	c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
-	for {
-		if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
-			break
-		}
-		if c == ' ' {
-			break
-		}
-		c = e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
-	}
-	if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
-		e.CursorCol--
-	}
-	if e.CursorCol < 0 {
-		e.CursorCol = 0
-	}
-}
-
-func (e *Editor) DeleteCharacterUnderCursor() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
-	e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
-	if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
-		e.CursorCol--
-	}
-	if e.CursorCol < 0 {
-		e.CursorCol = 0
-	}
-}
-
-func (e *Editor) MoveCursorToStartOfLine() {
-	e.CursorCol = 0
-}
-
-func (e *Editor) MoveCursorPastEndOfLine() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
-	e.CursorCol = e.Buffer.Rows[e.CursorRow].Length()
-}
-
-func (e *Editor) KeepCursorInRow() {
-	if len(e.Buffer.Rows) == 0 {
-		e.CursorCol = 0
-	} else {
-		if e.CursorRow >= len(e.Buffer.Rows) {
-			e.CursorRow = len(e.Buffer.Rows) - 1
-		}
-		if e.CursorRow < 0 {
-			e.CursorRow = 0
-		}
-		lastIndexInRow := e.Buffer.Rows[e.CursorRow].Length() - 1
-		if e.CursorCol > lastIndexInRow {
-			e.CursorCol = lastIndexInRow
-		}
-		if e.CursorCol < 0 {
-			e.CursorCol = 0
-		}
-	}
-}
-
-func (e *Editor) InsertLineAboveCursor() {
-	if len(e.Buffer.Rows) == 0 {
-		e.InsertChar(' ')
-	}
-	i := e.CursorRow
-	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-	copy(e.Buffer.Rows[i+1:], e.Buffer.Rows[i:])
-	e.Buffer.Rows[i] = NewRow("")
-	e.CursorRow = i
-	e.CursorCol = 0
-}
-
-func (e *Editor) InsertLineBelowCursor() {
-	if len(e.Buffer.Rows) == 0 {
-		e.InsertChar(' ')
-	}
-	i := e.CursorRow
-	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-	copy(e.Buffer.Rows[i+2:], e.Buffer.Rows[i+1:])
-	e.Buffer.Rows[i+1] = NewRow("")
-	e.CursorRow = i + 1
-	e.CursorCol = 0
-}
-
-func (e *Editor) ReplaceCharacter() {
-}
-
-func (e *Editor) Paste() {
-	e.InsertLineBelowCursor()
-	for _, c := range e.PasteBoard {
-		e.InsertChar(c)
-	}
 }

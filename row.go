@@ -36,11 +36,14 @@ func (r *Row) InsertChar(position int, c rune) {
 	r.Text = line
 }
 
-func (r *Row) ReplaceChar(position int, c rune) {
+// replace character at position and return the replaced character
+func (r *Row) ReplaceChar(position int, c rune) rune {
 	if (position < 0) || (position >= len(r.Text)) {
-		return
+		return rune(0)
 	}
+	result := rune(r.Text[position])
 	r.Text = r.Text[0:position] + string(c) + r.Text[position+1:]
+	return result
 }
 
 // delete character at position and return the deleted character
