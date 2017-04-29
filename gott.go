@@ -27,7 +27,7 @@ func main() {
 
 	// run the editor event loop
 	for e.Mode != ModeQuit {
-		e.DrawScreen()
+		e.Render()
 		e.ProcessEvent(termbox.PollEvent())
 	}
 }

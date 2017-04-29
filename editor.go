@@ -19,7 +19,7 @@ const (
 	ModeQuit    = 9999
 )
 
-// The Editor
+// The Editor handles user commands and displays buffer text.
 type Editor struct {
 	Mode        int
 	ScreenRows  int
@@ -29,21 +29,20 @@ type Editor struct {
 	CursorRow   int
 	CursorCol   int
 	Message     string // status message
-	Rows        []Row
 	RowOffset   int
 	ColOffset   int
-	FileName    string
 	Command     string
 	CommandKeys string
 	SearchText  string
 	Debug       bool
 	PasteBoard  string
 	Multiplier  string
+	Buffer      *Buffer
 }
 
 func NewEditor() *Editor {
 	e := &Editor{}
-	e.Rows = make([]Row, 0)
+	e.Buffer = NewBuffer()
 	e.Mode = ModeEdit
 	return e
 }
@@ -53,18 +52,13 @@ func (e *Editor) ReadFile(path string) error {
 	if err != nil {
 		return err
 	}
-	e.ReadBytes(b)
-	e.FileName = path
+	e.Buffer.ReadBytes(b)
+	e.Buffer.FileName = path
 	return nil
 }
 
-func (e *Editor) ReadBytes(b []byte) {
-	s := string(b)
-	lines := strings.Split(s, "\n")
-	e.Rows = make([]Row, 0)
-	for _, line := range lines {
-		e.Rows = append(e.Rows, NewRow(line))
-	}
+func (e *Editor) Bytes() []byte {
+	return e.Buffer.Bytes()
 }
 
 func (e *Editor) WriteFile(path string) error {
@@ -74,7 +68,7 @@ func (e *Editor) WriteFile(path string) error {
 	}
 	defer f.Close()
 	b := e.Bytes()
-	out, err := gofmt(e.FileName, b)
+	out, err := gofmt(e.Buffer.FileName, b)
 	if err == nil {
 		f.Write(out)
 	} else {
@@ -90,8 +84,8 @@ func (e *Editor) PerformCommand() {
 		i, err := strconv.ParseInt(parts[0], 10, 64)
 		if err == nil {
 			e.CursorRow = int(i - 1)
-			if e.CursorRow > len(e.Rows)-1 {
-				e.CursorRow = len(e.Rows) - 1
+			if e.CursorRow > len(e.Buffer.Rows)-1 {
+				e.CursorRow = len(e.Buffer.Rows) - 1
 			}
 			if e.CursorRow < 0 {
 				e.CursorRow = 0
@@ -120,7 +114,7 @@ func (e *Editor) PerformCommand() {
 			if len(parts) == 2 {
 				filename = parts[1]
 			} else {
-				filename = e.FileName
+				filename = e.Buffer.FileName
 			}
 			e.WriteFile(filename)
 		case "wq":
@@ -128,23 +122,23 @@ func (e *Editor) PerformCommand() {
 			if len(parts) == 2 {
 				filename = parts[1]
 			} else {
-				filename = e.FileName
+				filename = e.Buffer.FileName
 			}
 			e.WriteFile(filename)
 			e.Mode = ModeQuit
 			return
 		case "fmt":
-			out, err := gofmt(e.FileName, e.Bytes())
+			out, err := gofmt(e.Buffer.FileName, e.Bytes())
 			if err == nil {
-				e.ReadBytes(out)
+				e.Buffer.ReadBytes(out)
 			}
 		case "$":
-			e.CursorRow = len(e.Rows) - 1
+			e.CursorRow = len(e.Buffer.Rows) - 1
 			if e.CursorRow < 0 {
 				e.CursorRow = 0
 			}
 		default:
-			e.Message = "hey hey hey"
+			e.Message = "nope"
 		}
 	}
 	e.Command = ""
@@ -152,7 +146,7 @@ func (e *Editor) PerformCommand() {
 }
 
 func (e *Editor) PerformSearch() {
-	if len(e.Rows) == 0 {
+	if len(e.Buffer.Rows) == 0 {
 		return
 	}
 	row := e.CursorRow
@@ -160,8 +154,8 @@ func (e *Editor) PerformSearch() {
 
 	for {
 		var s string
-		if col < e.Rows[row].Length() {
-			s = e.Rows[row].Text[col:]
+		if col < e.Buffer.Rows[row].Length() {
+			s = e.Buffer.Rows[row].Text[col:]
 		} else {
 			s = ""
 		}
@@ -174,7 +168,7 @@ func (e *Editor) PerformSearch() {
 		} else {
 			col = 0
 			row = row + 1
-			if row == len(e.Rows) {
+			if row == len(e.Buffer.Rows) {
 				row = 0
 			}
 		}
@@ -226,7 +220,7 @@ func (e *Editor) ProcessKey(event termbox.Event) error {
 		if e.CommandKeys == "r" {
 			ch := event.Ch
 			if ch != 0 {
-				e.Rows[e.CursorRow].ReplaceChar(e.CursorCol, ch)
+				e.Buffer.Rows[e.CursorRow].ReplaceChar(e.CursorCol, ch)
 			}
 			e.CommandKeys = ""
 			return nil
@@ -261,8 +255,8 @@ func (e *Editor) ProcessKey(event termbox.Event) error {
 				e.CursorCol = 0
 			case termbox.KeyCtrlE, termbox.KeyEnd:
 				e.CursorCol = 0
-				if e.CursorRow < len(e.Rows) {
-					e.CursorCol = e.Rows[e.CursorRow].Length() - 1
+				if e.CursorRow < len(e.Buffer.Rows) {
+					e.CursorCol = e.Buffer.Rows[e.CursorRow].Length() - 1
 					if e.CursorCol < 0 {
 						e.CursorCol = 0
 					}
@@ -406,7 +400,7 @@ func (e *Editor) ProcessKey(event termbox.Event) error {
 	return nil
 }
 
-func (e *Editor) DrawScreen() {
+func (e *Editor) Render() {
 	termbox.Clear(termbox.ColorBlack, termbox.ColorWhite)
 	w, h := termbox.Size()
 	e.ScreenRows = h
@@ -438,8 +432,8 @@ func (e *Editor) Scroll() {
 }
 
 func (e *Editor) RenderInfoBar() {
-	finalText := fmt.Sprintf(" %d/%d ", e.CursorRow, len(e.Rows))
-	text := " the gott editor - " + e.FileName + " "
+	finalText := fmt.Sprintf(" %d/%d ", e.CursorRow, len(e.Buffer.Rows))
+	text := " the gott editor - " + e.Buffer.FileName + " "
 	for len(text) < e.ScreenCols-len(finalText)-1 {
 		text = text + " "
 	}
@@ -469,8 +463,8 @@ func (e *Editor) RenderMessageBar() {
 func (e *Editor) RenderTextArea() {
 	for y := 0; y < e.ScreenRows-2; y++ {
 		var line string
-		if (y + e.RowOffset) < len(e.Rows) {
-			line = e.Rows[y+e.RowOffset].DisplayText()
+		if (y + e.RowOffset) < len(e.Buffer.Rows) {
+			line = e.Buffer.Rows[y+e.RowOffset].DisplayText()
 			if e.ColOffset < len(line) {
 				line = line[e.ColOffset:]
 			} else {
@@ -503,8 +497,8 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 			e.CursorCol--
 		}
 	case termbox.KeyArrowRight:
-		if e.CursorRow < len(e.Rows) {
-			rowLength := e.Rows[e.CursorRow].Length()
+		if e.CursorRow < len(e.Buffer.Rows) {
+			rowLength := e.Buffer.Rows[e.CursorRow].Length()
 			if e.CursorCol < rowLength-1 {
 				e.CursorCol++
 			}
@@ -514,13 +508,13 @@ func (e *Editor) MoveCursor(key termbox.Key) {
 			e.CursorRow--
 		}
 	case termbox.KeyArrowDown:
-		if e.CursorRow < len(e.Rows)-1 {
+		if e.CursorRow < len(e.Buffer.Rows)-1 {
 			e.CursorRow++
 		}
 	}
 	// don't go past the end of the current line
-	if e.CursorRow < len(e.Rows) {
-		rowLength := e.Rows[e.CursorRow].Length()
+	if e.CursorRow < len(e.Buffer.Rows) {
+		rowLength := e.Buffer.Rows[e.CursorRow].Length()
 		if e.CursorCol > rowLength-1 {
 			e.CursorCol = rowLength - 1
 			if e.CursorCol < 0 {
@@ -537,28 +531,28 @@ func (e *Editor) InsertChar(c rune) {
 		e.CursorCol = 0
 		return
 	}
-	if len(e.Rows) == 0 {
-		e.Rows = append(e.Rows, NewRow(""))
+	if len(e.Buffer.Rows) == 0 {
+		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
 	}
-	for e.CursorRow >= len(e.Rows) {
-		e.Rows = append(e.Rows, NewRow(""))
+	for e.CursorRow >= len(e.Buffer.Rows) {
+		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
 	}
-	e.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
+	e.Buffer.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
 	e.CursorCol += 1
 }
 
 func (e *Editor) InsertRow() {
-	if e.CursorRow > len(e.Rows)-1 {
-		e.Rows = append(e.Rows, NewRow(""))
-		e.CursorRow = len(e.Rows) - 1
+	if e.CursorRow > len(e.Buffer.Rows)-1 {
+		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+		e.CursorRow = len(e.Buffer.Rows) - 1
 	} else {
 		position := e.CursorRow
-		newRow := e.Rows[position].Split(e.CursorCol)
+		newRow := e.Buffer.Rows[position].Split(e.CursorCol)
 		e.Message = newRow.Text
 		i := position + 1
-		e.Rows = append(e.Rows, NewRow(""))
-		copy(e.Rows[i+1:], e.Rows[i:])
-		e.Rows[i] = newRow
+		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+		copy(e.Buffer.Rows[i+1:], e.Buffer.Rows[i:])
+		e.Buffer.Rows[i] = newRow
 	}
 }
 
@@ -576,7 +570,7 @@ func (e *Editor) MultiplierValue() int {
 }
 
 func (e *Editor) DeleteRow() {
-	if len(e.Rows) == 0 {
+	if len(e.Buffer.Rows) == 0 {
 		return
 	}
 	e.PasteBoard = ""
@@ -586,10 +580,10 @@ func (e *Editor) DeleteRow() {
 			e.PasteBoard += "\n"
 		}
 		position := e.CursorRow
-		e.PasteBoard += e.Rows[position].Text
-		e.Rows = append(e.Rows[0:position], e.Rows[position+1:]...)
-		if position > len(e.Rows)-1 {
-			position = len(e.Rows) - 1
+		e.PasteBoard += e.Buffer.Rows[position].Text
+		e.Buffer.Rows = append(e.Buffer.Rows[0:position], e.Buffer.Rows[position+1:]...)
+		if position > len(e.Buffer.Rows)-1 {
+			position = len(e.Buffer.Rows) - 1
 		}
 		if position < 0 {
 			position = 0
@@ -599,7 +593,7 @@ func (e *Editor) DeleteRow() {
 }
 
 func (e *Editor) YankRow() {
-	if len(e.Rows) == 0 {
+	if len(e.Buffer.Rows) == 0 {
 		return
 	}
 	e.PasteBoard = ""
@@ -609,28 +603,28 @@ func (e *Editor) YankRow() {
 			e.PasteBoard += "\n"
 		}
 		position := e.CursorRow + i
-		if position < len(e.Rows) {
-			e.PasteBoard += e.Rows[position].Text
+		if position < len(e.Buffer.Rows) {
+			e.PasteBoard += e.Buffer.Rows[position].Text
 		}
 	}
 }
 
 func (e *Editor) DeleteWord() {
-	if len(e.Rows) == 0 {
+	if len(e.Buffer.Rows) == 0 {
 		return
 	}
 
-	c := e.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+	c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
 	for {
-		if e.CursorCol > e.Rows[e.CursorRow].Length()-1 {
+		if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
 			break
 		}
 		if c == ' ' {
 			break
 		}
-		c = e.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+		c = e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
 	}
-	if e.CursorCol > e.Rows[e.CursorRow].Length()-1 {
+	if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
 		e.CursorCol--
 	}
 	if e.CursorCol < 0 {
@@ -639,11 +633,11 @@ func (e *Editor) DeleteWord() {
 }
 
 func (e *Editor) DeleteCharacterUnderCursor() {
-	if len(e.Rows) == 0 {
+	if len(e.Buffer.Rows) == 0 {
 		return
 	}
-	e.Rows[e.CursorRow].DeleteChar(e.CursorCol)
-	if e.CursorCol > e.Rows[e.CursorRow].Length()-1 {
+	e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+	if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
 		e.CursorCol--
 	}
 	if e.CursorCol < 0 {
@@ -656,23 +650,23 @@ func (e *Editor) MoveCursorToStartOfLine() {
 }
 
 func (e *Editor) MoveCursorPastEndOfLine() {
-	if len(e.Rows) == 0 {
+	if len(e.Buffer.Rows) == 0 {
 		return
 	}
-	e.CursorCol = e.Rows[e.CursorRow].Length()
+	e.CursorCol = e.Buffer.Rows[e.CursorRow].Length()
 }
 
 func (e *Editor) KeepCursorInRow() {
-	if len(e.Rows) == 0 {
+	if len(e.Buffer.Rows) == 0 {
 		e.CursorCol = 0
 	} else {
-		if e.CursorRow >= len(e.Rows) {
-			e.CursorRow = len(e.Rows) - 1
+		if e.CursorRow >= len(e.Buffer.Rows) {
+			e.CursorRow = len(e.Buffer.Rows) - 1
 		}
 		if e.CursorRow < 0 {
 			e.CursorRow = 0
 		}
-		lastIndexInRow := e.Rows[e.CursorRow].Length() - 1
+		lastIndexInRow := e.Buffer.Rows[e.CursorRow].Length() - 1
 		if e.CursorCol > lastIndexInRow {
 			e.CursorCol = lastIndexInRow
 		}
@@ -683,38 +677,30 @@ func (e *Editor) KeepCursorInRow() {
 }
 
 func (e *Editor) InsertLineAboveCursor() {
-	if len(e.Rows) == 0 {
+	if len(e.Buffer.Rows) == 0 {
 		e.InsertChar(' ')
 	}
 	i := e.CursorRow
-	e.Rows = append(e.Rows, NewRow(""))
-	copy(e.Rows[i+1:], e.Rows[i:])
-	e.Rows[i] = NewRow("")
+	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+	copy(e.Buffer.Rows[i+1:], e.Buffer.Rows[i:])
+	e.Buffer.Rows[i] = NewRow("")
 	e.CursorRow = i
 	e.CursorCol = 0
 }
 
 func (e *Editor) InsertLineBelowCursor() {
-	if len(e.Rows) == 0 {
+	if len(e.Buffer.Rows) == 0 {
 		e.InsertChar(' ')
 	}
 	i := e.CursorRow
-	e.Rows = append(e.Rows, NewRow(""))
-	copy(e.Rows[i+2:], e.Rows[i+1:])
-	e.Rows[i+1] = NewRow("")
+	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+	copy(e.Buffer.Rows[i+2:], e.Buffer.Rows[i+1:])
+	e.Buffer.Rows[i+1] = NewRow("")
 	e.CursorRow = i + 1
 	e.CursorCol = 0
 }
 
 func (e *Editor) ReplaceCharacter() {
-}
-
-func (e *Editor) Bytes() []byte {
-	var s string
-	for _, row := range e.Rows {
-		s += row.Text + "\n"
-	}
-	return []byte(s)
 }
 
 func (e *Editor) Paste() {
