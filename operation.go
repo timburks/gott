@@ -35,9 +35,7 @@ func (e *Editor) InsertChar(c rune) {
 		e.CursorCol = 0
 		return
 	}
-	if len(e.Buffer.Rows) == 0 {
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-	}
+	// if the cursor is past the nmber of rows, add a row
 	for e.CursorRow >= len(e.Buffer.Rows) {
 		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
 	}
