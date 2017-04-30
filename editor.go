@@ -269,14 +269,22 @@ func (e *Editor) ProcessKey(event termbox.Event) error {
 		ch := event.Ch
 		if ch != 0 {
 			switch ch {
+			//
+			// command multipliers are saved when operations are created
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 				e.Multiplier += string(ch)
+			//
+			// commands go to the message bar
 			case ':':
 				e.Mode = ModeCommand
 				e.Command = ""
+			//
+			// search queries go to the message bar
 			case '/':
 				e.Mode = ModeSearch
 				e.SearchText = ""
+			//
+			// cursor movement isn't logged
 			case 'h':
 				e.MoveCursor(termbox.KeyArrowLeft)
 			case 'j':
@@ -285,9 +293,13 @@ func (e *Editor) ProcessKey(event termbox.Event) error {
 				e.MoveCursor(termbox.KeyArrowUp)
 			case 'l':
 				e.MoveCursor(termbox.KeyArrowRight)
+			//
+			// operations are saved for undo and repetition
 			case 'i':
+				// insert at current location
 				e.Mode = ModeInsert
 			case 'a':
+				// insert one character past the current location
 				e.CursorCol++
 				e.Mode = ModeInsert
 			case 'I':
@@ -323,6 +335,13 @@ func (e *Editor) ProcessKey(event termbox.Event) error {
 		key := event.Key
 		if key != 0 {
 			switch key {
+			case termbox.KeyEsc:
+				// ESC ends an operation.
+				// We need to tell the operation that it finished
+				// and what was inserted. It should return its own undo.
+				// .. todo ..
+				e.Mode = ModeEdit
+				e.KeepCursorInRow()
 			case termbox.KeyBackspace2:
 				e.MoveCursor(termbox.KeyArrowLeft)
 				e.DeleteCharacterUnderCursor()
@@ -334,9 +353,6 @@ func (e *Editor) ProcessKey(event termbox.Event) error {
 					}
 					e.InsertChar(' ')
 				}
-			case termbox.KeyEsc:
-				e.Mode = ModeEdit
-				e.KeepCursorInRow()
 			case termbox.KeyEnter:
 				e.InsertChar('\n')
 			case termbox.KeySpace:
