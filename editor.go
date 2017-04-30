@@ -34,23 +34,23 @@ const (
 
 // The Editor handles user commands and displays buffer text.
 type Editor struct {
-	Mode        int
-	ScreenRows  int
-	ScreenCols  int
-	EditRows    int // actual number of rows used for text editing
-	EditCols    int
-	CursorRow   int
-	CursorCol   int
-	Message     string // status message
-	RowOffset   int
-	ColOffset   int
-	Command     string
-	CommandKeys string
-	SearchText  string
-	Debug       bool
-	PasteBoard  string
-	Multiplier  string
-	Buffer      *Buffer
+	Mode       int     // editor mode
+	ScreenRows int     // screen size in rows
+	ScreenCols int     // screen size in columns
+	EditRows   int     // actual number of rows used for editing
+	EditCols   int     // actual number of cols used for editing
+	CursorRow  int     // cursor position
+	CursorCol  int     // cursor position
+	Message    string  // status message
+	RowOffset  int     // display offset
+	ColOffset  int     // display offset
+	Command    string  // command as it is being typed on the command line
+	EditKeys   string  // edit key sequences in progress
+	Multiplier string  // multiplier string as it is being entered
+	SearchText string  // text for searches as it is being typed
+	Debug      bool    // debug mode displays information about events (key codes, etc)
+	PasteBoard string  // used to cut/copy and paste
+	Buffer     *Buffer // active buffer being edited
 }
 
 func NewEditor() *Editor {
@@ -211,7 +211,7 @@ func (e *Editor) ProcessResize(event termbox.Event) error {
 }
 
 func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
-	if e.CommandKeys == "d" {
+	if e.EditKeys == "d" {
 		ch := event.Ch
 		if ch != 0 {
 			switch ch {
@@ -223,18 +223,18 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 				e.KeepCursorInRow()
 			}
 		}
-		e.CommandKeys = ""
+		e.EditKeys = ""
 		return nil
 	}
-	if e.CommandKeys == "r" {
+	if e.EditKeys == "r" {
 		ch := event.Ch
 		if ch != 0 {
 			e.Buffer.Rows[e.CursorRow].ReplaceChar(e.CursorCol, ch)
 		}
-		e.CommandKeys = ""
+		e.EditKeys = ""
 		return nil
 	}
-	if e.CommandKeys == "y" {
+	if e.EditKeys == "y" {
 		ch := event.Ch
 		switch ch {
 		case 'y':
@@ -242,7 +242,7 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		default:
 			break
 		}
-		e.CommandKeys = ""
+		e.EditKeys = ""
 		return nil
 	}
 	key := event.Key
@@ -325,15 +325,15 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		case 'x':
 			e.DeleteCharacterUnderCursor()
 		case 'd':
-			e.CommandKeys = "d"
+			e.EditKeys = "d"
 		case 'y':
-			e.CommandKeys = "y"
+			e.EditKeys = "y"
 		case 'p':
 			e.Paste()
 		case 'n':
 			e.PerformSearch()
 		case 'r':
-			e.CommandKeys = "r"
+			e.EditKeys = "r"
 		}
 	}
 	return nil

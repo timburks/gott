@@ -8,7 +8,7 @@ and Jeremy Ruten's
 [Build Your Own Text Editor](http://viewsourcecode.org/snaptoken/kilo/) 
 tutorial.
 
-"gott" means "good" in Swedish, which is a presumptious thing to 
+"gott" means "good" in Swedish, which is a presumptuous thing to 
 call a thousand-line console text editor. Naming things is hard.
 
 ## Implementation
