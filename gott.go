@@ -23,22 +23,41 @@ import (
 const VERSION = "0.1.2"
 
 func main() {
-	err := termbox.Init()
+	// open a log file
+	f, err := os.OpenFile(os.Getenv("HOME")+"/.gott.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
-		log.Printf("ERROR %s", err)
+		log.Output(1, err.Error())
+		return
+	}
+	log.SetOutput(f)
+	defer f.Close()
+
+	// open the terminal.
+	err = termbox.Init()
+	if err != nil {
+		log.Output(1, err.Error())
+		return
 	}
 	defer termbox.Close()
 
+	// create our editor.
 	e := NewEditor()
 
+	// if a file was specified on the command-line, read it.
 	if len(os.Args) > 1 {
 		filename := os.Args[1]
-		e.ReadFile(filename)
+		err = e.ReadFile(filename)
+		if err != nil {
+			log.Output(1, err.Error())
+		}
 	}
 
-	// run the editor event loop
+	// run the editor event loop.
 	for e.Mode != ModeQuit {
 		e.Render()
-		e.ProcessEvent(termbox.PollEvent())
+		err = e.ProcessEvent(termbox.PollEvent())
+		if err != nil {
+			log.Output(1, err.Error())
+		}
 	}
 }

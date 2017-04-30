@@ -210,224 +210,230 @@ func (e *Editor) ProcessResize(event termbox.Event) error {
 	return nil
 }
 
-func (e *Editor) ProcessKey(event termbox.Event) error {
-	switch e.Mode {
-	//
-	// EDIT MODE
-	//
-	case ModeEdit:
-		if e.CommandKeys == "d" {
-			ch := event.Ch
-			if ch != 0 {
-				switch ch {
-				case 'd':
-					e.DeleteRow()
-					e.KeepCursorInRow()
-				case 'w':
-					e.DeleteWord()
-					e.KeepCursorInRow()
-				}
-			}
-			e.CommandKeys = ""
-			return nil
-		}
-		if e.CommandKeys == "r" {
-			ch := event.Ch
-			if ch != 0 {
-				e.Buffer.Rows[e.CursorRow].ReplaceChar(e.CursorCol, ch)
-			}
-			e.CommandKeys = ""
-			return nil
-		}
-		if e.CommandKeys == "y" {
-			ch := event.Ch
-			switch ch {
-			case 'y':
-				e.YankRow()
-			default:
-				break
-			}
-			e.CommandKeys = ""
-			return nil
-		}
-		key := event.Key
-		if key != 0 {
-			switch key {
-			case termbox.KeyEsc:
-				break
-			case termbox.KeyPgup:
-				e.CursorRow = e.RowOffset
-				for i := 0; i < e.EditRows; i++ {
-					e.MoveCursor(termbox.KeyArrowUp)
-				}
-			case termbox.KeyPgdn:
-				e.CursorRow = e.RowOffset + e.EditRows - 1
-				for i := 0; i < e.EditRows; i++ {
-					e.MoveCursor(termbox.KeyArrowDown)
-				}
-			case termbox.KeyCtrlA, termbox.KeyHome:
-				e.CursorCol = 0
-			case termbox.KeyCtrlE, termbox.KeyEnd:
-				e.CursorCol = 0
-				if e.CursorRow < len(e.Buffer.Rows) {
-					e.CursorCol = e.Buffer.Rows[e.CursorRow].Length() - 1
-					if e.CursorCol < 0 {
-						e.CursorCol = 0
-					}
-				}
-			case termbox.KeyArrowUp, termbox.KeyArrowDown, termbox.KeyArrowLeft, termbox.KeyArrowRight:
-				e.MoveCursor(key)
-			}
-		}
+func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
+	if e.CommandKeys == "d" {
 		ch := event.Ch
 		if ch != 0 {
 			switch ch {
-			//
-			// command multipliers are saved when operations are created
-			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-				e.Multiplier += string(ch)
-			//
-			// commands go to the message bar
-			case ':':
-				e.Mode = ModeCommand
-				e.Command = ""
-			//
-			// search queries go to the message bar
-			case '/':
-				e.Mode = ModeSearch
-				e.SearchText = ""
-			//
-			// cursor movement isn't logged
-			case 'h':
-				e.MoveCursor(termbox.KeyArrowLeft)
-			case 'j':
-				e.MoveCursor(termbox.KeyArrowDown)
-			case 'k':
-				e.MoveCursor(termbox.KeyArrowUp)
-			case 'l':
-				e.MoveCursor(termbox.KeyArrowRight)
-			//
-			// operations are saved for undo and repetition
-			case 'i':
-				// insert at current location
-				e.Mode = ModeInsert
-			case 'a':
-				// insert one character past the current location
-				e.CursorCol++
-				e.Mode = ModeInsert
-			case 'I':
-				e.MoveCursorToStartOfLine()
-				e.Mode = ModeInsert
-			case 'A':
-				e.MoveCursorPastEndOfLine()
-				e.Mode = ModeInsert
-			case 'o':
-				e.InsertLineBelowCursor()
-				e.Mode = ModeInsert
-			case 'O':
-				e.InsertLineAboveCursor()
-				e.Mode = ModeInsert
-			case 'x':
-				e.DeleteCharacterUnderCursor()
 			case 'd':
-				e.CommandKeys = "d"
-			case 'y':
-				e.CommandKeys = "y"
-			case 'p':
-				e.Paste()
-			case 'n':
-				e.PerformSearch()
-			case 'r':
-				e.CommandKeys = "r"
-			}
-		}
-	//
-	// INSERT MODE
-	//
-	case ModeInsert:
-		key := event.Key
-		if key != 0 {
-			switch key {
-			case termbox.KeyEsc:
-				// ESC ends an operation.
-				// We need to tell the operation that it finished
-				// and what was inserted. It should return its own undo.
-				// .. todo ..
-				e.Mode = ModeEdit
+				e.DeleteRow()
 				e.KeepCursorInRow()
-			case termbox.KeyBackspace2:
-				e.MoveCursor(termbox.KeyArrowLeft)
-				e.DeleteCharacterUnderCursor()
-			case termbox.KeyTab:
-				e.InsertChar(' ')
-				for {
-					if e.CursorCol%8 == 0 {
-						break
-					}
-					e.InsertChar(' ')
-				}
-			case termbox.KeyEnter:
-				e.InsertChar('\n')
-			case termbox.KeySpace:
-				e.InsertChar(' ')
+			case 'w':
+				e.DeleteWord()
+				e.KeepCursorInRow()
 			}
 		}
+		e.CommandKeys = ""
+		return nil
+	}
+	if e.CommandKeys == "r" {
 		ch := event.Ch
 		if ch != 0 {
-			e.InsertChar(ch)
+			e.Buffer.Rows[e.CursorRow].ReplaceChar(e.CursorCol, ch)
 		}
-
-	//
-	// COMMAND MODE
-	//
-	case ModeCommand:
-		key := event.Key
-		if key != 0 {
-			switch key {
-			case termbox.KeyEsc:
-				e.Mode = ModeEdit
-			case termbox.KeyEnter:
-				e.PerformCommand()
-			case termbox.KeyBackspace2:
-				if len(e.Command) > 0 {
-					e.Command = e.Command[0 : len(e.Command)-1]
-				}
-			case termbox.KeySpace:
-				e.Command += " "
+		e.CommandKeys = ""
+		return nil
+	}
+	if e.CommandKeys == "y" {
+		ch := event.Ch
+		switch ch {
+		case 'y':
+			e.YankRow()
+		default:
+			break
+		}
+		e.CommandKeys = ""
+		return nil
+	}
+	key := event.Key
+	if key != 0 {
+		switch key {
+		case termbox.KeyEsc:
+			break
+		case termbox.KeyPgup:
+			e.CursorRow = e.RowOffset
+			for i := 0; i < e.EditRows; i++ {
+				e.MoveCursor(termbox.KeyArrowUp)
 			}
-		}
-		ch := event.Ch
-		if ch != 0 {
-			e.Command = e.Command + string(ch)
-		}
-
-	//
-	// SEARCH MODE
-	//
-	case ModeSearch:
-		key := event.Key
-		if key != 0 {
-			switch key {
-			case termbox.KeyEsc:
-				e.Mode = ModeEdit
-			case termbox.KeyEnter:
-				e.PerformSearch()
-				e.Mode = ModeEdit
-			case termbox.KeyBackspace2:
-				if len(e.SearchText) > 0 {
-					e.SearchText = e.SearchText[0 : len(e.SearchText)-1]
-				}
-			case termbox.KeySpace:
-				e.SearchText += " "
+		case termbox.KeyPgdn:
+			e.CursorRow = e.RowOffset + e.EditRows - 1
+			for i := 0; i < e.EditRows; i++ {
+				e.MoveCursor(termbox.KeyArrowDown)
 			}
-		}
-		ch := event.Ch
-		if ch != 0 {
-			e.SearchText = e.SearchText + string(ch)
+		case termbox.KeyCtrlA, termbox.KeyHome:
+			e.CursorCol = 0
+		case termbox.KeyCtrlE, termbox.KeyEnd:
+			e.CursorCol = 0
+			if e.CursorRow < len(e.Buffer.Rows) {
+				e.CursorCol = e.Buffer.Rows[e.CursorRow].Length() - 1
+				if e.CursorCol < 0 {
+					e.CursorCol = 0
+				}
+			}
+		case termbox.KeyArrowUp, termbox.KeyArrowDown, termbox.KeyArrowLeft, termbox.KeyArrowRight:
+			e.MoveCursor(key)
 		}
 	}
-
+	ch := event.Ch
+	if ch != 0 {
+		switch ch {
+		//
+		// command multipliers are saved when operations are created
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+			e.Multiplier += string(ch)
+		//
+		// commands go to the message bar
+		case ':':
+			e.Mode = ModeCommand
+			e.Command = ""
+		//
+		// search queries go to the message bar
+		case '/':
+			e.Mode = ModeSearch
+			e.SearchText = ""
+		//
+		// cursor movement isn't logged
+		case 'h':
+			e.MoveCursor(termbox.KeyArrowLeft)
+		case 'j':
+			e.MoveCursor(termbox.KeyArrowDown)
+		case 'k':
+			e.MoveCursor(termbox.KeyArrowUp)
+		case 'l':
+			e.MoveCursor(termbox.KeyArrowRight)
+		//
+		// operations are saved for undo and repetition
+		case 'i':
+			// insert at current location
+			e.Mode = ModeInsert
+		case 'a':
+			// insert one character past the current location
+			e.CursorCol++
+			e.Mode = ModeInsert
+		case 'I':
+			e.MoveCursorToStartOfLine()
+			e.Mode = ModeInsert
+		case 'A':
+			e.MoveCursorPastEndOfLine()
+			e.Mode = ModeInsert
+		case 'o':
+			e.InsertLineBelowCursor()
+			e.Mode = ModeInsert
+		case 'O':
+			e.InsertLineAboveCursor()
+			e.Mode = ModeInsert
+		case 'x':
+			e.DeleteCharacterUnderCursor()
+		case 'd':
+			e.CommandKeys = "d"
+		case 'y':
+			e.CommandKeys = "y"
+		case 'p':
+			e.Paste()
+		case 'n':
+			e.PerformSearch()
+		case 'r':
+			e.CommandKeys = "r"
+		}
+	}
 	return nil
+}
+
+func (e *Editor) ProcessKeyInsertMode(event termbox.Event) error {
+	key := event.Key
+	if key != 0 {
+		switch key {
+		case termbox.KeyEsc:
+			// ESC ends an operation.
+			// We need to tell the operation that it finished
+			// and what was inserted. It should return its own undo.
+			// .. todo ..
+			e.Mode = ModeEdit
+			e.KeepCursorInRow()
+		case termbox.KeyBackspace2:
+			e.MoveCursor(termbox.KeyArrowLeft)
+			e.DeleteCharacterUnderCursor()
+		case termbox.KeyTab:
+			e.InsertChar(' ')
+			for {
+				if e.CursorCol%8 == 0 {
+					break
+				}
+				e.InsertChar(' ')
+			}
+		case termbox.KeyEnter:
+			e.InsertChar('\n')
+		case termbox.KeySpace:
+			e.InsertChar(' ')
+		}
+	}
+	ch := event.Ch
+	if ch != 0 {
+		e.InsertChar(ch)
+	}
+	return nil
+}
+
+func (e *Editor) ProcessKeyCommandMode(event termbox.Event) error {
+	key := event.Key
+	if key != 0 {
+		switch key {
+		case termbox.KeyEsc:
+			e.Mode = ModeEdit
+		case termbox.KeyEnter:
+			e.PerformCommand()
+		case termbox.KeyBackspace2:
+			if len(e.Command) > 0 {
+				e.Command = e.Command[0 : len(e.Command)-1]
+			}
+		case termbox.KeySpace:
+			e.Command += " "
+		}
+	}
+	ch := event.Ch
+	if ch != 0 {
+		e.Command = e.Command + string(ch)
+	}
+	return nil
+}
+
+func (e *Editor) ProcessKeySearchMode(event termbox.Event) error {
+	key := event.Key
+	if key != 0 {
+		switch key {
+		case termbox.KeyEsc:
+			e.Mode = ModeEdit
+		case termbox.KeyEnter:
+			e.PerformSearch()
+			e.Mode = ModeEdit
+		case termbox.KeyBackspace2:
+			if len(e.SearchText) > 0 {
+				e.SearchText = e.SearchText[0 : len(e.SearchText)-1]
+			}
+		case termbox.KeySpace:
+			e.SearchText += " "
+		}
+	}
+	ch := event.Ch
+	if ch != 0 {
+		e.SearchText = e.SearchText + string(ch)
+	}
+	return nil
+}
+
+func (e *Editor) ProcessKey(event termbox.Event) error {
+	var err error
+	switch e.Mode {
+	case ModeEdit:
+		err = e.ProcessKeyEditMode(event)
+	case ModeInsert:
+		err = e.ProcessKeyInsertMode(event)
+	case ModeCommand:
+		err = e.ProcessKeyCommandMode(event)
+	case ModeSearch:
+		err = e.ProcessKeySearchMode(event)
+	}
+	return err
 }
 
 func (e *Editor) Render() {
