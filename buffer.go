@@ -7,7 +7,8 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-// A Buffer represents a file
+// A Buffer represents a file being edited
+
 type Buffer struct {
 	Rows       []Row
 	FileName   string

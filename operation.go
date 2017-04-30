@@ -1,18 +1,21 @@
 package main
 
 const (
-	OpDeleteRow  = 0
-	OpDeleteWord = 1
-	OpYankRow    = 2
-	Op3          = 3
-	OpQuit       = 9999
+	OpDeleteRow       = 0
+	OpDeleteWord      = 1
+	OpYankRow         = 2
+	OpInsertCharacter = 3
+	OpQuit            = 9999
 )
+
+type OperationHandler func(op *Operation, e *Editor)
 
 type Operation struct {
 	Code       int
 	CursorX    int
 	CursorY    int
 	Multiplier int
+	Handler    OperationHandler
 }
 
 func NewOperation() *Operation {
@@ -21,7 +24,7 @@ func NewOperation() *Operation {
 }
 
 func (op *Operation) perform(e *Editor) {
-
+	op.Handler(op, e)
 }
 
 func (op *Operation) inverse() *Operation {
