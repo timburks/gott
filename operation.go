@@ -13,36 +13,41 @@
 //
 package main
 
-const (
-	OpDeleteRow       = 0
-	OpDeleteWord      = 1
-	OpYankRow         = 2
-	OpInsertCharacter = 3
-	OpQuit            = 9999
+import (
+	"log"
 )
 
-type OperationHandler func(op *Operation, e *Editor)
+type Operation interface {
+	Perform(e *Editor) Operation // returns the operation's inverse
+}
 
-type Operation struct {
-	Code       int
-	CursorX    int
-	CursorY    int
+type Op struct {
+	CursorCol  int
+	CursorRow  int
 	Multiplier int
-	Handler    OperationHandler
 }
 
-func NewOperation() *Operation {
-	op := &Operation{}
-	return op
+func (op *Op) init(e *Editor) {
+	op.CursorCol = e.CursorCol
+	op.CursorRow = e.CursorRow
+	op.Multiplier = e.MultiplierValue()
 }
 
-func (op *Operation) perform(e *Editor) {
-	op.Handler(op, e)
+// Replace a character
+
+type ReplaceCharacterOperation struct {
+	Op
+	Character rune
 }
 
-func (op *Operation) inverse() *Operation {
-	return NewOperation()
+func (op *ReplaceCharacterOperation) Perform(e *Editor) Operation {
+	op.init(e)
+	log.Printf("Replace character at %d %d with m=%d", op.CursorRow, op.CursorCol, op.Multiplier)
+	return nil
 }
+
+// Insert text
+//  (todo)
 
 func (e *Editor) InsertChar(c rune) {
 	if c == '\n' {

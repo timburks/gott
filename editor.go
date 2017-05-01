@@ -34,23 +34,25 @@ const (
 
 // The Editor handles user commands and displays buffer text.
 type Editor struct {
-	Mode       int     // editor mode
-	ScreenRows int     // screen size in rows
-	ScreenCols int     // screen size in columns
-	EditRows   int     // actual number of rows used for editing
-	EditCols   int     // actual number of cols used for editing
-	CursorRow  int     // cursor position
-	CursorCol  int     // cursor position
-	Message    string  // status message
-	RowOffset  int     // display offset
-	ColOffset  int     // display offset
-	Command    string  // command as it is being typed on the command line
-	EditKeys   string  // edit key sequences in progress
-	Multiplier string  // multiplier string as it is being entered
-	SearchText string  // text for searches as it is being typed
-	Debug      bool    // debug mode displays information about events (key codes, etc)
-	PasteBoard string  // used to cut/copy and paste
-	Buffer     *Buffer // active buffer being edited
+	Mode       int         // editor mode
+	ScreenRows int         // screen size in rows
+	ScreenCols int         // screen size in columns
+	EditRows   int         // actual number of rows used for editing
+	EditCols   int         // actual number of cols used for editing
+	CursorRow  int         // cursor position
+	CursorCol  int         // cursor position
+	Message    string      // status message
+	RowOffset  int         // display offset
+	ColOffset  int         // display offset
+	Command    string      // command as it is being typed on the command line
+	EditKeys   string      // edit key sequences in progress
+	Multiplier string      // multiplier string as it is being entered
+	SearchText string      // text for searches as it is being typed
+	Debug      bool        // debug mode displays information about events (key codes, etc)
+	PasteBoard string      // used to cut/copy and paste
+	Buffer     *Buffer     // active buffer being edited
+	Repeat     Operation   // last operation performed, available to repeat
+	Undo       []Operation // stack of operations to undo
 }
 
 func NewEditor() *Editor {
@@ -90,107 +92,6 @@ func (e *Editor) WriteFile(path string) error {
 	return nil
 }
 
-func (e *Editor) PerformCommand() {
-	parts := strings.Split(e.Command, " ")
-	if len(parts) > 0 {
-
-		i, err := strconv.ParseInt(parts[0], 10, 64)
-		if err == nil {
-			e.CursorRow = int(i - 1)
-			if e.CursorRow > len(e.Buffer.Rows)-1 {
-				e.CursorRow = len(e.Buffer.Rows) - 1
-			}
-			if e.CursorRow < 0 {
-				e.CursorRow = 0
-			}
-		}
-		switch parts[0] {
-		case "q":
-			e.Mode = ModeQuit
-			return
-		case "r":
-			if len(parts) == 2 {
-				filename := parts[1]
-				e.ReadFile(filename)
-			}
-		case "debug":
-			if len(parts) == 2 {
-				if parts[1] == "on" {
-					e.Debug = true
-				} else if parts[1] == "off" {
-					e.Debug = false
-					e.Message = ""
-				}
-			}
-		case "w":
-			var filename string
-			if len(parts) == 2 {
-				filename = parts[1]
-			} else {
-				filename = e.Buffer.FileName
-			}
-			e.WriteFile(filename)
-		case "wq":
-			var filename string
-			if len(parts) == 2 {
-				filename = parts[1]
-			} else {
-				filename = e.Buffer.FileName
-			}
-			e.WriteFile(filename)
-			e.Mode = ModeQuit
-			return
-		case "fmt":
-			out, err := gofmt(e.Buffer.FileName, e.Bytes())
-			if err == nil {
-				e.Buffer.ReadBytes(out)
-			}
-		case "$":
-			e.CursorRow = len(e.Buffer.Rows) - 1
-			if e.CursorRow < 0 {
-				e.CursorRow = 0
-			}
-		default:
-			e.Message = "nope"
-		}
-	}
-	e.Command = ""
-	e.Mode = ModeEdit
-}
-
-func (e *Editor) PerformSearch() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
-	row := e.CursorRow
-	col := e.CursorCol + 1
-
-	for {
-		var s string
-		if col < e.Buffer.Rows[row].Length() {
-			s = e.Buffer.Rows[row].Text[col:]
-		} else {
-			s = ""
-		}
-		i := strings.Index(s, e.SearchText)
-		if i != -1 {
-			// found it
-			e.CursorRow = row
-			e.CursorCol = col + i
-			return
-		} else {
-			col = 0
-			row = row + 1
-			if row == len(e.Buffer.Rows) {
-				row = 0
-			}
-		}
-		if row == e.CursorRow {
-			break
-		}
-	}
-}
-
 func (e *Editor) ProcessEvent(event termbox.Event) error {
 	if e.Debug {
 		e.Message = fmt.Sprintf("event=%+v", event)
@@ -215,10 +116,10 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		ch := event.Ch
 		if ch != 0 {
 			switch ch {
-			case 'd':
+			case 'd': // DeleteRow
 				e.DeleteRow()
 				e.KeepCursorInRow()
-			case 'w':
+			case 'w': // DeleteWord
 				e.DeleteWord()
 				e.KeepCursorInRow()
 			}
@@ -230,6 +131,18 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		ch := event.Ch
 		if ch != 0 {
 			e.Buffer.Rows[e.CursorRow].ReplaceChar(e.CursorCol, ch)
+
+			// create replace character operation
+			op := &ReplaceCharacterOperation{}
+			op.Character = rune(event.Ch)
+
+			// perform the operation
+			op.Perform(e)
+
+			// save the operation for repeats
+
+			// save the inverse of the operation for undo
+
 		}
 		e.EditKeys = ""
 		return nil
@@ -237,7 +150,7 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 	if e.EditKeys == "y" {
 		ch := event.Ch
 		switch ch {
-		case 'y':
+		case 'y': // YankRow
 			e.YankRow()
 		default:
 			break
@@ -303,34 +216,34 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 			e.MoveCursor(termbox.KeyArrowRight)
 		//
 		// operations are saved for undo and repetition
-		case 'i':
+		case 'i': // InsertTextAtCursor
 			// insert at current location
 			e.Mode = ModeInsert
-		case 'a':
+		case 'a': // InsertTextAfterCursor
 			// insert one character past the current location
 			e.CursorCol++
 			e.Mode = ModeInsert
-		case 'I':
+		case 'I': // InsertTextAtStartOfLine
 			e.MoveCursorToStartOfLine()
 			e.Mode = ModeInsert
-		case 'A':
+		case 'A': // InsertTextAtEndOfLine
 			e.MoveCursorPastEndOfLine()
 			e.Mode = ModeInsert
-		case 'o':
+		case 'o': // InsertTextAtNewLineBelowCursor
 			e.InsertLineBelowCursor()
 			e.Mode = ModeInsert
-		case 'O':
+		case 'O': // InsertTextAtNewLineAboveCursor
 			e.InsertLineAboveCursor()
 			e.Mode = ModeInsert
-		case 'x':
+		case 'x': // DeleteCharacterUnderCursor
 			e.DeleteCharacterUnderCursor()
 		case 'd':
 			e.EditKeys = "d"
 		case 'y':
 			e.EditKeys = "y"
-		case 'p':
+		case 'p': // PasteText
 			e.Paste()
-		case 'n':
+		case 'n': // PerformSearch
 			e.PerformSearch()
 		case 'r':
 			e.EditKeys = "r"
@@ -434,6 +347,107 @@ func (e *Editor) ProcessKey(event termbox.Event) error {
 		err = e.ProcessKeySearchMode(event)
 	}
 	return err
+}
+
+func (e *Editor) PerformCommand() {
+	parts := strings.Split(e.Command, " ")
+	if len(parts) > 0 {
+
+		i, err := strconv.ParseInt(parts[0], 10, 64)
+		if err == nil {
+			e.CursorRow = int(i - 1)
+			if e.CursorRow > len(e.Buffer.Rows)-1 {
+				e.CursorRow = len(e.Buffer.Rows) - 1
+			}
+			if e.CursorRow < 0 {
+				e.CursorRow = 0
+			}
+		}
+		switch parts[0] {
+		case "q":
+			e.Mode = ModeQuit
+			return
+		case "r":
+			if len(parts) == 2 {
+				filename := parts[1]
+				e.ReadFile(filename)
+			}
+		case "debug":
+			if len(parts) == 2 {
+				if parts[1] == "on" {
+					e.Debug = true
+				} else if parts[1] == "off" {
+					e.Debug = false
+					e.Message = ""
+				}
+			}
+		case "w":
+			var filename string
+			if len(parts) == 2 {
+				filename = parts[1]
+			} else {
+				filename = e.Buffer.FileName
+			}
+			e.WriteFile(filename)
+		case "wq":
+			var filename string
+			if len(parts) == 2 {
+				filename = parts[1]
+			} else {
+				filename = e.Buffer.FileName
+			}
+			e.WriteFile(filename)
+			e.Mode = ModeQuit
+			return
+		case "fmt":
+			out, err := gofmt(e.Buffer.FileName, e.Bytes())
+			if err == nil {
+				e.Buffer.ReadBytes(out)
+			}
+		case "$":
+			e.CursorRow = len(e.Buffer.Rows) - 1
+			if e.CursorRow < 0 {
+				e.CursorRow = 0
+			}
+		default:
+			e.Message = "nope"
+		}
+	}
+	e.Command = ""
+	e.Mode = ModeEdit
+}
+
+func (e *Editor) PerformSearch() {
+	if len(e.Buffer.Rows) == 0 {
+		return
+	}
+	row := e.CursorRow
+	col := e.CursorCol + 1
+
+	for {
+		var s string
+		if col < e.Buffer.Rows[row].Length() {
+			s = e.Buffer.Rows[row].Text[col:]
+		} else {
+			s = ""
+		}
+		i := strings.Index(s, e.SearchText)
+		if i != -1 {
+			// found it
+			e.CursorRow = row
+			e.CursorCol = col + i
+			return
+		} else {
+			col = 0
+			row = row + 1
+			if row == len(e.Buffer.Rows) {
+				row = 0
+			}
+		}
+		if row == e.CursorRow {
+			break
+		}
+	}
 }
 
 func (e *Editor) Render() {
