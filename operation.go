@@ -13,24 +13,31 @@
 //
 package main
 
-import (
-	"log"
-)
-
 type Operation interface {
 	Perform(e *Editor) Operation // returns the operation's inverse
 }
 
 type Op struct {
-	CursorCol  int
-	CursorRow  int
-	Multiplier int
+	Initialized bool
+	CursorRow   int
+	CursorCol   int
+	Multiplier  int
 }
 
 func (op *Op) init(e *Editor) {
-	op.CursorCol = e.CursorCol
-	op.CursorRow = e.CursorRow
-	op.Multiplier = e.MultiplierValue()
+	if !op.Initialized {
+		op.Initialized = true
+		op.CursorRow = e.CursorRow
+		op.CursorCol = e.CursorCol
+		op.Multiplier = e.MultiplierValue()
+	}
+}
+
+func (op *Op) copy(other *Op) {
+	op.Initialized = other.Initialized
+	op.CursorRow = other.CursorRow
+	op.CursorCol = other.CursorCol
+	op.Multiplier = other.Multiplier
 }
 
 // Replace a character
@@ -42,8 +49,13 @@ type ReplaceCharacterOperation struct {
 
 func (op *ReplaceCharacterOperation) Perform(e *Editor) Operation {
 	op.init(e)
-	log.Printf("Replace character at %d %d with m=%d", op.CursorRow, op.CursorCol, op.Multiplier)
-	return nil
+
+	old := e.Buffer.Rows[op.CursorRow].ReplaceChar(op.CursorCol, op.Character)
+	e.SetCursor(op.CursorRow, op.CursorCol)
+	inverse := &ReplaceCharacterOperation{}
+	inverse.copy(&op.Op)
+	inverse.Character = old
+	return inverse
 }
 
 // Insert text

@@ -62,6 +62,11 @@ func NewEditor() *Editor {
 	return e
 }
 
+func (e *Editor) SetCursor(row, col int) {
+	e.CursorRow = row
+	e.CursorCol = col
+}
+
 func (e *Editor) ReadFile(path string) error {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -130,18 +135,20 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 	if e.EditKeys == "r" {
 		ch := event.Ch
 		if ch != 0 {
-			e.Buffer.Rows[e.CursorRow].ReplaceChar(e.CursorCol, ch)
-
 			// create replace character operation
 			op := &ReplaceCharacterOperation{}
 			op.Character = rune(event.Ch)
 
 			// perform the operation
-			op.Perform(e)
+			inverse := op.Perform(e)
 
 			// save the operation for repeats
+			e.Repeat = op
 
 			// save the inverse of the operation for undo
+			if inverse != nil {
+				e.Undo = append(e.Undo, inverse)
+			}
 
 		}
 		e.EditKeys = ""
@@ -247,9 +254,20 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 			e.PerformSearch()
 		case 'r':
 			e.EditKeys = "r"
+		case 'u':
+			e.PerformUndo()
 		}
 	}
 	return nil
+}
+
+func (e *Editor) PerformUndo() {
+	if len(e.Undo) > 0 {
+		last := len(e.Undo) - 1
+		undo := e.Undo[last]
+		e.Undo = e.Undo[0:last]
+		undo.Perform(e)
+	}
 }
 
 func (e *Editor) ProcessKeyInsertMode(event termbox.Event) error {
