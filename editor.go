@@ -40,6 +40,16 @@ const (
 	MoveLeft  = 3
 )
 
+// Insert positions
+const (
+	InsertAtCursor             = 0
+	InsertAfterCursor          = 1
+	InsertAtStartOfLine        = 2
+	InsertAfterEndOfLine       = 3
+	InsertAtNewLineBelowCursor = 4
+	InsertAtNewLineAboveCursor = 5
+)
+
 // The Editor handles user commands and displays buffer text.
 type Editor struct {
 	Mode       int         // editor mode
@@ -124,51 +134,42 @@ func (e *Editor) ProcessResize(event termbox.Event) error {
 	return nil
 }
 
+func (e *Editor) Perform(op Operation) {
+	// perform the operation
+	inverse := op.Perform(e)
+	// save the operation for repeats
+	e.Repeat = op
+	// save the inverse of the operation for undo
+	if inverse != nil {
+		e.Undo = append(e.Undo, inverse)
+	}
+}
+
 func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
-	if e.EditKeys == "d" {
+	// multikey commands have highest precedence
+	if len(e.EditKeys) > 0 {
 		ch := event.Ch
-		if ch != 0 {
+		switch e.EditKeys {
+		case "d":
 			switch ch {
-			case 'd': // DeleteRow
-				e.DeleteRow()
+			case 'd':
+				e.Perform(&DeleteRowOperation{})
 				e.KeepCursorInRow()
-			case 'w': // DeleteWord
-				e.DeleteWord()
+			case 'w':
+				e.Perform(&DeleteWordOperation{})
 				e.KeepCursorInRow()
 			}
-		}
-		e.EditKeys = ""
-		return nil
-	}
-	if e.EditKeys == "r" {
-		ch := event.Ch
-		if ch != 0 {
-			// create replace character operation
-			op := &ReplaceCharacterOperation{}
-			op.Character = rune(event.Ch)
-
-			// perform the operation
-			inverse := op.Perform(e)
-
-			// save the operation for repeats
-			e.Repeat = op
-
-			// save the inverse of the operation for undo
-			if inverse != nil {
-				e.Undo = append(e.Undo, inverse)
+		case "r":
+			if ch != 0 {
+				e.Perform(&ReplaceCharacterOperation{Character: rune(event.Ch)})
 			}
-
-		}
-		e.EditKeys = ""
-		return nil
-	}
-	if e.EditKeys == "y" {
-		ch := event.Ch
-		switch ch {
-		case 'y': // YankRow
-			e.YankRow()
-		default:
-			break
+		case "y":
+			switch ch {
+			case 'y': // YankRow
+				e.YankRow()
+			default:
+				break
+			}
 		}
 		e.EditKeys = ""
 		return nil
@@ -179,18 +180,24 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		case termbox.KeyEsc:
 			break
 		case termbox.KeyPgup:
+			// move to the top of the screen
 			e.CursorRow = e.RowOffset
+			// move up by a page
 			for i := 0; i < e.EditRows; i++ {
 				e.MoveCursor(MoveUp)
 			}
 		case termbox.KeyPgdn:
+			// move to the bottom of the screen
 			e.CursorRow = e.RowOffset + e.EditRows - 1
+			// move down by a page
 			for i := 0; i < e.EditRows; i++ {
 				e.MoveCursor(MoveDown)
 			}
 		case termbox.KeyCtrlA, termbox.KeyHome:
+			// move to beginning of line
 			e.CursorCol = 0
 		case termbox.KeyCtrlE, termbox.KeyEnd:
+			// move to end of line
 			e.CursorCol = 0
 			if e.CursorRow < len(e.Buffer.Rows) {
 				e.CursorCol = e.Buffer.Rows[e.CursorRow].Length() - 1
@@ -213,20 +220,26 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		switch ch {
 		//
 		// command multipliers are saved when operations are created
+		//
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			e.Multiplier += string(ch)
 		//
 		// commands go to the message bar
+		//
 		case ':':
 			e.Mode = ModeCommand
 			e.Command = ""
 		//
 		// search queries go to the message bar
+		//
 		case '/':
 			e.Mode = ModeSearch
 			e.SearchText = ""
+		case 'n': // repeat the last search
+			e.PerformSearch()
 		//
 		// cursor movement isn't logged
+		//
 		case 'h':
 			e.MoveCursor(MoveLeft)
 		case 'j':
@@ -236,38 +249,36 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		case 'l':
 			e.MoveCursor(MoveRight)
 		//
-		// operations are saved for undo and repetition
-		case 'i': // InsertTextAtCursor
-			// insert at current location
-			e.Mode = ModeInsert
-		case 'a': // InsertTextAfterCursor
-			// insert one character past the current location
-			e.CursorCol++
-			e.Mode = ModeInsert
-		case 'I': // InsertTextAtStartOfLine
-			e.MoveCursorToStartOfLine()
-			e.Mode = ModeInsert
-		case 'A': // InsertTextAtEndOfLine
-			e.MoveCursorPastEndOfLine()
-			e.Mode = ModeInsert
-		case 'o': // InsertTextAtNewLineBelowCursor
-			e.InsertLineBelowCursor()
-			e.Mode = ModeInsert
-		case 'O': // InsertTextAtNewLineAboveCursor
-			e.InsertLineAboveCursor()
-			e.Mode = ModeInsert
-		case 'x': // DeleteCharacterUnderCursor
-			e.DeleteCharacterUnderCursor()
+		// "performed" operations are saved for undo and repetition
+		//
+		case 'i':
+			e.Perform(&InsertOperation{Position: InsertAtCursor})
+		case 'a':
+			e.Perform(&InsertOperation{Position: InsertAfterCursor})
+		case 'I':
+			e.Perform(&InsertOperation{Position: InsertAtStartOfLine})
+		case 'A':
+			e.Perform(&InsertOperation{Position: InsertAfterEndOfLine})
+		case 'o':
+			e.Perform(&InsertOperation{Position: InsertAtNewLineBelowCursor})
+		case 'O':
+			e.Perform(&InsertOperation{Position: InsertAtNewLineAboveCursor})
+		case 'x':
+			e.Perform(&DeleteCharacterOperation{})
+		case 'p': // PasteText
+			e.Perform(&PasteOperation{})
+		//
+		// a few keys open multi-key commands
+		//
 		case 'd':
 			e.EditKeys = "d"
 		case 'y':
 			e.EditKeys = "y"
-		case 'p': // PasteText
-			e.Paste()
-		case 'n': // PerformSearch
-			e.PerformSearch()
 		case 'r':
 			e.EditKeys = "r"
+		//
+		// undo
+		//
 		case 'u':
 			e.PerformUndo()
 		}
@@ -593,4 +604,131 @@ func (e *Editor) MultiplierValue() int {
 	}
 	e.Multiplier = ""
 	return int(i)
+}
+
+// These editor primitives will make changes in insert mode and associate them with to the current operation.
+
+func (e *Editor) InsertChar(c rune) {
+	if c == '\n' {
+		e.InsertRow()
+		e.CursorRow++
+		e.CursorCol = 0
+		return
+	}
+	// if the cursor is past the nmber of rows, add a row
+	for e.CursorRow >= len(e.Buffer.Rows) {
+		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+	}
+	e.Buffer.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
+	e.CursorCol += 1
+}
+
+func (e *Editor) InsertRow() {
+	if e.CursorRow >= len(e.Buffer.Rows) {
+		// we should never get here
+		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+	} else {
+		newRow := e.Buffer.Rows[e.CursorRow].Split(e.CursorCol)
+		i := e.CursorRow + 1
+		// add a dummy row at the end of the Rows slice
+		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+		// move rows to make room for the one we are adding
+		copy(e.Buffer.Rows[i+1:], e.Buffer.Rows[i:])
+		// add the new row
+		e.Buffer.Rows[i] = newRow
+	}
+}
+
+func (e *Editor) BackspaceChar() rune {
+	if len(e.Buffer.Rows) == 0 {
+		return rune(0)
+	}
+	if e.CursorCol > 0 {
+		c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol - 1)
+		e.CursorCol--
+		return c
+	} else if e.CursorRow > 0 {
+		// remove the current row and join it with the previous one
+		oldRowText := e.Buffer.Rows[e.CursorRow].Text
+		newCursorCol := len(e.Buffer.Rows[e.CursorRow-1].Text)
+		e.Buffer.Rows[e.CursorRow-1].Text += oldRowText
+		e.Buffer.Rows = append(e.Buffer.Rows[0:e.CursorRow], e.Buffer.Rows[e.CursorRow+1:]...)
+		e.CursorRow--
+		e.CursorCol = newCursorCol
+		return rune('\n')
+	} else {
+		return rune(0)
+	}
+}
+
+func (e *Editor) YankRow() {
+	if len(e.Buffer.Rows) == 0 {
+		return
+	}
+	e.PasteBoard = ""
+	N := e.MultiplierValue()
+	for i := 0; i < N; i++ {
+		if i > 0 {
+			e.PasteBoard += "\n"
+		}
+		position := e.CursorRow + i
+		if position < len(e.Buffer.Rows) {
+			e.PasteBoard += e.Buffer.Rows[position].Text
+		}
+	}
+}
+
+func (e *Editor) KeepCursorInRow() {
+	if len(e.Buffer.Rows) == 0 {
+		e.CursorCol = 0
+	} else {
+		if e.CursorRow >= len(e.Buffer.Rows) {
+			e.CursorRow = len(e.Buffer.Rows) - 1
+		}
+		if e.CursorRow < 0 {
+			e.CursorRow = 0
+		}
+		lastIndexInRow := e.Buffer.Rows[e.CursorRow].Length() - 1
+		if e.CursorCol > lastIndexInRow {
+			e.CursorCol = lastIndexInRow
+		}
+		if e.CursorCol < 0 {
+			e.CursorCol = 0
+		}
+	}
+}
+
+func (e *Editor) MoveCursorToStartOfLine() {
+	e.CursorCol = 0
+}
+
+func (e *Editor) MoveCursorPastEndOfLine() {
+	if len(e.Buffer.Rows) == 0 {
+		return
+	}
+	e.CursorCol = e.Buffer.Rows[e.CursorRow].Length()
+}
+
+func (e *Editor) InsertLineAboveCursor() {
+	if len(e.Buffer.Rows) == 0 {
+		e.InsertChar(' ')
+	}
+	i := e.CursorRow
+	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+	copy(e.Buffer.Rows[i+1:], e.Buffer.Rows[i:])
+	e.Buffer.Rows[i] = NewRow("")
+	e.CursorRow = i
+	e.CursorCol = 0
+}
+
+func (e *Editor) InsertLineBelowCursor() {
+	if len(e.Buffer.Rows) == 0 {
+		e.InsertChar(' ')
+	}
+	i := e.CursorRow
+	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+	copy(e.Buffer.Rows[i+2:], e.Buffer.Rows[i+1:])
+	e.Buffer.Rows[i+1] = NewRow("")
+	e.CursorRow = i + 1
+	e.CursorCol = 0
 }

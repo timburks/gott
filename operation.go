@@ -13,6 +13,20 @@
 //
 package main
 
+import (
+	"log"
+)
+
+func clipToRange(i, min, max int) int {
+	if i > max {
+		i = max
+	}
+	if i < min {
+		i = min
+	}
+	return i
+}
+
 type Operation interface {
 	Perform(e *Editor) Operation // performs the operation and returns its inverse
 }
@@ -58,109 +72,47 @@ func (op *ReplaceCharacterOperation) Perform(e *Editor) Operation {
 	return inverse
 }
 
-// More operations... (todo)
+// Delete a row
 
-// These editor primitives will make changes in insert mode and associate them with to the current operation.
-
-func (e *Editor) InsertChar(c rune) {
-	if c == '\n' {
-		e.InsertRow()
-		e.CursorRow++
-		e.CursorCol = 0
-		return
-	}
-	// if the cursor is past the nmber of rows, add a row
-	for e.CursorRow >= len(e.Buffer.Rows) {
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-	}
-	e.Buffer.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
-	e.CursorCol += 1
+type DeleteRowOperation struct {
+	Op
 }
 
-func (e *Editor) BackspaceChar() rune {
-	if len(e.Buffer.Rows) == 0 {
-		return rune(0)
-	}
-	if e.CursorCol > 0 {
-		c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol - 1)
-		e.CursorCol--
-		return c
-	} else if e.CursorRow > 0 {
-		// remove the current row and join it with the previous one
-		oldRowText := e.Buffer.Rows[e.CursorRow].Text
-		newCursorCol := len(e.Buffer.Rows[e.CursorRow-1].Text)
-		e.Buffer.Rows[e.CursorRow-1].Text += oldRowText
-		e.Buffer.Rows = append(e.Buffer.Rows[0:e.CursorRow], e.Buffer.Rows[e.CursorRow+1:]...)
-		e.CursorRow--
-		e.CursorCol = newCursorCol
-		return rune('\n')
-	} else {
-		return rune(0)
-	}
-}
+func (op *DeleteRowOperation) Perform(e *Editor) Operation {
+	op.init(e)
+	log.Printf("Deleting %d row(s) at row %d", op.Multiplier, e.CursorRow)
 
-// junk (it's ugly but works in a primitive way)
-
-func (e *Editor) InsertRow() {
-	if e.CursorRow > len(e.Buffer.Rows)-1 {
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-		e.CursorRow = len(e.Buffer.Rows) - 1
-	} else {
-		position := e.CursorRow
-		newRow := e.Buffer.Rows[position].Split(e.CursorCol)
-		e.Message = newRow.Text
-		i := position + 1
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-		copy(e.Buffer.Rows[i+1:], e.Buffer.Rows[i:])
-		e.Buffer.Rows[i] = newRow
-	}
-}
-
-func (e *Editor) DeleteRow() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
 	e.PasteBoard = ""
-	N := e.MultiplierValue()
-	for i := 0; i < N; i++ {
+	for i := 0; i < op.Multiplier; i++ {
 		if i > 0 {
 			e.PasteBoard += "\n"
 		}
 		position := e.CursorRow
-		e.PasteBoard += e.Buffer.Rows[position].Text
-		e.Buffer.Rows = append(e.Buffer.Rows[0:position], e.Buffer.Rows[position+1:]...)
-		if position > len(e.Buffer.Rows)-1 {
-			position = len(e.Buffer.Rows) - 1
-		}
-		if position < 0 {
-			position = 0
-		}
-		e.CursorRow = position
-	}
-}
-
-func (e *Editor) YankRow() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
-	e.PasteBoard = ""
-	N := e.MultiplierValue()
-	for i := 0; i < N; i++ {
-		if i > 0 {
-			e.PasteBoard += "\n"
-		}
-		position := e.CursorRow + i
 		if position < len(e.Buffer.Rows) {
 			e.PasteBoard += e.Buffer.Rows[position].Text
+			e.Buffer.Rows = append(e.Buffer.Rows[0:position], e.Buffer.Rows[position+1:]...)
+			position = clipToRange(position, 0, len(e.Buffer.Rows)-1)
+			e.CursorRow = position
+		} else {
+			break
 		}
 	}
+	return nil
 }
 
-func (e *Editor) DeleteWord() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
+// Delete a word
 
+type DeleteWordOperation struct {
+	Op
+}
+
+func (op *DeleteWordOperation) Perform(e *Editor) Operation {
+	op.init(e)
+	log.Printf("Deleting %d words(s) at row %d", op.Multiplier, e.CursorRow)
+
+	if len(e.Buffer.Rows) == 0 {
+		return nil
+	}
 	c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
 	for {
 		if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
@@ -177,11 +129,21 @@ func (e *Editor) DeleteWord() {
 	if e.CursorCol < 0 {
 		e.CursorCol = 0
 	}
+	return nil
 }
 
-func (e *Editor) DeleteCharacterUnderCursor() {
+// Delete a character
+
+type DeleteCharacterOperation struct {
+	Op
+}
+
+func (op *DeleteCharacterOperation) Perform(e *Editor) Operation {
+	op.init(e)
+	log.Printf("Deleting %d character(s) at row %d", op.Multiplier, e.CursorRow)
+
 	if len(e.Buffer.Rows) == 0 {
-		return
+		return nil
 	}
 	e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
 	if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
@@ -190,66 +152,47 @@ func (e *Editor) DeleteCharacterUnderCursor() {
 	if e.CursorCol < 0 {
 		e.CursorCol = 0
 	}
+	return nil
 }
 
-func (e *Editor) MoveCursorToStartOfLine() {
-	e.CursorCol = 0
+// Paste
+
+type PasteOperation struct {
+	Op
 }
 
-func (e *Editor) MoveCursorPastEndOfLine() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
-	e.CursorCol = e.Buffer.Rows[e.CursorRow].Length()
-}
-
-func (e *Editor) KeepCursorInRow() {
-	if len(e.Buffer.Rows) == 0 {
-		e.CursorCol = 0
-	} else {
-		if e.CursorRow >= len(e.Buffer.Rows) {
-			e.CursorRow = len(e.Buffer.Rows) - 1
-		}
-		if e.CursorRow < 0 {
-			e.CursorRow = 0
-		}
-		lastIndexInRow := e.Buffer.Rows[e.CursorRow].Length() - 1
-		if e.CursorCol > lastIndexInRow {
-			e.CursorCol = lastIndexInRow
-		}
-		if e.CursorCol < 0 {
-			e.CursorCol = 0
-		}
-	}
-}
-
-func (e *Editor) InsertLineAboveCursor() {
-	if len(e.Buffer.Rows) == 0 {
-		e.InsertChar(' ')
-	}
-	i := e.CursorRow
-	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-	copy(e.Buffer.Rows[i+1:], e.Buffer.Rows[i:])
-	e.Buffer.Rows[i] = NewRow("")
-	e.CursorRow = i
-	e.CursorCol = 0
-}
-
-func (e *Editor) InsertLineBelowCursor() {
-	if len(e.Buffer.Rows) == 0 {
-		e.InsertChar(' ')
-	}
-	i := e.CursorRow
-	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-	copy(e.Buffer.Rows[i+2:], e.Buffer.Rows[i+1:])
-	e.Buffer.Rows[i+1] = NewRow("")
-	e.CursorRow = i + 1
-	e.CursorCol = 0
-}
-
-func (e *Editor) Paste() {
+func (op *PasteOperation) Perform(e *Editor) Operation {
+	op.init(e)
 	e.InsertLineBelowCursor()
 	for _, c := range e.PasteBoard {
 		e.InsertChar(c)
 	}
+	return nil
+}
+
+// Insert
+
+type InsertOperation struct {
+	Op
+	Position int
+}
+
+func (op *InsertOperation) Perform(e *Editor) Operation {
+	op.init(e)
+	switch op.Position {
+	case InsertAtCursor:
+		break
+	case InsertAfterCursor:
+		e.CursorCol++
+	case InsertAtStartOfLine:
+		e.MoveCursorToStartOfLine()
+	case InsertAfterEndOfLine:
+		e.MoveCursorPastEndOfLine()
+	case InsertAtNewLineBelowCursor:
+		e.InsertLineBelowCursor()
+	case InsertAtNewLineAboveCursor:
+		e.InsertLineAboveCursor()
+	}
+	e.Mode = ModeInsert
+	return nil
 }

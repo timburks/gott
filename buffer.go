@@ -55,7 +55,7 @@ func (b *Buffer) Bytes() []byte {
 func (b *Buffer) Render() {
 	for y := b.Y; y < b.H; y++ {
 		var line string
-		if (y + b.X) < len(b.Rows) {
+		if (y + b.YOffset) < len(b.Rows) {
 			line = b.Rows[y+b.YOffset].DisplayText()
 			if b.X < len(line) {
 				line = line[b.X:]
