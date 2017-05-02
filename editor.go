@@ -32,6 +32,14 @@ const (
 	ModeQuit    = 9999
 )
 
+// Move directions
+const (
+	MoveUp    = 0
+	MoveDown  = 1
+	MoveRight = 2
+	MoveLeft  = 3
+)
+
 // The Editor handles user commands and displays buffer text.
 type Editor struct {
 	Mode       int         // editor mode
@@ -173,12 +181,12 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		case termbox.KeyPgup:
 			e.CursorRow = e.RowOffset
 			for i := 0; i < e.EditRows; i++ {
-				e.MoveCursor(termbox.KeyArrowUp)
+				e.MoveCursor(MoveUp)
 			}
 		case termbox.KeyPgdn:
 			e.CursorRow = e.RowOffset + e.EditRows - 1
 			for i := 0; i < e.EditRows; i++ {
-				e.MoveCursor(termbox.KeyArrowDown)
+				e.MoveCursor(MoveDown)
 			}
 		case termbox.KeyCtrlA, termbox.KeyHome:
 			e.CursorCol = 0
@@ -190,8 +198,14 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 					e.CursorCol = 0
 				}
 			}
-		case termbox.KeyArrowUp, termbox.KeyArrowDown, termbox.KeyArrowLeft, termbox.KeyArrowRight:
-			e.MoveCursor(key)
+		case termbox.KeyArrowUp:
+			e.MoveCursor(MoveUp)
+		case termbox.KeyArrowDown:
+			e.MoveCursor(MoveDown)
+		case termbox.KeyArrowLeft:
+			e.MoveCursor(MoveLeft)
+		case termbox.KeyArrowRight:
+			e.MoveCursor(MoveRight)
 		}
 	}
 	ch := event.Ch
@@ -214,13 +228,13 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		//
 		// cursor movement isn't logged
 		case 'h':
-			e.MoveCursor(termbox.KeyArrowLeft)
+			e.MoveCursor(MoveLeft)
 		case 'j':
-			e.MoveCursor(termbox.KeyArrowDown)
+			e.MoveCursor(MoveDown)
 		case 'k':
-			e.MoveCursor(termbox.KeyArrowUp)
+			e.MoveCursor(MoveUp)
 		case 'l':
-			e.MoveCursor(termbox.KeyArrowRight)
+			e.MoveCursor(MoveRight)
 		//
 		// operations are saved for undo and repetition
 		case 'i': // InsertTextAtCursor
@@ -282,8 +296,7 @@ func (e *Editor) ProcessKeyInsertMode(event termbox.Event) error {
 			e.Mode = ModeEdit
 			e.KeepCursorInRow()
 		case termbox.KeyBackspace2:
-			e.MoveCursor(termbox.KeyArrowLeft)
-			e.DeleteCharacterUnderCursor()
+			e.BackspaceChar()
 		case termbox.KeyTab:
 			e.InsertChar(' ')
 			for {
@@ -535,24 +548,24 @@ func (e *Editor) RenderMessageBar() {
 	}
 }
 
-func (e *Editor) MoveCursor(key termbox.Key) {
-	switch key {
-	case termbox.KeyArrowLeft:
+func (e *Editor) MoveCursor(direction int) {
+	switch direction {
+	case MoveLeft:
 		if e.CursorCol > 0 {
 			e.CursorCol--
 		}
-	case termbox.KeyArrowRight:
+	case MoveRight:
 		if e.CursorRow < len(e.Buffer.Rows) {
 			rowLength := e.Buffer.Rows[e.CursorRow].Length()
 			if e.CursorCol < rowLength-1 {
 				e.CursorCol++
 			}
 		}
-	case termbox.KeyArrowUp:
+	case MoveUp:
 		if e.CursorRow > 0 {
 			e.CursorRow--
 		}
-	case termbox.KeyArrowDown:
+	case MoveDown:
 		if e.CursorRow < len(e.Buffer.Rows)-1 {
 			e.CursorRow++
 		}

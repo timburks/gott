@@ -14,7 +14,7 @@
 package main
 
 type Operation interface {
-	Perform(e *Editor) Operation // returns the operation's inverse
+	Perform(e *Editor) Operation // performs the operation and returns its inverse
 }
 
 type Op struct {
@@ -58,8 +58,9 @@ func (op *ReplaceCharacterOperation) Perform(e *Editor) Operation {
 	return inverse
 }
 
-// Insert text
-//  (todo)
+// More operations... (todo)
+
+// These editor primitives will make changes in insert mode and associate them with to the current operation.
 
 func (e *Editor) InsertChar(c rune) {
 	if c == '\n' {
@@ -75,6 +76,30 @@ func (e *Editor) InsertChar(c rune) {
 	e.Buffer.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
 	e.CursorCol += 1
 }
+
+func (e *Editor) BackspaceChar() rune {
+	if len(e.Buffer.Rows) == 0 {
+		return rune(0)
+	}
+	if e.CursorCol > 0 {
+		c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol - 1)
+		e.CursorCol--
+		return c
+	} else if e.CursorRow > 0 {
+		// remove the current row and join it with the previous one
+		oldRowText := e.Buffer.Rows[e.CursorRow].Text
+		newCursorCol := len(e.Buffer.Rows[e.CursorRow-1].Text)
+		e.Buffer.Rows[e.CursorRow-1].Text += oldRowText
+		e.Buffer.Rows = append(e.Buffer.Rows[0:e.CursorRow], e.Buffer.Rows[e.CursorRow+1:]...)
+		e.CursorRow--
+		e.CursorCol = newCursorCol
+		return rune('\n')
+	} else {
+		return rune(0)
+	}
+}
+
+// junk (it's ugly but works in a primitive way)
 
 func (e *Editor) InsertRow() {
 	if e.CursorRow > len(e.Buffer.Rows)-1 {
@@ -220,9 +245,6 @@ func (e *Editor) InsertLineBelowCursor() {
 	e.Buffer.Rows[i+1] = NewRow("")
 	e.CursorRow = i + 1
 	e.CursorCol = 0
-}
-
-func (e *Editor) ReplaceCharacter() {
 }
 
 func (e *Editor) Paste() {
