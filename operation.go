@@ -17,16 +17,6 @@ import (
 	"log"
 )
 
-func clipToRange(i, min, max int) int {
-	if i > max {
-		i = max
-	}
-	if i < min {
-		i = min
-	}
-	return i
-}
-
 type Operation interface {
 	Perform(e *Editor) Operation // performs the operation and returns its inverse
 }
@@ -175,24 +165,34 @@ func (op *PasteOperation) Perform(e *Editor) Operation {
 type InsertOperation struct {
 	Op
 	Position int
+	Text     string
 }
 
 func (op *InsertOperation) Perform(e *Editor) Operation {
 	op.init(e)
+	if len(e.Buffer.Rows) == 0 {
+		e.AppendBlankRow()
+	}
 	switch op.Position {
 	case InsertAtCursor:
 		break
 	case InsertAfterCursor:
 		e.CursorCol++
+		e.CursorCol = clipToRange(e.CursorCol, 0, e.Buffer.Rows[e.CursorRow].Length())
 	case InsertAtStartOfLine:
-		e.MoveCursorToStartOfLine()
+		e.CursorCol = 0
 	case InsertAfterEndOfLine:
-		e.MoveCursorPastEndOfLine()
+		e.CursorCol = e.Buffer.Rows[e.CursorRow].Length()
 	case InsertAtNewLineBelowCursor:
 		e.InsertLineBelowCursor()
 	case InsertAtNewLineAboveCursor:
 		e.InsertLineAboveCursor()
 	}
 	e.Mode = ModeInsert
+	e.Insert = op
 	return nil
+}
+
+func (op *InsertOperation) Close() {
+	log.Printf("Inserted text:\n%s", op.Text)
 }

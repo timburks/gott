@@ -52,25 +52,26 @@ const (
 
 // The Editor handles user commands and displays buffer text.
 type Editor struct {
-	Mode       int         // editor mode
-	ScreenRows int         // screen size in rows
-	ScreenCols int         // screen size in columns
-	EditRows   int         // actual number of rows used for editing
-	EditCols   int         // actual number of cols used for editing
-	CursorRow  int         // cursor position
-	CursorCol  int         // cursor position
-	Message    string      // status message
-	RowOffset  int         // display offset
-	ColOffset  int         // display offset
-	Command    string      // command as it is being typed on the command line
-	EditKeys   string      // edit key sequences in progress
-	Multiplier string      // multiplier string as it is being entered
-	SearchText string      // text for searches as it is being typed
-	Debug      bool        // debug mode displays information about events (key codes, etc)
-	PasteBoard string      // used to cut/copy and paste
-	Buffer     *Buffer     // active buffer being edited
-	Repeat     Operation   // last operation performed, available to repeat
-	Undo       []Operation // stack of operations to undo
+	Mode       int              // editor mode
+	ScreenRows int              // screen size in rows
+	ScreenCols int              // screen size in columns
+	EditRows   int              // actual number of rows used for editing
+	EditCols   int              // actual number of cols used for editing
+	CursorRow  int              // cursor position
+	CursorCol  int              // cursor position
+	Message    string           // status message
+	RowOffset  int              // display offset
+	ColOffset  int              // display offset
+	Command    string           // command as it is being typed on the command line
+	EditKeys   string           // edit key sequences in progress
+	Multiplier string           // multiplier string as it is being entered
+	SearchText string           // text for searches as it is being typed
+	Debug      bool             // debug mode displays information about events (key codes, etc)
+	PasteBoard string           // used to cut/copy and paste
+	Buffer     *Buffer          // active buffer being edited
+	Repeat     Operation        // last operation performed, available to repeat
+	Undo       []Operation      // stack of operations to undo
+	Insert     *InsertOperation // when in insert mode, the current insert operation
 }
 
 func NewEditor() *Editor {
@@ -299,11 +300,9 @@ func (e *Editor) ProcessKeyInsertMode(event termbox.Event) error {
 	key := event.Key
 	if key != 0 {
 		switch key {
-		case termbox.KeyEsc:
-			// ESC ends an operation.
-			// We need to tell the operation that it finished
-			// and what was inserted. It should return its own undo.
-			// .. todo ..
+		case termbox.KeyEsc: // end an insert operation.
+			e.Insert.Close()
+			e.Insert = nil
 			e.Mode = ModeEdit
 			e.KeepCursorInRow()
 		case termbox.KeyBackspace2:
@@ -609,6 +608,7 @@ func (e *Editor) MultiplierValue() int {
 // These editor primitives will make changes in insert mode and associate them with to the current operation.
 
 func (e *Editor) InsertChar(c rune) {
+	e.Insert.Text += string(c)
 	if c == '\n' {
 		e.InsertRow()
 		e.CursorRow++
@@ -617,7 +617,7 @@ func (e *Editor) InsertChar(c rune) {
 	}
 	// if the cursor is past the nmber of rows, add a row
 	for e.CursorRow >= len(e.Buffer.Rows) {
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+		e.AppendBlankRow()
 	}
 	e.Buffer.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
 	e.CursorCol += 1
@@ -626,12 +626,12 @@ func (e *Editor) InsertChar(c rune) {
 func (e *Editor) InsertRow() {
 	if e.CursorRow >= len(e.Buffer.Rows) {
 		// we should never get here
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+		e.AppendBlankRow()
 	} else {
 		newRow := e.Buffer.Rows[e.CursorRow].Split(e.CursorCol)
 		i := e.CursorRow + 1
 		// add a dummy row at the end of the Rows slice
-		e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
+		e.AppendBlankRow()
 		// move rows to make room for the one we are adding
 		copy(e.Buffer.Rows[i+1:], e.Buffer.Rows[i:])
 		// add the new row
@@ -643,6 +643,10 @@ func (e *Editor) BackspaceChar() rune {
 	if len(e.Buffer.Rows) == 0 {
 		return rune(0)
 	}
+	if len(e.Insert.Text) == 0 {
+		return rune(0)
+	}
+	e.Insert.Text = e.Insert.Text[0 : len(e.Insert.Text)-1]
 	if e.CursorCol > 0 {
 		c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol - 1)
 		e.CursorCol--
@@ -698,37 +702,21 @@ func (e *Editor) KeepCursorInRow() {
 	}
 }
 
-func (e *Editor) MoveCursorToStartOfLine() {
-	e.CursorCol = 0
-}
-
-func (e *Editor) MoveCursorPastEndOfLine() {
-	if len(e.Buffer.Rows) == 0 {
-		return
-	}
-	e.CursorCol = e.Buffer.Rows[e.CursorRow].Length()
+func (e *Editor) AppendBlankRow() {
+	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
 }
 
 func (e *Editor) InsertLineAboveCursor() {
-	if len(e.Buffer.Rows) == 0 {
-		e.InsertChar(' ')
-	}
-	i := e.CursorRow
-	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-	copy(e.Buffer.Rows[i+1:], e.Buffer.Rows[i:])
-	e.Buffer.Rows[i] = NewRow("")
-	e.CursorRow = i
+	e.AppendBlankRow()
+	copy(e.Buffer.Rows[e.CursorRow+1:], e.Buffer.Rows[e.CursorRow:])
+	e.Buffer.Rows[e.CursorRow] = NewRow("")
 	e.CursorCol = 0
 }
 
 func (e *Editor) InsertLineBelowCursor() {
-	if len(e.Buffer.Rows) == 0 {
-		e.InsertChar(' ')
-	}
-	i := e.CursorRow
-	e.Buffer.Rows = append(e.Buffer.Rows, NewRow(""))
-	copy(e.Buffer.Rows[i+2:], e.Buffer.Rows[i+1:])
-	e.Buffer.Rows[i+1] = NewRow("")
-	e.CursorRow = i + 1
+	e.AppendBlankRow()
+	copy(e.Buffer.Rows[e.CursorRow+2:], e.Buffer.Rows[e.CursorRow+1:])
+	e.Buffer.Rows[e.CursorRow+1] = NewRow("")
+	e.CursorRow += 1
 	e.CursorCol = 0
 }
