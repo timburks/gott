@@ -69,7 +69,7 @@ type Editor struct {
 	Debug      bool             // debug mode displays information about events (key codes, etc)
 	PasteBoard string           // used to cut/copy and paste
 	Buffer     *Buffer          // active buffer being edited
-	Repeat     Operation        // last operation performed, available to repeat
+	Previous   Operation        // last operation performed, available to repeat
 	Undo       []Operation      // stack of operations to undo
 	Insert     *InsertOperation // when in insert mode, the current insert operation
 }
@@ -139,16 +139,26 @@ func (e *Editor) Perform(op Operation) {
 	// perform the operation
 	inverse := op.Perform(e)
 	// save the operation for repeats
-	e.Repeat = op
+	e.Previous = op
 	// save the inverse of the operation for undo
 	if inverse != nil {
 		e.Undo = append(e.Undo, inverse)
 	}
 }
 
+func (e *Editor) Repeat() {
+	if e.Previous != nil {
+		inverse := e.Previous.Perform(e)
+		if inverse != nil {
+			e.Undo = append(e.Undo, inverse)
+		}
+	}
+}
+
 func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 	// multikey commands have highest precedence
 	if len(e.EditKeys) > 0 {
+		key := event.Key
 		ch := event.Ch
 		switch e.EditKeys {
 		case "d":
@@ -161,7 +171,11 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 				e.KeepCursorInRow()
 			}
 		case "r":
-			if ch != 0 {
+			if key != 0 {
+				if key == termbox.KeySpace {
+					e.Perform(&ReplaceCharacterOperation{Character: rune(' ')})
+				}
+			} else if ch != 0 {
 				e.Perform(&ReplaceCharacterOperation{Character: rune(event.Ch)})
 			}
 		case "y":
@@ -282,6 +296,11 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		//
 		case 'u':
 			e.PerformUndo()
+		//
+		// repeat
+		//
+		case '.':
+			e.Repeat()
 		}
 	}
 	return nil
@@ -720,5 +739,9 @@ func (e *Editor) InsertLineBelowCursor() {
 	copy(e.Buffer.Rows[e.CursorRow+2:], e.Buffer.Rows[e.CursorRow+1:])
 	e.Buffer.Rows[e.CursorRow+1] = NewRow("")
 	e.CursorRow += 1
+	e.CursorCol = 0
+}
+
+func (e *Editor) MoveCursorToStartOfLine() {
 	e.CursorCol = 0
 }

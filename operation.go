@@ -22,15 +22,17 @@ type Operation interface {
 }
 
 type Op struct {
-	Initialized bool
-	CursorRow   int
-	CursorCol   int
-	Multiplier  int
+	CursorRow  int
+	CursorCol  int
+	Multiplier int
+	Undo       bool
 }
 
 func (op *Op) init(e *Editor) {
-	if !op.Initialized {
-		op.Initialized = true
+	if op.Undo {
+		e.CursorRow = op.CursorRow
+		e.CursorCol = op.CursorCol
+	} else {
 		op.CursorRow = e.CursorRow
 		op.CursorCol = e.CursorCol
 		op.Multiplier = e.MultiplierValue()
@@ -38,10 +40,10 @@ func (op *Op) init(e *Editor) {
 }
 
 func (op *Op) copy(other *Op) {
-	op.Initialized = other.Initialized
 	op.CursorRow = other.CursorRow
 	op.CursorCol = other.CursorCol
 	op.Multiplier = other.Multiplier
+	op.Undo = other.Undo
 }
 
 // Replace a character
@@ -58,6 +60,7 @@ func (op *ReplaceCharacterOperation) Perform(e *Editor) Operation {
 	e.SetCursor(op.CursorRow, op.CursorCol)
 	inverse := &ReplaceCharacterOperation{}
 	inverse.copy(&op.Op)
+	inverse.Undo = true
 	inverse.Character = old
 	return inverse
 }
@@ -69,17 +72,15 @@ type DeleteRowOperation struct {
 }
 
 func (op *DeleteRowOperation) Perform(e *Editor) Operation {
+	e.MoveCursorToStartOfLine()
 	op.init(e)
 	log.Printf("Deleting %d row(s) at row %d", op.Multiplier, e.CursorRow)
-
-	e.PasteBoard = ""
+	deletedText := ""
 	for i := 0; i < op.Multiplier; i++ {
-		if i > 0 {
-			e.PasteBoard += "\n"
-		}
 		position := e.CursorRow
 		if position < len(e.Buffer.Rows) {
-			e.PasteBoard += e.Buffer.Rows[position].Text
+			deletedText += e.Buffer.Rows[position].Text
+			deletedText += "\n"
 			e.Buffer.Rows = append(e.Buffer.Rows[0:position], e.Buffer.Rows[position+1:]...)
 			position = clipToRange(position, 0, len(e.Buffer.Rows)-1)
 			e.CursorRow = position
@@ -87,7 +88,14 @@ func (op *DeleteRowOperation) Perform(e *Editor) Operation {
 			break
 		}
 	}
-	return nil
+	e.PasteBoard = deletedText
+	inverse := &InsertOperation{
+		Position: InsertAtCursor,
+		Text:     deletedText,
+	}
+	inverse.copy(&op.Op)
+	inverse.Undo = true
+	return inverse
 }
 
 // Delete a word
@@ -188,8 +196,20 @@ func (op *InsertOperation) Perform(e *Editor) Operation {
 	case InsertAtNewLineAboveCursor:
 		e.InsertLineAboveCursor()
 	}
-	e.Mode = ModeInsert
-	e.Insert = op
+	if op.Text != "" {
+		e.CursorRow = op.CursorRow
+		e.CursorCol = op.CursorCol
+		r := e.CursorRow
+		c := e.CursorCol
+		for _, c := range op.Text {
+			e.InsertChar(c)
+		}
+		e.CursorRow = r
+		e.CursorCol = c
+	} else {
+		e.Mode = ModeInsert
+		e.Insert = op
+	}
 	return nil
 }
 

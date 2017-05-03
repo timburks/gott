@@ -74,8 +74,12 @@ func (r *Row) DeleteChar(position int) rune {
 
 // split row at position, return a new row containing the remaining text.
 func (r *Row) Split(position int) Row {
-	before := r.Text[0:position]
-	after := r.Text[position:]
-	r.Text = before
-	return NewRow(after)
+	if position < len(r.Text) {
+		before := r.Text[0:position]
+		after := r.Text[position:]
+		r.Text = before
+		return NewRow(after)
+	} else {
+		return NewRow("")
+	}
 }
