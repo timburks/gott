@@ -608,7 +608,9 @@ func (e *Editor) MultiplierValue() int {
 // These editor primitives will make changes in insert mode and associate them with to the current operation.
 
 func (e *Editor) InsertChar(c rune) {
-	e.Insert.Text += string(c)
+	if e.Insert != nil {
+		e.Insert.Text += string(c)
+	}
 	if c == '\n' {
 		e.InsertRow()
 		e.CursorRow++
