@@ -52,26 +52,27 @@ const (
 
 // The Editor handles user commands and displays buffer text.
 type Editor struct {
-	Mode       int              // editor mode
-	ScreenRows int              // screen size in rows
-	ScreenCols int              // screen size in columns
-	EditRows   int              // actual number of rows used for editing
-	EditCols   int              // actual number of cols used for editing
-	CursorRow  int              // cursor position
-	CursorCol  int              // cursor position
-	Message    string           // status message
-	RowOffset  int              // display offset
-	ColOffset  int              // display offset
-	Command    string           // command as it is being typed on the command line
-	EditKeys   string           // edit key sequences in progress
-	Multiplier string           // multiplier string as it is being entered
-	SearchText string           // text for searches as it is being typed
-	Debug      bool             // debug mode displays information about events (key codes, etc)
-	PasteBoard string           // used to cut/copy and paste
-	Buffer     *Buffer          // active buffer being edited
-	Previous   Operation        // last operation performed, available to repeat
-	Undo       []Operation      // stack of operations to undo
-	Insert     *InsertOperation // when in insert mode, the current insert operation
+	Mode         int              // editor mode
+	ScreenRows   int              // screen size in rows
+	ScreenCols   int              // screen size in columns
+	EditRows     int              // actual number of rows used for editing
+	EditCols     int              // actual number of cols used for editing
+	CursorRow    int              // cursor position
+	CursorCol    int              // cursor position
+	Message      string           // status message
+	RowOffset    int              // display offset
+	ColOffset    int              // display offset
+	Command      string           // command as it is being typed on the command line
+	EditKeys     string           // edit key sequences in progress
+	Multiplier   string           // multiplier string as it is being entered
+	SearchText   string           // text for searches as it is being typed
+	Debug        bool             // debug mode displays information about events (key codes, etc)
+	PasteBoard   string           // used to cut/copy and paste
+	PasteNewLine bool             // true if the paste should start a new line
+	Buffer       *Buffer          // active buffer being edited
+	Previous     Operation        // last operation performed, available to repeat
+	Undo         []Operation      // stack of operations to undo
+	Insert       *InsertOperation // when in insert mode, the current insert operation
 }
 
 func NewEditor() *Editor {
@@ -691,6 +692,7 @@ func (e *Editor) YankRow() {
 		return
 	}
 	e.PasteBoard = ""
+	e.PasteNewLine = true
 	N := e.MultiplierValue()
 	for i := 0; i < N; i++ {
 		if i > 0 {

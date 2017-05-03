@@ -88,6 +88,8 @@ func (op *DeleteRowOperation) Perform(e *Editor) Operation {
 		}
 	}
 	e.PasteBoard = deletedText
+	e.PasteNewLine = true
+
 	inverse := &InsertOperation{
 		Position: InsertAtCursor,
 		Text:     deletedText,
@@ -110,7 +112,11 @@ func (op *DeleteWordOperation) Perform(e *Editor) Operation {
 	if len(e.Buffer.Rows) == 0 {
 		return nil
 	}
+
+	deletedText := ""
+
 	c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+	deletedText += string(c)
 	for {
 		if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
 			break
@@ -119,6 +125,7 @@ func (op *DeleteWordOperation) Perform(e *Editor) Operation {
 			break
 		}
 		c = e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+		deletedText += string(c)
 	}
 	if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
 		e.CursorCol--
@@ -126,7 +133,14 @@ func (op *DeleteWordOperation) Perform(e *Editor) Operation {
 	if e.CursorCol < 0 {
 		e.CursorCol = 0
 	}
-	return nil
+
+	inverse := &InsertOperation{
+		Position: InsertAtCursor,
+		Text:     string(deletedText),
+	}
+	inverse.copy(&op.Op)
+	inverse.Undo = true
+	return inverse
 }
 
 // Delete a character
@@ -142,7 +156,17 @@ func (op *DeleteCharacterOperation) Perform(e *Editor) Operation {
 	if len(e.Buffer.Rows) == 0 {
 		return nil
 	}
-	old := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+	deletedText := ""
+	for i := 0; i < op.Multiplier; i++ {
+		if e.Buffer.Rows[e.CursorRow].Length() > 0 {
+			c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+			deletedText += string(c)
+		} else if op.Undo && e.CursorRow < len(e.Buffer.Rows)-1 {
+			// delete current row
+			e.Buffer.Rows = append(e.Buffer.Rows[0:e.CursorRow], e.Buffer.Rows[e.CursorRow+1:]...)
+			deletedText += "\n"
+		}
+	}
 	if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
 		e.CursorCol--
 	}
@@ -152,7 +176,7 @@ func (op *DeleteCharacterOperation) Perform(e *Editor) Operation {
 
 	inverse := &InsertOperation{
 		Position: InsertAtCursor,
-		Text:     string(old),
+		Text:     deletedText,
 	}
 	inverse.copy(&op.Op)
 	inverse.Undo = true
@@ -167,11 +191,24 @@ type PasteOperation struct {
 
 func (op *PasteOperation) Perform(e *Editor) Operation {
 	op.init(e)
-	e.InsertLineBelowCursor()
+
+	if e.PasteNewLine {
+		e.InsertLineBelowCursor()
+	}
 	for _, c := range e.PasteBoard {
 		e.InsertChar(c)
 	}
-	return nil
+	if e.PasteNewLine {
+		e.MoveCursorToStartOfLine()
+		inverse := &DeleteCharacterOperation{}
+		inverse.copy(&op.Op)
+		inverse.Multiplier = len(e.PasteBoard)
+		inverse.CursorCol = 0
+		inverse.Undo = true
+		return inverse
+	} else {
+		return nil
+	}
 }
 
 // Insert
