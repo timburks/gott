@@ -55,9 +55,7 @@ type ReplaceCharacterOperation struct {
 
 func (op *ReplaceCharacterOperation) Perform(e *Editor) Operation {
 	op.init(e)
-
 	old := e.Buffer.Rows[op.CursorRow].ReplaceChar(op.CursorCol, op.Character)
-	e.SetCursor(op.CursorRow, op.CursorCol)
 	inverse := &ReplaceCharacterOperation{}
 	inverse.copy(&op.Op)
 	inverse.Undo = true
@@ -73,6 +71,7 @@ type DeleteRowOperation struct {
 
 func (op *DeleteRowOperation) Perform(e *Editor) Operation {
 	e.MoveCursorToStartOfLine()
+
 	op.init(e)
 	log.Printf("Deleting %d row(s) at row %d", op.Multiplier, e.CursorRow)
 	deletedText := ""
@@ -143,14 +142,21 @@ func (op *DeleteCharacterOperation) Perform(e *Editor) Operation {
 	if len(e.Buffer.Rows) == 0 {
 		return nil
 	}
-	e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
+	old := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
 	if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
 		e.CursorCol--
 	}
 	if e.CursorCol < 0 {
 		e.CursorCol = 0
 	}
-	return nil
+
+	inverse := &InsertOperation{
+		Position: InsertAtCursor,
+		Text:     string(old),
+	}
+	inverse.copy(&op.Op)
+	inverse.Undo = true
+	return inverse
 }
 
 // Paste
