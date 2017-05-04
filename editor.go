@@ -695,12 +695,9 @@ func (e *Editor) YankRow() {
 	e.PasteNewLine = true
 	N := e.MultiplierValue()
 	for i := 0; i < N; i++ {
-		if i > 0 {
-			e.PasteBoard += "\n"
-		}
 		position := e.CursorRow + i
 		if position < len(e.Buffer.Rows) {
-			e.PasteBoard += e.Buffer.Rows[position].Text
+			e.PasteBoard += e.Buffer.Rows[position].Text + "\n"
 		}
 	}
 }
@@ -746,4 +743,9 @@ func (e *Editor) InsertLineBelowCursor() {
 
 func (e *Editor) MoveCursorToStartOfLine() {
 	e.CursorCol = 0
+}
+
+func (e *Editor) MoveToStartOfLineBelowCursor() {
+	e.CursorCol = 0
+	e.CursorRow += 1
 }
