@@ -522,7 +522,7 @@ func (e *Editor) Render() {
 	e.Scroll()
 	e.RenderInfoBar()
 	e.RenderMessageBar()
-	e.Buffer.X = 0
+	e.Buffer.X = e.ColOffset
 	e.Buffer.Y = 0
 	e.Buffer.W = e.ScreenCols
 	e.Buffer.H = e.ScreenRows - 2
