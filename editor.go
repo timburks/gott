@@ -19,6 +19,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/nsf/termbox-go"
 )
@@ -50,29 +51,31 @@ const (
 	InsertAtNewLineAboveCursor = 5
 )
 
+// Paste modes
+const (
+	PasteAtCursor = 0
+	PasteNewLine  = 1
+)
+
 // The Editor handles user commands and displays buffer text.
 type Editor struct {
-	Mode         int              // editor mode
-	ScreenRows   int              // screen size in rows
-	ScreenCols   int              // screen size in columns
-	EditRows     int              // actual number of rows used for editing
-	EditCols     int              // actual number of cols used for editing
-	CursorRow    int              // cursor position
-	CursorCol    int              // cursor position
-	Message      string           // status message
-	RowOffset    int              // display offset
-	ColOffset    int              // display offset
-	Command      string           // command as it is being typed on the command line
-	EditKeys     string           // edit key sequences in progress
-	Multiplier   string           // multiplier string as it is being entered
-	SearchText   string           // text for searches as it is being typed
-	Debug        bool             // debug mode displays information about events (key codes, etc)
-	PasteBoard   string           // used to cut/copy and paste
-	PasteNewLine bool             // true if the paste should start a new line
-	Buffer       *Buffer          // active buffer being edited
-	Previous     Operation        // last operation performed, available to repeat
-	Undo         []Operation      // stack of operations to undo
-	Insert       *InsertOperation // when in insert mode, the current insert operation
+	Mode       int         // editor mode
+	ScreenSize Size        // screen size
+	EditSize   Size        // size of editing area
+	Cursor     Point       // cursor position
+	Offset     Size        // display offset
+	Message    string      // status message
+	Command    string      // command as it is being typed on the command line
+	EditKeys   string      // edit key sequences in progress
+	Multiplier string      // multiplier string as it is being entered
+	SearchText string      // text for searches as it is being typed
+	Debug      bool        // debug mode displays information about events (key codes, etc)
+	PasteBoard string      // used to cut/copy and paste
+	PasteMode  int         // how to paste the string on the pasteboard
+	Buffer     *Buffer     // active buffer being edited
+	Previous   Operation   // last operation performed, available to repeat
+	Undo       []Operation // stack of operations to undo
+	Insert     *Insert     // when in insert mode, the current insert operation
 }
 
 func NewEditor() *Editor {
@@ -80,11 +83,6 @@ func NewEditor() *Editor {
 	e.Buffer = NewBuffer()
 	e.Mode = ModeEdit
 	return e
-}
-
-func (e *Editor) SetCursor(row, col int) {
-	e.CursorRow = row
-	e.CursorCol = col
 }
 
 func (e *Editor) ReadFile(path string) error {
@@ -165,19 +163,19 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		case "d":
 			switch ch {
 			case 'd':
-				e.Perform(&DeleteRowOperation{})
+				e.Perform(&DeleteRow{})
 				e.KeepCursorInRow()
 			case 'w':
-				e.Perform(&DeleteWordOperation{})
+				e.Perform(&DeleteWord{})
 				e.KeepCursorInRow()
 			}
 		case "r":
 			if key != 0 {
 				if key == termbox.KeySpace {
-					e.Perform(&ReplaceCharacterOperation{Character: rune(' ')})
+					e.Perform(&ReplaceCharacter{Character: rune(' ')})
 				}
 			} else if ch != 0 {
-				e.Perform(&ReplaceCharacterOperation{Character: rune(event.Ch)})
+				e.Perform(&ReplaceCharacter{Character: rune(event.Ch)})
 			}
 		case "y":
 			switch ch {
@@ -197,28 +195,28 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 			break
 		case termbox.KeyPgup:
 			// move to the top of the screen
-			e.CursorRow = e.RowOffset
+			e.Cursor.Row = e.Offset.Rows
 			// move up by a page
-			for i := 0; i < e.EditRows; i++ {
+			for i := 0; i < e.EditSize.Rows; i++ {
 				e.MoveCursor(MoveUp)
 			}
 		case termbox.KeyPgdn:
 			// move to the bottom of the screen
-			e.CursorRow = e.RowOffset + e.EditRows - 1
+			e.Cursor.Row = e.Offset.Rows + e.EditSize.Rows - 1
 			// move down by a page
-			for i := 0; i < e.EditRows; i++ {
+			for i := 0; i < e.EditSize.Rows; i++ {
 				e.MoveCursor(MoveDown)
 			}
 		case termbox.KeyCtrlA, termbox.KeyHome:
 			// move to beginning of line
-			e.CursorCol = 0
+			e.Cursor.Col = 0
 		case termbox.KeyCtrlE, termbox.KeyEnd:
 			// move to end of line
-			e.CursorCol = 0
-			if e.CursorRow < len(e.Buffer.Rows) {
-				e.CursorCol = e.Buffer.Rows[e.CursorRow].Length() - 1
-				if e.CursorCol < 0 {
-					e.CursorCol = 0
+			e.Cursor.Col = 0
+			if e.Cursor.Row < len(e.Buffer.Rows) {
+				e.Cursor.Col = e.Buffer.Rows[e.Cursor.Row].Length() - 1
+				if e.Cursor.Col < 0 {
+					e.Cursor.Col = 0
 				}
 			}
 		case termbox.KeyArrowUp:
@@ -268,21 +266,23 @@ func (e *Editor) ProcessKeyEditMode(event termbox.Event) error {
 		// "performed" operations are saved for undo and repetition
 		//
 		case 'i':
-			e.Perform(&InsertOperation{Position: InsertAtCursor})
+			e.Perform(&Insert{Position: InsertAtCursor})
 		case 'a':
-			e.Perform(&InsertOperation{Position: InsertAfterCursor})
+			e.Perform(&Insert{Position: InsertAfterCursor})
 		case 'I':
-			e.Perform(&InsertOperation{Position: InsertAtStartOfLine})
+			e.Perform(&Insert{Position: InsertAtStartOfLine})
 		case 'A':
-			e.Perform(&InsertOperation{Position: InsertAfterEndOfLine})
+			e.Perform(&Insert{Position: InsertAfterEndOfLine})
 		case 'o':
-			e.Perform(&InsertOperation{Position: InsertAtNewLineBelowCursor})
+			e.Perform(&Insert{Position: InsertAtNewLineBelowCursor})
 		case 'O':
-			e.Perform(&InsertOperation{Position: InsertAtNewLineAboveCursor})
+			e.Perform(&Insert{Position: InsertAtNewLineAboveCursor})
 		case 'x':
-			e.Perform(&DeleteCharacterOperation{})
+			e.Perform(&DeleteCharacter{})
 		case 'p': // PasteText
-			e.Perform(&PasteOperation{})
+			e.Perform(&Paste{})
+		case '~': // reverse case
+			e.Perform(&ReverseCaseCharacter{})
 		//
 		// a few keys open multi-key commands
 		//
@@ -330,7 +330,7 @@ func (e *Editor) ProcessKeyInsertMode(event termbox.Event) error {
 		case termbox.KeyTab:
 			e.InsertChar(' ')
 			for {
-				if e.CursorCol%8 == 0 {
+				if e.Cursor.Col%8 == 0 {
 					break
 				}
 				e.InsertChar(' ')
@@ -416,12 +416,12 @@ func (e *Editor) PerformCommand() {
 
 		i, err := strconv.ParseInt(parts[0], 10, 64)
 		if err == nil {
-			e.CursorRow = int(i - 1)
-			if e.CursorRow > len(e.Buffer.Rows)-1 {
-				e.CursorRow = len(e.Buffer.Rows) - 1
+			e.Cursor.Row = int(i - 1)
+			if e.Cursor.Row > len(e.Buffer.Rows)-1 {
+				e.Cursor.Row = len(e.Buffer.Rows) - 1
 			}
-			if e.CursorRow < 0 {
-				e.CursorRow = 0
+			if e.Cursor.Row < 0 {
+				e.Cursor.Row = 0
 			}
 		}
 		switch parts[0] {
@@ -466,9 +466,9 @@ func (e *Editor) PerformCommand() {
 				e.Buffer.ReadBytes(out)
 			}
 		case "$":
-			e.CursorRow = len(e.Buffer.Rows) - 1
-			if e.CursorRow < 0 {
-				e.CursorRow = 0
+			e.Cursor.Row = len(e.Buffer.Rows) - 1
+			if e.Cursor.Row < 0 {
+				e.Cursor.Row = 0
 			}
 		default:
 			e.Message = "nope"
@@ -482,8 +482,8 @@ func (e *Editor) PerformSearch() {
 	if len(e.Buffer.Rows) == 0 {
 		return
 	}
-	row := e.CursorRow
-	col := e.CursorCol + 1
+	row := e.Cursor.Row
+	col := e.Cursor.Col + 1
 
 	for {
 		var s string
@@ -495,8 +495,8 @@ func (e *Editor) PerformSearch() {
 		i := strings.Index(s, e.SearchText)
 		if i != -1 {
 			// found it
-			e.CursorRow = row
-			e.CursorCol = col + i
+			e.Cursor.Row = row
+			e.Cursor.Col = col + i
 			return
 		} else {
 			col = 0
@@ -505,7 +505,7 @@ func (e *Editor) PerformSearch() {
 				row = 0
 			}
 		}
-		if row == e.CursorRow {
+		if row == e.Cursor.Row {
 			break
 		}
 	}
@@ -514,48 +514,48 @@ func (e *Editor) PerformSearch() {
 func (e *Editor) Render() {
 	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
 	w, h := termbox.Size()
-	e.ScreenRows = h
-	e.ScreenCols = w
-	e.EditRows = e.ScreenRows - 2
-	e.EditCols = e.ScreenCols
+	e.ScreenSize.Rows = h
+	e.ScreenSize.Cols = w
+	e.EditSize.Rows = e.ScreenSize.Rows - 2
+	e.EditSize.Cols = e.ScreenSize.Cols
 
 	e.Scroll()
 	e.RenderInfoBar()
 	e.RenderMessageBar()
-	e.Buffer.X = e.ColOffset
+	e.Buffer.X = e.Offset.Cols
 	e.Buffer.Y = 0
-	e.Buffer.W = e.ScreenCols
-	e.Buffer.H = e.ScreenRows - 2
-	e.Buffer.YOffset = e.RowOffset
+	e.Buffer.W = e.ScreenSize.Cols
+	e.Buffer.H = e.ScreenSize.Rows - 2
+	e.Buffer.YOffset = e.Offset.Rows
 	e.Buffer.Render()
-	termbox.SetCursor(e.CursorCol-e.ColOffset, e.CursorRow-e.RowOffset)
+	termbox.SetCursor(e.Cursor.Col-e.Offset.Cols, e.Cursor.Row-e.Offset.Rows)
 	termbox.Flush()
 }
 
 func (e *Editor) Scroll() {
-	if e.CursorRow < e.RowOffset {
-		e.RowOffset = e.CursorRow
+	if e.Cursor.Row < e.Offset.Rows {
+		e.Offset.Rows = e.Cursor.Row
 	}
-	if e.CursorRow-e.RowOffset >= e.EditRows {
-		e.RowOffset = e.CursorRow - e.EditRows + 1
+	if e.Cursor.Row-e.Offset.Rows >= e.EditSize.Rows {
+		e.Offset.Rows = e.Cursor.Row - e.EditSize.Rows + 1
 	}
-	if e.CursorCol < e.ColOffset {
-		e.ColOffset = e.CursorCol
+	if e.Cursor.Col < e.Offset.Cols {
+		e.Offset.Cols = e.Cursor.Col
 	}
-	if e.CursorCol-e.ColOffset >= e.EditCols {
-		e.ColOffset = e.CursorCol - e.EditCols + 1
+	if e.Cursor.Col-e.Offset.Cols >= e.EditSize.Cols {
+		e.Offset.Cols = e.Cursor.Col - e.EditSize.Cols + 1
 	}
 }
 
 func (e *Editor) RenderInfoBar() {
-	finalText := fmt.Sprintf(" %d/%d ", e.CursorRow, len(e.Buffer.Rows))
+	finalText := fmt.Sprintf(" %d/%d ", e.Cursor.Row, len(e.Buffer.Rows))
 	text := " the gott editor - " + e.Buffer.FileName + " "
-	for len(text) < e.ScreenCols-len(finalText)-1 {
+	for len(text) < e.ScreenSize.Cols-len(finalText)-1 {
 		text = text + " "
 	}
 	text += finalText
 	for x, c := range text {
-		termbox.SetCell(x, e.ScreenRows-2,
+		termbox.SetCell(x, e.ScreenSize.Rows-2,
 			rune(c),
 			termbox.ColorBlack, termbox.ColorWhite)
 	}
@@ -570,43 +570,43 @@ func (e *Editor) RenderMessageBar() {
 	} else {
 		line += e.Message
 	}
-	if len(line) > e.ScreenCols {
-		line = line[0:e.ScreenCols]
+	if len(line) > e.ScreenSize.Cols {
+		line = line[0:e.ScreenSize.Cols]
 	}
 	for x, c := range line {
-		termbox.SetCell(x, e.ScreenRows-1, rune(c), termbox.ColorBlack, termbox.ColorWhite)
+		termbox.SetCell(x, e.ScreenSize.Rows-1, rune(c), termbox.ColorBlack, termbox.ColorWhite)
 	}
 }
 
 func (e *Editor) MoveCursor(direction int) {
 	switch direction {
 	case MoveLeft:
-		if e.CursorCol > 0 {
-			e.CursorCol--
+		if e.Cursor.Col > 0 {
+			e.Cursor.Col--
 		}
 	case MoveRight:
-		if e.CursorRow < len(e.Buffer.Rows) {
-			rowLength := e.Buffer.Rows[e.CursorRow].Length()
-			if e.CursorCol < rowLength-1 {
-				e.CursorCol++
+		if e.Cursor.Row < len(e.Buffer.Rows) {
+			rowLength := e.Buffer.Rows[e.Cursor.Row].Length()
+			if e.Cursor.Col < rowLength-1 {
+				e.Cursor.Col++
 			}
 		}
 	case MoveUp:
-		if e.CursorRow > 0 {
-			e.CursorRow--
+		if e.Cursor.Row > 0 {
+			e.Cursor.Row--
 		}
 	case MoveDown:
-		if e.CursorRow < len(e.Buffer.Rows)-1 {
-			e.CursorRow++
+		if e.Cursor.Row < len(e.Buffer.Rows)-1 {
+			e.Cursor.Row++
 		}
 	}
 	// don't go past the end of the current line
-	if e.CursorRow < len(e.Buffer.Rows) {
-		rowLength := e.Buffer.Rows[e.CursorRow].Length()
-		if e.CursorCol > rowLength-1 {
-			e.CursorCol = rowLength - 1
-			if e.CursorCol < 0 {
-				e.CursorCol = 0
+	if e.Cursor.Row < len(e.Buffer.Rows) {
+		rowLength := e.Buffer.Rows[e.Cursor.Row].Length()
+		if e.Cursor.Col > rowLength-1 {
+			e.Cursor.Col = rowLength - 1
+			if e.Cursor.Col < 0 {
+				e.Cursor.Col = 0
 			}
 		}
 	}
@@ -633,25 +633,25 @@ func (e *Editor) InsertChar(c rune) {
 	}
 	if c == '\n' {
 		e.InsertRow()
-		e.CursorRow++
-		e.CursorCol = 0
+		e.Cursor.Row++
+		e.Cursor.Col = 0
 		return
 	}
 	// if the cursor is past the nmber of rows, add a row
-	for e.CursorRow >= len(e.Buffer.Rows) {
+	for e.Cursor.Row >= len(e.Buffer.Rows) {
 		e.AppendBlankRow()
 	}
-	e.Buffer.Rows[e.CursorRow].InsertChar(e.CursorCol, c)
-	e.CursorCol += 1
+	e.Buffer.Rows[e.Cursor.Row].InsertChar(e.Cursor.Col, c)
+	e.Cursor.Col += 1
 }
 
 func (e *Editor) InsertRow() {
-	if e.CursorRow >= len(e.Buffer.Rows) {
+	if e.Cursor.Row >= len(e.Buffer.Rows) {
 		// we should never get here
 		e.AppendBlankRow()
 	} else {
-		newRow := e.Buffer.Rows[e.CursorRow].Split(e.CursorCol)
-		i := e.CursorRow + 1
+		newRow := e.Buffer.Rows[e.Cursor.Row].Split(e.Cursor.Col)
+		i := e.Cursor.Row + 1
 		// add a dummy row at the end of the Rows slice
 		e.AppendBlankRow()
 		// move rows to make room for the one we are adding
@@ -669,18 +669,19 @@ func (e *Editor) BackspaceChar() rune {
 		return rune(0)
 	}
 	e.Insert.Text = e.Insert.Text[0 : len(e.Insert.Text)-1]
-	if e.CursorCol > 0 {
-		c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol - 1)
-		e.CursorCol--
+	if e.Cursor.Col > 0 {
+		c := e.Buffer.Rows[e.Cursor.Row].DeleteChar(e.Cursor.Col - 1)
+		e.Cursor.Col--
 		return c
-	} else if e.CursorRow > 0 {
+	} else if e.Cursor.Row > 0 {
 		// remove the current row and join it with the previous one
-		oldRowText := e.Buffer.Rows[e.CursorRow].Text
-		newCursorCol := len(e.Buffer.Rows[e.CursorRow-1].Text)
-		e.Buffer.Rows[e.CursorRow-1].Text += oldRowText
-		e.Buffer.Rows = append(e.Buffer.Rows[0:e.CursorRow], e.Buffer.Rows[e.CursorRow+1:]...)
-		e.CursorRow--
-		e.CursorCol = newCursorCol
+		oldRowText := e.Buffer.Rows[e.Cursor.Row].Text
+		var newCursor Point
+		newCursor.Col = len(e.Buffer.Rows[e.Cursor.Row-1].Text)
+		e.Buffer.Rows[e.Cursor.Row-1].Text += oldRowText
+		e.Buffer.Rows = append(e.Buffer.Rows[0:e.Cursor.Row], e.Buffer.Rows[e.Cursor.Row+1:]...)
+		e.Cursor.Row--
+		e.Cursor.Col = newCursor.Col
 		return rune('\n')
 	} else {
 		return rune(0)
@@ -691,33 +692,35 @@ func (e *Editor) YankRow() {
 	if len(e.Buffer.Rows) == 0 {
 		return
 	}
-	e.PasteBoard = ""
-	e.PasteNewLine = true
+	pasteText := ""
 	N := e.MultiplierValue()
 	for i := 0; i < N; i++ {
-		position := e.CursorRow + i
+		position := e.Cursor.Row + i
 		if position < len(e.Buffer.Rows) {
-			e.PasteBoard += e.Buffer.Rows[position].Text + "\n"
+			pasteText += e.Buffer.Rows[position].Text + "\n"
 		}
 	}
+
+	e.SetPasteBoard(pasteText, PasteNewLine)
+
 }
 
 func (e *Editor) KeepCursorInRow() {
 	if len(e.Buffer.Rows) == 0 {
-		e.CursorCol = 0
+		e.Cursor.Col = 0
 	} else {
-		if e.CursorRow >= len(e.Buffer.Rows) {
-			e.CursorRow = len(e.Buffer.Rows) - 1
+		if e.Cursor.Row >= len(e.Buffer.Rows) {
+			e.Cursor.Row = len(e.Buffer.Rows) - 1
 		}
-		if e.CursorRow < 0 {
-			e.CursorRow = 0
+		if e.Cursor.Row < 0 {
+			e.Cursor.Row = 0
 		}
-		lastIndexInRow := e.Buffer.Rows[e.CursorRow].Length() - 1
-		if e.CursorCol > lastIndexInRow {
-			e.CursorCol = lastIndexInRow
+		lastIndexInRow := e.Buffer.Rows[e.Cursor.Row].Length() - 1
+		if e.Cursor.Col > lastIndexInRow {
+			e.Cursor.Col = lastIndexInRow
 		}
-		if e.CursorCol < 0 {
-			e.CursorCol = 0
+		if e.Cursor.Col < 0 {
+			e.Cursor.Col = 0
 		}
 	}
 }
@@ -728,24 +731,187 @@ func (e *Editor) AppendBlankRow() {
 
 func (e *Editor) InsertLineAboveCursor() {
 	e.AppendBlankRow()
-	copy(e.Buffer.Rows[e.CursorRow+1:], e.Buffer.Rows[e.CursorRow:])
-	e.Buffer.Rows[e.CursorRow] = NewRow("")
-	e.CursorCol = 0
+	copy(e.Buffer.Rows[e.Cursor.Row+1:], e.Buffer.Rows[e.Cursor.Row:])
+	e.Buffer.Rows[e.Cursor.Row] = NewRow("")
+	e.Cursor.Col = 0
 }
 
 func (e *Editor) InsertLineBelowCursor() {
 	e.AppendBlankRow()
-	copy(e.Buffer.Rows[e.CursorRow+2:], e.Buffer.Rows[e.CursorRow+1:])
-	e.Buffer.Rows[e.CursorRow+1] = NewRow("")
-	e.CursorRow += 1
-	e.CursorCol = 0
+	copy(e.Buffer.Rows[e.Cursor.Row+2:], e.Buffer.Rows[e.Cursor.Row+1:])
+	e.Buffer.Rows[e.Cursor.Row+1] = NewRow("")
+	e.Cursor.Row += 1
+	e.Cursor.Col = 0
 }
 
 func (e *Editor) MoveCursorToStartOfLine() {
-	e.CursorCol = 0
+	e.Cursor.Col = 0
 }
 
 func (e *Editor) MoveToStartOfLineBelowCursor() {
-	e.CursorCol = 0
-	e.CursorRow += 1
+	e.Cursor.Col = 0
+	e.Cursor.Row += 1
+}
+
+// editable
+
+func (e *Editor) GetCursor() Point {
+	return e.Cursor
+}
+
+func (e *Editor) SetCursor(cursor Point) {
+	e.Cursor = cursor
+}
+
+func (e *Editor) ReplaceCharacterAtCursor(cursor Point, c rune) rune {
+	return e.Buffer.Rows[cursor.Row].ReplaceChar(cursor.Col, c)
+}
+
+func (e *Editor) DeleteRowsAtCursor(multiplier int) string {
+	deletedText := ""
+	for i := 0; i < multiplier; i++ {
+		position := e.Cursor.Row
+		if position < len(e.Buffer.Rows) {
+			deletedText += e.Buffer.Rows[position].Text
+			deletedText += "\n"
+			e.Buffer.Rows = append(e.Buffer.Rows[0:position], e.Buffer.Rows[position+1:]...)
+			position = clipToRange(position, 0, len(e.Buffer.Rows)-1)
+			e.Cursor.Row = position
+		} else {
+			break
+		}
+	}
+	return deletedText
+}
+
+func (e *Editor) SetPasteBoard(text string, mode int) {
+	e.PasteBoard = text
+	e.PasteMode = mode
+}
+
+func (e *Editor) DeleteWordsAtCursor(multiplier int) string {
+	deletedText := ""
+	for i := 0; i < multiplier; i++ {
+		if len(e.Buffer.Rows) == 0 {
+			break
+		}
+		// if the row is empty, delete the row...
+		if e.Buffer.Rows[e.Cursor.Row].Length() == 0 {
+			position := e.Cursor.Row
+			e.Buffer.Rows = append(e.Buffer.Rows[0:position], e.Buffer.Rows[position+1:]...)
+			deletedText += "\n"
+		} else {
+			// else do this...
+			c := e.Buffer.Rows[e.Cursor.Row].DeleteChar(e.Cursor.Col)
+			deletedText += string(c)
+			for {
+				if e.Cursor.Col > e.Buffer.Rows[e.Cursor.Row].Length()-1 {
+					break
+				}
+				if c == ' ' {
+					break
+				}
+				c = e.Buffer.Rows[e.Cursor.Row].DeleteChar(e.Cursor.Col)
+				deletedText += string(c)
+			}
+			if e.Cursor.Col > e.Buffer.Rows[e.Cursor.Row].Length()-1 {
+				e.Cursor.Col--
+			}
+			if e.Cursor.Col < 0 {
+				e.Cursor.Col = 0
+			}
+		}
+	}
+	return deletedText
+}
+
+func (e *Editor) DeleteCharactersAtCursor(multiplier int, undo bool, finallyDeleteRow bool) string {
+	deletedText := ""
+	if len(e.Buffer.Rows) == 0 {
+		return deletedText
+	}
+	for i := 0; i < multiplier; i++ {
+		if e.Buffer.Rows[e.Cursor.Row].Length() > 0 {
+			c := e.Buffer.Rows[e.Cursor.Row].DeleteChar(e.Cursor.Col)
+			deletedText += string(c)
+		} else if undo && e.Cursor.Row < len(e.Buffer.Rows)-1 {
+			// delete current row
+			e.Buffer.Rows = append(e.Buffer.Rows[0:e.Cursor.Row], e.Buffer.Rows[e.Cursor.Row+1:]...)
+			deletedText += "\n"
+		}
+	}
+	if e.Cursor.Col > e.Buffer.Rows[e.Cursor.Row].Length()-1 {
+		e.Cursor.Col--
+	}
+	if e.Cursor.Col < 0 {
+		e.Cursor.Col = 0
+	}
+	if finallyDeleteRow && len(e.Buffer.Rows) > 0 {
+		e.Buffer.Rows = append(e.Buffer.Rows[0:e.Cursor.Row], e.Buffer.Rows[e.Cursor.Row+1:]...)
+	}
+	return deletedText
+}
+
+func (e *Editor) InsertText(text string, position int) Point {
+	if len(e.Buffer.Rows) == 0 {
+		e.AppendBlankRow()
+	}
+	switch position {
+	case InsertAtCursor:
+		break
+	case InsertAfterCursor:
+		e.Cursor.Col++
+		e.Cursor.Col = clipToRange(e.Cursor.Col, 0, e.Buffer.Rows[e.Cursor.Row].Length())
+	case InsertAtStartOfLine:
+		e.Cursor.Col = 0
+	case InsertAfterEndOfLine:
+		e.Cursor.Col = e.Buffer.Rows[e.Cursor.Row].Length()
+	case InsertAtNewLineBelowCursor:
+		e.InsertLineBelowCursor()
+	case InsertAtNewLineAboveCursor:
+		e.InsertLineAboveCursor()
+	}
+	if text != "" {
+		r := e.Cursor.Row
+		c := e.Cursor.Col
+		for _, c := range text {
+			e.InsertChar(c)
+		}
+		e.Cursor.Row = r
+		e.Cursor.Col = c
+	} else {
+		e.Mode = ModeInsert
+	}
+	return e.Cursor
+}
+
+func (e *Editor) SetInsertOperation(insert *Insert) {
+	e.Insert = insert
+}
+
+func (e *Editor) GetPasteMode() int {
+	return e.PasteMode
+}
+
+func (e *Editor) GetPasteText() string {
+	return e.PasteBoard
+}
+
+func (e *Editor) ReverseCaseCharactersAtCursor(multiplier int) {
+	if len(e.Buffer.Rows) == 0 {
+		return
+	}
+	row := &e.Buffer.Rows[e.Cursor.Row]
+	for i := 0; i < multiplier; i++ {
+		c := rune(row.Text[e.Cursor.Col])
+		if unicode.IsUpper(c) {
+			row.ReplaceChar(e.Cursor.Col, unicode.ToLower(c))
+		}
+		if unicode.IsLower(c) {
+			row.ReplaceChar(e.Cursor.Col, unicode.ToUpper(c))
+		}
+		if e.Cursor.Col < row.Length()-1 {
+			e.Cursor.Col++
+		}
+	}
 }

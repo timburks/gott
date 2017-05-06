@@ -18,45 +18,44 @@ import (
 )
 
 type Operation interface {
-	Perform(e *Editor) Operation // performs the operation and returns its inverse
+	Perform(e Editable) Operation // performs the operation and returns its inverse
 }
 
 type Op struct {
-	CursorRow  int
-	CursorCol  int
+	Cursor     Point
 	Multiplier int
 	Undo       bool
 }
 
-func (op *Op) init(e *Editor) {
+func (op *Op) init(e Editable) {
 	if op.Undo {
-		e.CursorRow = op.CursorRow
-		e.CursorCol = op.CursorCol
+		e.SetCursor(op.Cursor)
 	} else {
-		op.CursorRow = e.CursorRow
-		op.CursorCol = e.CursorCol
-		op.Multiplier = e.MultiplierValue()
+		op.Cursor = e.GetCursor()
+		if op.Multiplier == 0 {
+			op.Multiplier = e.MultiplierValue()
+		}
 	}
 }
 
 func (op *Op) copy(other *Op) {
-	op.CursorRow = other.CursorRow
-	op.CursorCol = other.CursorCol
+	op.Cursor.Row = other.Cursor.Row
+	op.Cursor.Col = other.Cursor.Col
 	op.Multiplier = other.Multiplier
 	op.Undo = other.Undo
 }
 
 // Replace a character
 
-type ReplaceCharacterOperation struct {
+type ReplaceCharacter struct {
 	Op
 	Character rune
 }
 
-func (op *ReplaceCharacterOperation) Perform(e *Editor) Operation {
+func (op *ReplaceCharacter) Perform(e Editable) Operation {
 	op.init(e)
-	old := e.Buffer.Rows[op.CursorRow].ReplaceChar(op.CursorCol, op.Character)
-	inverse := &ReplaceCharacterOperation{}
+	old := e.ReplaceCharacterAtCursor(op.Cursor, op.Character)
+	inverse := &ReplaceCharacter{}
 	inverse.copy(&op.Op)
 	inverse.Undo = true
 	inverse.Character = old
@@ -65,32 +64,17 @@ func (op *ReplaceCharacterOperation) Perform(e *Editor) Operation {
 
 // Delete a row
 
-type DeleteRowOperation struct {
+type DeleteRow struct {
 	Op
 }
 
-func (op *DeleteRowOperation) Perform(e *Editor) Operation {
+func (op *DeleteRow) Perform(e Editable) Operation {
 	e.MoveCursorToStartOfLine()
-
 	op.init(e)
-	log.Printf("Deleting %d row(s) at row %d", op.Multiplier, e.CursorRow)
-	deletedText := ""
-	for i := 0; i < op.Multiplier; i++ {
-		position := e.CursorRow
-		if position < len(e.Buffer.Rows) {
-			deletedText += e.Buffer.Rows[position].Text
-			deletedText += "\n"
-			e.Buffer.Rows = append(e.Buffer.Rows[0:position], e.Buffer.Rows[position+1:]...)
-			position = clipToRange(position, 0, len(e.Buffer.Rows)-1)
-			e.CursorRow = position
-		} else {
-			break
-		}
-	}
-	e.PasteBoard = deletedText
-	e.PasteNewLine = true
-
-	inverse := &InsertOperation{
+	log.Printf("Deleting %d row(s) at row %d", op.Multiplier, e.GetCursor().Row)
+	deletedText := e.DeleteRowsAtCursor(op.Multiplier)
+	e.SetPasteBoard(deletedText, PasteNewLine)
+	inverse := &Insert{
 		Position: InsertAtCursor,
 		Text:     deletedText,
 	}
@@ -101,50 +85,16 @@ func (op *DeleteRowOperation) Perform(e *Editor) Operation {
 
 // Delete a word
 
-type DeleteWordOperation struct {
+type DeleteWord struct {
 	Op
 }
 
-func (op *DeleteWordOperation) Perform(e *Editor) Operation {
+func (op *DeleteWord) Perform(e Editable) Operation {
 	op.init(e)
-	log.Printf("Deleting %d words(s) at row %d", op.Multiplier, e.CursorRow)
-
-	deletedText := ""
-
-	for i := 0; i < op.Multiplier; i++ {
-		if len(e.Buffer.Rows) == 0 {
-			break
-		}
-
-		// if the row is empty, delete the row...
-		if e.Buffer.Rows[e.CursorRow].Length() == 0 {
-			position := e.CursorRow
-			e.Buffer.Rows = append(e.Buffer.Rows[0:position], e.Buffer.Rows[position+1:]...)
-			deletedText += "\n"
-		} else {
-			// else do this...
-			c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
-			deletedText += string(c)
-			for {
-				if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
-					break
-				}
-				if c == ' ' {
-					break
-				}
-				c = e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
-				deletedText += string(c)
-			}
-			if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
-				e.CursorCol--
-			}
-			if e.CursorCol < 0 {
-				e.CursorCol = 0
-			}
-		}
-
-	}
-	inverse := &InsertOperation{
+	log.Printf("Deleting %d words(s) at row %d", op.Multiplier, e.GetCursor().Row)
+	deletedText := e.DeleteWordsAtCursor(op.Multiplier)
+	e.SetPasteBoard(deletedText, InsertAtCursor)
+	inverse := &Insert{
 		Position: InsertAtCursor,
 		Text:     string(deletedText),
 	}
@@ -155,40 +105,18 @@ func (op *DeleteWordOperation) Perform(e *Editor) Operation {
 
 // Delete a character
 
-type DeleteCharacterOperation struct {
+type DeleteCharacter struct {
 	Op
 	FinallyDeleteRow bool
 }
 
-func (op *DeleteCharacterOperation) Perform(e *Editor) Operation {
+func (op *DeleteCharacter) Perform(e Editable) Operation {
 	op.init(e)
-	log.Printf("Deleting %d character(s) at row %d", op.Multiplier, e.CursorRow)
+	log.Printf("Deleting %d character(s) at row %d", op.Multiplier, e.GetCursor().Row)
 
-	if len(e.Buffer.Rows) == 0 {
-		return nil
-	}
-	deletedText := ""
-	for i := 0; i < op.Multiplier; i++ {
-		if e.Buffer.Rows[e.CursorRow].Length() > 0 {
-			c := e.Buffer.Rows[e.CursorRow].DeleteChar(e.CursorCol)
-			deletedText += string(c)
-		} else if op.Undo && e.CursorRow < len(e.Buffer.Rows)-1 {
-			// delete current row
-			e.Buffer.Rows = append(e.Buffer.Rows[0:e.CursorRow], e.Buffer.Rows[e.CursorRow+1:]...)
-			deletedText += "\n"
-		}
-	}
-	if e.CursorCol > e.Buffer.Rows[e.CursorRow].Length()-1 {
-		e.CursorCol--
-	}
-	if e.CursorCol < 0 {
-		e.CursorCol = 0
-	}
-	if op.FinallyDeleteRow && len(e.Buffer.Rows) > 0 {
-		e.Buffer.Rows = append(e.Buffer.Rows[0:e.CursorRow], e.Buffer.Rows[e.CursorRow+1:]...)
-	}
+	deletedText := e.DeleteCharactersAtCursor(op.Multiplier, op.Undo, op.FinallyDeleteRow)
 
-	inverse := &InsertOperation{
+	inverse := &Insert{
 		Position: InsertAtCursor,
 		Text:     deletedText,
 	}
@@ -199,32 +127,28 @@ func (op *DeleteCharacterOperation) Perform(e *Editor) Operation {
 
 // Paste
 
-type PasteOperation struct {
+type Paste struct {
 	Op
 }
 
-func (op *PasteOperation) Perform(e *Editor) Operation {
-	if e.PasteNewLine {
+func (op *Paste) Perform(e Editable) Operation {
+	if e.GetPasteMode() == PasteNewLine {
 		e.MoveToStartOfLineBelowCursor()
 	}
 
 	op.init(e)
 
-	row := op.CursorRow
-	col := op.CursorCol
+	cursor := op.Cursor
 
-	for _, c := range e.PasteBoard {
+	for _, c := range e.GetPasteText() {
 		e.InsertChar(c)
 	}
-	if e.PasteNewLine {
-
-		e.CursorRow = row
-		e.CursorCol = col
-
-		inverse := &DeleteCharacterOperation{}
+	if e.GetPasteMode() == PasteNewLine {
+		e.SetCursor(cursor)
+		inverse := &DeleteCharacter{}
 		inverse.copy(&op.Op)
-		inverse.Multiplier = len(e.PasteBoard)
-		inverse.CursorCol = 0
+		inverse.Multiplier = len(e.GetPasteText())
+		inverse.Cursor.Col = 0
 		inverse.Undo = true
 		return inverse
 	} else {
@@ -234,54 +158,28 @@ func (op *PasteOperation) Perform(e *Editor) Operation {
 
 // Insert
 
-type InsertOperation struct {
+type Insert struct {
 	Op
 	Position int
 	Text     string
-	Inverse  *DeleteCharacterOperation
+	Inverse  *DeleteCharacter
 }
 
-func (op *InsertOperation) Perform(e *Editor) Operation {
+func (op *Insert) Perform(e Editable) Operation {
 	op.init(e)
-	if len(e.Buffer.Rows) == 0 {
-		e.AppendBlankRow()
-	}
-	switch op.Position {
-	case InsertAtCursor:
-		break
-	case InsertAfterCursor:
-		e.CursorCol++
-		e.CursorCol = clipToRange(e.CursorCol, 0, e.Buffer.Rows[e.CursorRow].Length())
-	case InsertAtStartOfLine:
-		e.CursorCol = 0
-	case InsertAfterEndOfLine:
-		e.CursorCol = e.Buffer.Rows[e.CursorRow].Length()
-	case InsertAtNewLineBelowCursor:
-		e.InsertLineBelowCursor()
-	case InsertAtNewLineAboveCursor:
-		e.InsertLineAboveCursor()
-	}
+
 	if op.Text != "" {
-		e.CursorRow = op.CursorRow
-		e.CursorCol = op.CursorCol
-		r := e.CursorRow
-		c := e.CursorCol
-		for _, c := range op.Text {
-			e.InsertChar(c)
-		}
-		e.CursorRow = r
-		e.CursorCol = c
+		e.SetCursor(op.Cursor)
 	} else {
-		op.CursorRow = e.CursorRow
-		op.CursorCol = e.CursorCol
-
-		e.Mode = ModeInsert
-		e.Insert = op
+		op.Cursor = e.GetCursor()
+		e.SetInsertOperation(op)
 	}
 
-	inverse := &DeleteCharacterOperation{}
+	op.Cursor = e.InsertText(op.Text, op.Position)
+
+	inverse := &DeleteCharacter{}
 	inverse.copy(&op.Op)
-	inverse.Multiplier = 0
+	inverse.Multiplier = len(op.Text)
 	inverse.Undo = true
 	if op.Position == InsertAtNewLineBelowCursor ||
 		op.Position == InsertAtNewLineAboveCursor {
@@ -291,6 +189,27 @@ func (op *InsertOperation) Perform(e *Editor) Operation {
 	return inverse
 }
 
-func (op *InsertOperation) Close() {
+func (op *Insert) Close() {
 	op.Inverse.Multiplier = len(op.Text)
+}
+
+// Reverse the case of a character
+
+type ReverseCaseCharacter struct {
+	Op
+}
+
+func (op *ReverseCaseCharacter) Perform(e Editable) Operation {
+	op.init(e)
+	log.Printf("Reversing case of %d character(s) at row %d", op.Multiplier, e.GetCursor().Row)
+
+	e.ReverseCaseCharactersAtCursor(op.Multiplier)
+	if op.Undo {
+		e.SetCursor(op.Cursor)
+	}
+
+	inverse := &ReverseCaseCharacter{}
+	inverse.copy(&op.Op)
+	inverse.Undo = true
+	return inverse
 }
