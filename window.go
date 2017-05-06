@@ -24,6 +24,10 @@ type Window struct {
 	size Size // screen size
 }
 
+func NewWindow() *Window {
+	return &Window{}
+}
+
 func (window *Window) Render(e *Editor, c *Commander) {
 	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
 	var windowSize Size
@@ -63,11 +67,12 @@ func (window *Window) RenderInfoBar(e *Editor, c *Commander) {
 
 func (window *Window) RenderMessageBar(e *Editor, c *Commander) {
 	var line string
-	if c.Mode == ModeCommand {
+	switch c.GetMode() {
+	case ModeCommand:
 		line += ":" + c.Command()
-	} else if c.Mode == ModeSearch {
+	case ModeSearch:
 		line += "/" + c.SearchText()
-	} else {
+	default:
 		line += c.Message()
 	}
 	if len(line) > window.size.Cols {

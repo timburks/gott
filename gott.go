@@ -42,8 +42,8 @@ func main() {
 
 	// create our editor.
 	editor := NewEditor()
-	window := &Window{}
-	commander := &Commander{Editor: editor, Mode: ModeEdit}
+	window := NewWindow()
+	commander := NewCommander(editor)
 
 	// if a file was specified on the command-line, read it.
 	if len(os.Args) > 1 {
@@ -55,7 +55,7 @@ func main() {
 	}
 
 	// run the event loop.
-	for commander.Mode != ModeQuit {
+	for commander.GetMode() != ModeQuit {
 		window.Render(editor, commander)
 		err = commander.ProcessEvent(termbox.PollEvent())
 		if err != nil {

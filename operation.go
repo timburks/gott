@@ -173,7 +173,7 @@ func (op *Insert) Perform(e Editable, multiplier int) Operation {
 	var newMode int
 	op.Cursor, newMode = e.InsertText(op.Text, op.Position)
 	if op.Commander != nil {
-		op.Commander.Mode = newMode
+		op.Commander.SetMode(newMode)
 	}
 
 	inverse := &DeleteCharacter{}

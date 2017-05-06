@@ -23,14 +23,26 @@ import (
 
 // The Commander converts user input into commands for the Editor.
 type Commander struct {
-	Editor     *Editor
-	Mode       int    // editor mode
+	editor     *Editor
+	mode       int    // editor mode
 	debug      bool   // debug mode displays information about events (key codes, etc)
 	editKeys   string // edit key sequences in progress
 	command    string // command as it is being typed on the command line
 	searchText string // text for searches as it is being typed
 	message    string // status message
 	multiplier string // multiplier string as it is being entered
+}
+
+func NewCommander(e *Editor) *Commander {
+	return &Commander{editor: e, mode: ModeEdit}
+}
+
+func (c *Commander) GetMode() int {
+	return c.mode
+}
+
+func (c *Commander) SetMode(m int) {
+	c.mode = m
 }
 
 func (c *Commander) ProcessEvent(event termbox.Event) error {
@@ -53,7 +65,7 @@ func (c *Commander) ProcessResize(event termbox.Event) error {
 }
 
 func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
-	e := c.Editor
+	e := c.editor
 
 	// multikey commands have highest precedence
 	if len(c.editKeys) > 0 {
@@ -131,13 +143,13 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 		// commands go to the message bar
 		//
 		case ':':
-			c.Mode = ModeCommand
+			c.mode = ModeCommand
 			c.command = ""
 		//
 		// search queries go to the message bar
 		//
 		case '/':
-			c.Mode = ModeSearch
+			c.mode = ModeSearch
 			c.searchText = ""
 		case 'n': // repeat the last search
 			e.PerformSearch(c.searchText)
@@ -198,14 +210,14 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 }
 
 func (c *Commander) ProcessKeyInsertMode(event termbox.Event) error {
-	e := c.Editor
+	e := c.editor
 
 	key := event.Key
 	if key != 0 {
 		switch key {
 		case termbox.KeyEsc: // end an insert operation.
 			e.CloseInsert()
-			c.Mode = ModeEdit
+			c.mode = ModeEdit
 			e.KeepCursorInRow()
 		case termbox.KeyBackspace2:
 			e.BackspaceChar()
@@ -235,7 +247,7 @@ func (c *Commander) ProcessKeyCommandMode(event termbox.Event) error {
 	if key != 0 {
 		switch key {
 		case termbox.KeyEsc:
-			c.Mode = ModeEdit
+			c.mode = ModeEdit
 		case termbox.KeyEnter:
 			c.PerformCommand()
 		case termbox.KeyBackspace2:
@@ -254,16 +266,16 @@ func (c *Commander) ProcessKeyCommandMode(event termbox.Event) error {
 }
 
 func (c *Commander) ProcessKeySearchMode(event termbox.Event) error {
-	e := c.Editor
+	e := c.editor
 
 	key := event.Key
 	if key != 0 {
 		switch key {
 		case termbox.KeyEsc:
-			c.Mode = ModeEdit
+			c.mode = ModeEdit
 		case termbox.KeyEnter:
 			e.PerformSearch(c.searchText)
-			c.Mode = ModeEdit
+			c.mode = ModeEdit
 		case termbox.KeyBackspace2:
 			if len(c.searchText) > 0 {
 				c.searchText = c.searchText[0 : len(c.searchText)-1]
@@ -281,7 +293,7 @@ func (c *Commander) ProcessKeySearchMode(event termbox.Event) error {
 
 func (c *Commander) ProcessKey(event termbox.Event) error {
 	var err error
-	switch c.Mode {
+	switch c.mode {
 	case ModeEdit:
 		err = c.ProcessKeyEditMode(event)
 	case ModeInsert:
@@ -295,7 +307,7 @@ func (c *Commander) ProcessKey(event termbox.Event) error {
 }
 
 func (c *Commander) PerformCommand() {
-	e := c.Editor
+	e := c.editor
 
 	parts := strings.Split(c.command, " ")
 	if len(parts) > 0 {
@@ -312,7 +324,7 @@ func (c *Commander) PerformCommand() {
 		}
 		switch parts[0] {
 		case "q":
-			c.Mode = ModeQuit
+			c.mode = ModeQuit
 			return
 		case "r":
 			if len(parts) == 2 {
@@ -344,7 +356,7 @@ func (c *Commander) PerformCommand() {
 				filename = e.Buffer.FileName
 			}
 			e.WriteFile(filename)
-			c.Mode = ModeQuit
+			c.mode = ModeQuit
 			return
 		case "fmt":
 			out, err := gofmt(e.Buffer.FileName, e.Bytes())
@@ -361,7 +373,7 @@ func (c *Commander) PerformCommand() {
 		}
 	}
 	c.command = ""
-	c.Mode = ModeEdit
+	c.mode = ModeEdit
 }
 
 func (c *Commander) Multiplier() int {
