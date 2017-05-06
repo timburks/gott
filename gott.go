@@ -41,23 +41,23 @@ func main() {
 	defer termbox.Close()
 
 	// create our editor.
-	e := NewEditor()
-
-	c := Commander{Editor: e}
+	editor := NewEditor()
+	window := &Window{}
+	commander := &Commander{Editor: editor, Mode: ModeEdit}
 
 	// if a file was specified on the command-line, read it.
 	if len(os.Args) > 1 {
 		filename := os.Args[1]
-		err = e.ReadFile(filename)
+		err = editor.ReadFile(filename)
 		if err != nil {
 			log.Output(1, err.Error())
 		}
 	}
 
-	// run the editor event loop.
-	for e.Mode != ModeQuit {
-		e.Render()
-		err = c.ProcessEvent(termbox.PollEvent())
+	// run the event loop.
+	for commander.Mode != ModeQuit {
+		window.Render(editor, commander)
+		err = commander.ProcessEvent(termbox.PollEvent())
 		if err != nil {
 			log.Output(1, err.Error())
 		}

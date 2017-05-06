@@ -18,7 +18,7 @@ import (
 )
 
 type Operation interface {
-	Perform(e Editable) Operation // performs the operation and returns its inverse
+	Perform(e Editable, multiplier int) Operation // performs the operation and returns its inverse
 }
 
 type Op struct {
@@ -27,13 +27,13 @@ type Op struct {
 	Undo       bool
 }
 
-func (op *Op) init(e Editable) {
+func (op *Op) init(e Editable, multiplier int) {
 	if op.Undo {
 		e.SetCursor(op.Cursor)
 	} else {
 		op.Cursor = e.GetCursor()
 		if op.Multiplier == 0 {
-			op.Multiplier = e.MultiplierValue()
+			op.Multiplier = multiplier
 		}
 	}
 }
@@ -52,8 +52,8 @@ type ReplaceCharacter struct {
 	Character rune
 }
 
-func (op *ReplaceCharacter) Perform(e Editable) Operation {
-	op.init(e)
+func (op *ReplaceCharacter) Perform(e Editable, multiplier int) Operation {
+	op.init(e, multiplier)
 	old := e.ReplaceCharacterAtCursor(op.Cursor, op.Character)
 	inverse := &ReplaceCharacter{}
 	inverse.copy(&op.Op)
@@ -68,9 +68,9 @@ type DeleteRow struct {
 	Op
 }
 
-func (op *DeleteRow) Perform(e Editable) Operation {
+func (op *DeleteRow) Perform(e Editable, multiplier int) Operation {
 	e.MoveCursorToStartOfLine()
-	op.init(e)
+	op.init(e, multiplier)
 	log.Printf("Deleting %d row(s) at row %d", op.Multiplier, e.GetCursor().Row)
 	deletedText := e.DeleteRowsAtCursor(op.Multiplier)
 	e.SetPasteBoard(deletedText, PasteNewLine)
@@ -89,8 +89,8 @@ type DeleteWord struct {
 	Op
 }
 
-func (op *DeleteWord) Perform(e Editable) Operation {
-	op.init(e)
+func (op *DeleteWord) Perform(e Editable, multiplier int) Operation {
+	op.init(e, multiplier)
 	log.Printf("Deleting %d words(s) at row %d", op.Multiplier, e.GetCursor().Row)
 	deletedText := e.DeleteWordsAtCursor(op.Multiplier)
 	e.SetPasteBoard(deletedText, InsertAtCursor)
@@ -110,8 +110,8 @@ type DeleteCharacter struct {
 	FinallyDeleteRow bool
 }
 
-func (op *DeleteCharacter) Perform(e Editable) Operation {
-	op.init(e)
+func (op *DeleteCharacter) Perform(e Editable, multiplier int) Operation {
+	op.init(e, multiplier)
 	log.Printf("Deleting %d character(s) at row %d", op.Multiplier, e.GetCursor().Row)
 
 	deletedText := e.DeleteCharactersAtCursor(op.Multiplier, op.Undo, op.FinallyDeleteRow)
@@ -131,12 +131,12 @@ type Paste struct {
 	Op
 }
 
-func (op *Paste) Perform(e Editable) Operation {
+func (op *Paste) Perform(e Editable, multiplier int) Operation {
 	if e.GetPasteMode() == PasteNewLine {
 		e.MoveToStartOfLineBelowCursor()
 	}
 
-	op.init(e)
+	op.init(e, multiplier)
 
 	cursor := op.Cursor
 
@@ -160,13 +160,14 @@ func (op *Paste) Perform(e Editable) Operation {
 
 type Insert struct {
 	Op
-	Position int
-	Text     string
-	Inverse  *DeleteCharacter
+	Position  int
+	Text      string
+	Inverse   *DeleteCharacter
+	Commander *Commander
 }
 
-func (op *Insert) Perform(e Editable) Operation {
-	op.init(e)
+func (op *Insert) Perform(e Editable, multiplier int) Operation {
+	op.init(e, multiplier)
 
 	if op.Text != "" {
 		e.SetCursor(op.Cursor)
@@ -175,7 +176,7 @@ func (op *Insert) Perform(e Editable) Operation {
 		e.SetInsertOperation(op)
 	}
 
-	op.Cursor = e.InsertText(op.Text, op.Position)
+	op.Cursor, op.Commander.Mode = e.InsertText(op.Text, op.Position)
 
 	inverse := &DeleteCharacter{}
 	inverse.copy(&op.Op)
@@ -199,8 +200,8 @@ type ReverseCaseCharacter struct {
 	Op
 }
 
-func (op *ReverseCaseCharacter) Perform(e Editable) Operation {
-	op.init(e)
+func (op *ReverseCaseCharacter) Perform(e Editable, multiplier int) Operation {
+	op.init(e, multiplier)
 	log.Printf("Reversing case of %d character(s) at row %d", op.Multiplier, e.GetCursor().Row)
 
 	e.ReverseCaseCharactersAtCursor(op.Multiplier)

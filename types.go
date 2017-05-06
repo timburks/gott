@@ -18,7 +18,6 @@ type Rect struct {
 type Editable interface {
 	GetCursor() Point
 	SetCursor(cursor Point)
-	MultiplierValue() int
 
 	MoveCursorToStartOfLine()
 	MoveToStartOfLineBelowCursor()
@@ -28,7 +27,7 @@ type Editable interface {
 	DeleteWordsAtCursor(multiplier int) string
 	DeleteCharactersAtCursor(multiplier int, undo bool, finallyDeleteRow bool) string
 	InsertChar(c rune)
-	InsertText(text string, position int) Point
+	InsertText(text string, position int) (Point, int)
 	ReverseCaseCharactersAtCursor(multiplier int)
 
 	SetPasteBoard(text string, mode int)

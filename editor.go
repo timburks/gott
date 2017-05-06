@@ -14,14 +14,10 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 	"unicode"
-
-	"github.com/nsf/termbox-go"
 )
 
 // Editor modes
@@ -57,20 +53,13 @@ const (
 	PasteNewLine  = 1
 )
 
-// The Editor handles user commands and displays buffer text.
+// The Editor manages the editing of text in a Buffer.
 type Editor struct {
-	Mode       int         // editor mode
-	ScreenSize Size        // screen size
 	EditSize   Size        // size of editing area
 	Cursor     Point       // cursor position
 	Offset     Size        // display offset
-	Message    string      // status message
-	Command    string      // command as it is being typed on the command line
-	EditKeys   string      // edit key sequences in progress
-	Multiplier string      // multiplier string as it is being entered
-	SearchText string      // text for searches as it is being typed
-	PasteBoard string      // used to cut/copy and paste
-	PasteMode  int         // how to paste the string on the pasteboard
+	pasteBoard string      // used to cut/copy and paste
+	pasteMode  int         // how to paste the string on the pasteboard
 	Buffer     *Buffer     // active buffer being edited
 	Previous   Operation   // last operation performed, available to repeat
 	Undo       []Operation // stack of operations to undo
@@ -80,7 +69,6 @@ type Editor struct {
 func NewEditor() *Editor {
 	e := &Editor{}
 	e.Buffer = NewBuffer()
-	e.Mode = ModeEdit
 	return e
 }
 
@@ -114,9 +102,9 @@ func (e *Editor) WriteFile(path string) error {
 	return nil
 }
 
-func (e *Editor) Perform(op Operation) {
+func (e *Editor) Perform(op Operation, multiplier int) {
 	// perform the operation
-	inverse := op.Perform(e)
+	inverse := op.Perform(e, multiplier)
 	// save the operation for repeats
 	e.Previous = op
 	// save the inverse of the operation for undo
@@ -127,7 +115,7 @@ func (e *Editor) Perform(op Operation) {
 
 func (e *Editor) Repeat() {
 	if e.Previous != nil {
-		inverse := e.Previous.Perform(e)
+		inverse := e.Previous.Perform(e, 0)
 		if inverse != nil {
 			e.Undo = append(e.Undo, inverse)
 		}
@@ -139,11 +127,11 @@ func (e *Editor) PerformUndo() {
 		last := len(e.Undo) - 1
 		undo := e.Undo[last]
 		e.Undo = e.Undo[0:last]
-		undo.Perform(e)
+		undo.Perform(e, 0)
 	}
 }
 
-func (e *Editor) PerformSearch() {
+func (e *Editor) PerformSearch(text string) {
 	if len(e.Buffer.Rows) == 0 {
 		return
 	}
@@ -157,7 +145,7 @@ func (e *Editor) PerformSearch() {
 		} else {
 			s = ""
 		}
-		i := strings.Index(s, e.SearchText)
+		i := strings.Index(s, text)
 		if i != -1 {
 			// found it
 			e.Cursor.Row = row
@@ -176,27 +164,6 @@ func (e *Editor) PerformSearch() {
 	}
 }
 
-func (e *Editor) Render() {
-	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
-	w, h := termbox.Size()
-	e.ScreenSize.Rows = h
-	e.ScreenSize.Cols = w
-	e.EditSize.Rows = e.ScreenSize.Rows - 2
-	e.EditSize.Cols = e.ScreenSize.Cols
-
-	e.Scroll()
-	e.RenderInfoBar()
-	e.RenderMessageBar()
-	e.Buffer.X = e.Offset.Cols
-	e.Buffer.Y = 0
-	e.Buffer.W = e.ScreenSize.Cols
-	e.Buffer.H = e.ScreenSize.Rows - 2
-	e.Buffer.YOffset = e.Offset.Rows
-	e.Buffer.Render()
-	termbox.SetCursor(e.Cursor.Col-e.Offset.Cols, e.Cursor.Row-e.Offset.Rows)
-	termbox.Flush()
-}
-
 func (e *Editor) Scroll() {
 	if e.Cursor.Row < e.Offset.Rows {
 		e.Offset.Rows = e.Cursor.Row
@@ -209,37 +176,6 @@ func (e *Editor) Scroll() {
 	}
 	if e.Cursor.Col-e.Offset.Cols >= e.EditSize.Cols {
 		e.Offset.Cols = e.Cursor.Col - e.EditSize.Cols + 1
-	}
-}
-
-func (e *Editor) RenderInfoBar() {
-	finalText := fmt.Sprintf(" %d/%d ", e.Cursor.Row, len(e.Buffer.Rows))
-	text := " the gott editor - " + e.Buffer.FileName + " "
-	for len(text) < e.ScreenSize.Cols-len(finalText)-1 {
-		text = text + " "
-	}
-	text += finalText
-	for x, c := range text {
-		termbox.SetCell(x, e.ScreenSize.Rows-2,
-			rune(c),
-			termbox.ColorBlack, termbox.ColorWhite)
-	}
-}
-
-func (e *Editor) RenderMessageBar() {
-	var line string
-	if e.Mode == ModeCommand {
-		line += ":" + e.Command
-	} else if e.Mode == ModeSearch {
-		line += "/" + e.SearchText
-	} else {
-		line += e.Message
-	}
-	if len(line) > e.ScreenSize.Cols {
-		line = line[0:e.ScreenSize.Cols]
-	}
-	for x, c := range line {
-		termbox.SetCell(x, e.ScreenSize.Rows-1, rune(c), termbox.ColorBlack, termbox.ColorWhite)
 	}
 }
 
@@ -275,19 +211,6 @@ func (e *Editor) MoveCursor(direction int) {
 			}
 		}
 	}
-}
-
-func (e *Editor) MultiplierValue() int {
-	if e.Multiplier == "" {
-		return 1
-	}
-	i, err := strconv.ParseInt(e.Multiplier, 10, 64)
-	if err != nil {
-		e.Multiplier = ""
-		return 1
-	}
-	e.Multiplier = ""
-	return int(i)
 }
 
 // These editor primitives will make changes in insert mode and associate them with to the current operation.
@@ -353,13 +276,12 @@ func (e *Editor) BackspaceChar() rune {
 	}
 }
 
-func (e *Editor) YankRow() {
+func (e *Editor) YankRow(multiplier int) {
 	if len(e.Buffer.Rows) == 0 {
 		return
 	}
 	pasteText := ""
-	N := e.MultiplierValue()
-	for i := 0; i < N; i++ {
+	for i := 0; i < multiplier; i++ {
 		position := e.Cursor.Row + i
 		if position < len(e.Buffer.Rows) {
 			pasteText += e.Buffer.Rows[position].Text + "\n"
@@ -450,8 +372,8 @@ func (e *Editor) DeleteRowsAtCursor(multiplier int) string {
 }
 
 func (e *Editor) SetPasteBoard(text string, mode int) {
-	e.PasteBoard = text
-	e.PasteMode = mode
+	e.pasteBoard = text
+	e.pasteMode = mode
 }
 
 func (e *Editor) DeleteWordsAtCursor(multiplier int) string {
@@ -517,7 +439,7 @@ func (e *Editor) DeleteCharactersAtCursor(multiplier int, undo bool, finallyDele
 	return deletedText
 }
 
-func (e *Editor) InsertText(text string, position int) Point {
+func (e *Editor) InsertText(text string, position int) (Point, int) {
 	if len(e.Buffer.Rows) == 0 {
 		e.AppendBlankRow()
 	}
@@ -536,6 +458,7 @@ func (e *Editor) InsertText(text string, position int) Point {
 	case InsertAtNewLineAboveCursor:
 		e.InsertLineAboveCursor()
 	}
+	var mode int
 	if text != "" {
 		r := e.Cursor.Row
 		c := e.Cursor.Col
@@ -544,10 +467,11 @@ func (e *Editor) InsertText(text string, position int) Point {
 		}
 		e.Cursor.Row = r
 		e.Cursor.Col = c
+		mode = ModeEdit
 	} else {
-		e.Mode = ModeInsert
+		mode = ModeInsert
 	}
-	return e.Cursor
+	return e.Cursor, mode
 }
 
 func (e *Editor) SetInsertOperation(insert *Insert) {
@@ -555,11 +479,11 @@ func (e *Editor) SetInsertOperation(insert *Insert) {
 }
 
 func (e *Editor) GetPasteMode() int {
-	return e.PasteMode
+	return e.pasteMode
 }
 
 func (e *Editor) GetPasteText() string {
-	return e.PasteBoard
+	return e.pasteBoard
 }
 
 func (e *Editor) ReverseCaseCharactersAtCursor(multiplier int) {
