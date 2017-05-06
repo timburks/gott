@@ -23,39 +23,55 @@ import (
 // A Buffer represents a file being edited
 
 type Buffer struct {
-	Rows     []Row
+	rows     []Row
 	FileName string
 }
 
 func NewBuffer() *Buffer {
 	b := &Buffer{}
-	b.Rows = make([]Row, 0)
+	b.rows = make([]Row, 0)
 	return b
 }
 
 func (b *Buffer) ReadBytes(bytes []byte) {
 	s := string(bytes)
 	lines := strings.Split(s, "\n")
-	b.Rows = make([]Row, 0)
+	b.rows = make([]Row, 0)
 	for _, line := range lines {
-		b.Rows = append(b.Rows, NewRow(line))
+		b.rows = append(b.rows, NewRow(line))
 	}
 }
 
 func (b *Buffer) Bytes() []byte {
 	var s string
-	for _, row := range b.Rows {
+	for _, row := range b.rows {
 		s += string(row.Text) + "\n"
 	}
 	return []byte(s)
+}
+
+func (b *Buffer) RowCount() int {
+	return len(b.rows)
+}
+
+func (b *Buffer) RowLength(i int) int {
+	return b.rows[i].Length()
+}
+
+func (b *Buffer) TextAfterPosition(row, col int) string {
+	return string(b.rows[row].Text[col:])
+}
+
+func (b *Buffer) InsertCharacter(row, col int, c rune) {
+	b.rows[row].InsertChar(col, c)
 }
 
 // draw text in an area defined by origin and size with a specified offset into the buffer
 func (b *Buffer) Render(origin Point, size Size, offset Size) {
 	for i := origin.Row; i < size.Rows; i++ {
 		var line string
-		if (i + offset.Rows) < len(b.Rows) {
-			line = b.Rows[i+offset.Rows].DisplayText()
+		if (i + offset.Rows) < len(b.rows) {
+			line = b.rows[i+offset.Rows].DisplayText()
 			if offset.Cols < len(line) {
 				line = line[offset.Cols:]
 			} else {

@@ -49,7 +49,7 @@ func (window *Window) Render(e *Editor, c *Commander) {
 }
 
 func (window *Window) RenderInfoBar(e *Editor, c *Commander) {
-	finalText := fmt.Sprintf(" %d/%d ", e.Cursor.Row, len(e.Buffer.Rows))
+	finalText := fmt.Sprintf(" %d/%d ", e.Cursor.Row, len(e.Buffer.rows))
 	text := " the gott editor - " + e.Buffer.FileName + " "
 	for len(text) < window.size.Cols-len(finalText)-1 {
 		text = text + " "

@@ -304,8 +304,8 @@ func (c *Commander) PerformCommand() {
 		i, err := strconv.ParseInt(parts[0], 10, 64)
 		if err == nil {
 			e.Cursor.Row = int(i - 1)
-			if e.Cursor.Row > len(e.Buffer.Rows)-1 {
-				e.Cursor.Row = len(e.Buffer.Rows) - 1
+			if e.Cursor.Row > e.Buffer.RowCount()-1 {
+				e.Cursor.Row = e.Buffer.RowCount() - 1
 			}
 			if e.Cursor.Row < 0 {
 				e.Cursor.Row = 0
@@ -353,7 +353,7 @@ func (c *Commander) PerformCommand() {
 				e.Buffer.ReadBytes(out)
 			}
 		case "$":
-			e.Cursor.Row = len(e.Buffer.Rows) - 1
+			e.Cursor.Row = e.Buffer.RowCount() - 1
 			if e.Cursor.Row < 0 {
 				e.Cursor.Row = 0
 			}
