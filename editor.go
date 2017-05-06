@@ -141,7 +141,7 @@ func (e *Editor) PerformSearch(text string) {
 	for {
 		var s string
 		if col < e.Buffer.Rows[row].Length() {
-			s = e.Buffer.Rows[row].Text[col:]
+			s = string(e.Buffer.Rows[row].Text[col:])
 		} else {
 			s = ""
 		}
@@ -266,7 +266,7 @@ func (e *Editor) BackspaceChar() rune {
 		oldRowText := e.Buffer.Rows[e.Cursor.Row].Text
 		var newCursor Point
 		newCursor.Col = len(e.Buffer.Rows[e.Cursor.Row-1].Text)
-		e.Buffer.Rows[e.Cursor.Row-1].Text += oldRowText
+		e.Buffer.Rows[e.Cursor.Row-1].Text = append(e.Buffer.Rows[e.Cursor.Row-1].Text, oldRowText...)
 		e.Buffer.Rows = append(e.Buffer.Rows[0:e.Cursor.Row], e.Buffer.Rows[e.Cursor.Row+1:]...)
 		e.Cursor.Row--
 		e.Cursor.Col = newCursor.Col
@@ -284,7 +284,7 @@ func (e *Editor) YankRow(multiplier int) {
 	for i := 0; i < multiplier; i++ {
 		position := e.Cursor.Row + i
 		if position < len(e.Buffer.Rows) {
-			pasteText += e.Buffer.Rows[position].Text + "\n"
+			pasteText += string(e.Buffer.Rows[position].Text) + "\n"
 		}
 	}
 
@@ -358,7 +358,7 @@ func (e *Editor) DeleteRowsAtCursor(multiplier int) string {
 	for i := 0; i < multiplier; i++ {
 		position := e.Cursor.Row
 		if position < len(e.Buffer.Rows) {
-			deletedText += e.Buffer.Rows[position].Text
+			deletedText += string(e.Buffer.Rows[position].Text)
 			deletedText += "\n"
 			e.Buffer.Rows = append(e.Buffer.Rows[0:position], e.Buffer.Rows[position+1:]...)
 			position = clipToRange(position, 0, len(e.Buffer.Rows)-1)
@@ -491,7 +491,7 @@ func (e *Editor) ReverseCaseCharactersAtCursor(multiplier int) {
 	}
 	row := &e.Buffer.Rows[e.Cursor.Row]
 	for i := 0; i < multiplier; i++ {
-		c := rune(row.Text[e.Cursor.Col])
+		c := row.Text[e.Cursor.Col]
 		if unicode.IsUpper(c) {
 			row.ReplaceChar(e.Cursor.Col, unicode.ToLower(c))
 		}
@@ -529,4 +529,20 @@ func (e *Editor) SetSize(s Size) {
 func (e *Editor) CloseInsert() {
 	e.insert.Close()
 	e.insert = nil
+}
+
+func (e *Editor) MoveToBeginningOfLine() {
+	// move to beginning of line
+	e.Cursor.Col = 0
+}
+
+func (e *Editor) MoveToEndOfLine() {
+	// move to end of line
+	e.Cursor.Col = 0
+	if e.Cursor.Row < len(e.Buffer.Rows) {
+		e.Cursor.Col = e.Buffer.Rows[e.Cursor.Row].Length() - 1
+		if e.Cursor.Col < 0 {
+			e.Cursor.Col = 0
+		}
+	}
 }

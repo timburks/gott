@@ -17,34 +17,34 @@ import "strings"
 
 // A row of text in the editor
 type Row struct {
-	Text string
+	Text []rune
 }
 
 // We replace any tabs with spaces
 func NewRow(text string) Row {
 	r := Row{}
-	r.Text = strings.Replace(text, "\t", "        ", -1)
+	r.Text = []rune(strings.Replace(text, "\t", "        ", -1))
 	return r
 }
 
 func (r *Row) DisplayText() string {
-	return r.Text
+	return string(r.Text)
 }
 
 func (r *Row) Length() int {
-	return len(r.DisplayText())
+	return len(r.Text)
 }
 
 func (r *Row) InsertChar(position int, c rune) {
-	line := ""
+	line := make([]rune, 0)
 	if position <= len(r.Text) {
-		line += r.Text[0:position]
+		line = append(line, r.Text[0:position]...)
 	} else {
-		line += r.Text
+		line = append(line, r.Text...)
 	}
-	line += string(c)
+	line = append(line, c)
 	if position < len(r.Text) {
-		line += r.Text[position:]
+		line = append(line, r.Text[position:]...)
 	}
 	r.Text = line
 }
@@ -55,30 +55,29 @@ func (r *Row) ReplaceChar(position int, c rune) rune {
 		return rune(0)
 	}
 	result := rune(r.Text[position])
-	r.Text = r.Text[0:position] + string(c) + r.Text[position+1:]
+	r.Text[position] = c
 	return result
 }
 
 // delete character at position and return the deleted character
 func (r *Row) DeleteChar(position int) rune {
-	if r.Length() == 0 {
+	if len(r.Text) == 0 {
 		return 0
 	}
-	if position > r.Length()-1 {
-		position = r.Length() - 1
+	if position > len(r.Text)-1 {
+		position = len(r.Text) - 1
 	}
-	ch := rune(r.Text[position])
-	r.Text = r.Text[0:position] + r.Text[position+1:]
-	return ch
+	c := rune(r.Text[position])
+	r.Text = append(r.Text[0:position], r.Text[position+1:]...)
+	return c
 }
 
 // split row at position, return a new row containing the remaining text.
 func (r *Row) Split(position int) Row {
 	if position < len(r.Text) {
-		before := r.Text[0:position]
 		after := r.Text[position:]
-		r.Text = before
-		return NewRow(after)
+		r.Text = r.Text[0:position]
+		return NewRow(string(after))
 	} else {
 		return NewRow("")
 	}

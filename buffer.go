@@ -45,7 +45,7 @@ func (b *Buffer) ReadBytes(bytes []byte) {
 func (b *Buffer) Bytes() []byte {
 	var s string
 	for _, row := range b.Rows {
-		s += row.Text + "\n"
+		s += string(row.Text) + "\n"
 	}
 	return []byte(s)
 }

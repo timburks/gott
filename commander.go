@@ -67,19 +67,18 @@ func (c *Commander) ProcessResize(event termbox.Event) error {
 func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 	e := c.editor
 
+	key := event.Key
+	ch := event.Ch
+
 	// multikey commands have highest precedence
 	if len(c.editKeys) > 0 {
-		key := event.Key
-		ch := event.Ch
 		switch c.editKeys {
 		case "d":
 			switch ch {
 			case 'd':
 				e.Perform(&DeleteRow{}, c.Multiplier())
-				e.KeepCursorInRow()
 			case 'w':
 				e.Perform(&DeleteWord{}, c.Multiplier())
-				e.KeepCursorInRow()
 			}
 		case "r":
 			if key != 0 {
@@ -100,7 +99,6 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 		c.editKeys = ""
 		return nil
 	}
-	key := event.Key
 	if key != 0 {
 		switch key {
 		case termbox.KeyEsc:
@@ -110,17 +108,9 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 		case termbox.KeyPgdn:
 			e.PageDown()
 		case termbox.KeyCtrlA, termbox.KeyHome:
-			// move to beginning of line
-			e.Cursor.Col = 0
+			e.MoveToBeginningOfLine()
 		case termbox.KeyCtrlE, termbox.KeyEnd:
-			// move to end of line
-			e.Cursor.Col = 0
-			if e.Cursor.Row < len(e.Buffer.Rows) {
-				e.Cursor.Col = e.Buffer.Rows[e.Cursor.Row].Length() - 1
-				if e.Cursor.Col < 0 {
-					e.Cursor.Col = 0
-				}
-			}
+			e.MoveToEndOfLine()
 		case termbox.KeyArrowUp:
 			e.MoveCursor(MoveUp)
 		case termbox.KeyArrowDown:
@@ -131,7 +121,6 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 			e.MoveCursor(MoveRight)
 		}
 	}
-	ch := event.Ch
 	if ch != 0 {
 		switch ch {
 		//
