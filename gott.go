@@ -43,6 +43,8 @@ func main() {
 	// create our editor.
 	e := NewEditor()
 
+	c := Commander{Editor: e}
+
 	// if a file was specified on the command-line, read it.
 	if len(os.Args) > 1 {
 		filename := os.Args[1]
@@ -55,7 +57,7 @@ func main() {
 	// run the editor event loop.
 	for e.Mode != ModeQuit {
 		e.Render()
-		err = e.ProcessEvent(termbox.PollEvent())
+		err = c.ProcessEvent(termbox.PollEvent())
 		if err != nil {
 			log.Output(1, err.Error())
 		}
