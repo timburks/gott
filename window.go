@@ -41,12 +41,9 @@ func (window *Window) Render(e *Editor, c *Commander) {
 	e.Scroll()
 	window.RenderInfoBar(e, c)
 	window.RenderMessageBar(e, c)
-	e.Buffer.X = e.Offset.Cols
-	e.Buffer.Y = 0
-	e.Buffer.W = window.size.Cols
-	e.Buffer.H = window.size.Rows - 2
-	e.Buffer.YOffset = e.Offset.Rows
-	e.Buffer.Render()
+	bufferOrigin := Point{Row: 0, Col: 0}
+	bufferSize := Size{Rows: window.size.Rows - 2, Cols: window.size.Cols}
+	e.Buffer.Render(bufferOrigin, bufferSize, e.Offset)
 	termbox.SetCursor(e.Cursor.Col-e.Offset.Cols, e.Cursor.Row-e.Offset.Rows)
 	termbox.Flush()
 }

@@ -23,10 +23,8 @@ import (
 // A Buffer represents a file being edited
 
 type Buffer struct {
-	Rows       []Row
-	FileName   string
-	X, Y, W, H int
-	YOffset    int
+	Rows     []Row
+	FileName string
 }
 
 func NewBuffer() *Buffer {
@@ -52,33 +50,34 @@ func (b *Buffer) Bytes() []byte {
 	return []byte(s)
 }
 
-func (b *Buffer) Render() {
-	for y := b.Y; y < b.H; y++ {
+// draw text in an area defined by origin and size with a specified offset into the buffer
+func (b *Buffer) Render(origin Point, size Size, offset Size) {
+	for i := origin.Row; i < size.Rows; i++ {
 		var line string
-		if (y + b.YOffset) < len(b.Rows) {
-			line = b.Rows[y+b.YOffset].DisplayText()
-			if b.X < len(line) {
-				line = line[b.X:]
+		if (i + offset.Rows) < len(b.Rows) {
+			line = b.Rows[i+offset.Rows].DisplayText()
+			if offset.Cols < len(line) {
+				line = line[offset.Cols:]
 			} else {
 				line = ""
 			}
 		} else {
 			line = "~"
-			if y == b.H/3 {
+			if i == size.Rows/3 {
 				welcome := fmt.Sprintf("the gott editor -- version %s", VERSION)
-				padding := (b.W - len(welcome)) / 2
-				for i := 1; i <= padding; i++ {
+				padding := (size.Cols - len(welcome)) / 2
+				for j := 1; j <= padding; j++ {
 					line = line + " "
 				}
 				line += welcome
 			}
 		}
 		// truncate line to fit screen
-		if len(line) > b.W {
-			line = line[0:b.W]
+		if len(line) > size.Cols {
+			line = line[0:size.Cols]
 		}
-		for x, c := range line {
-			termbox.SetCell(x, y, rune(c), termbox.ColorWhite, termbox.ColorBlack)
+		for j, c := range line {
+			termbox.SetCell(j+origin.Col, i, rune(c), termbox.ColorWhite, termbox.ColorBlack)
 		}
 	}
 }
