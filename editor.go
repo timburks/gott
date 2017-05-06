@@ -55,15 +55,15 @@ const (
 
 // The Editor manages the editing of text in a Buffer.
 type Editor struct {
-	EditSize   Size        // size of editing area
-	Cursor     Point       // cursor position
-	Offset     Size        // display offset
-	pasteBoard string      // used to cut/copy and paste
-	pasteMode  int         // how to paste the string on the pasteboard
-	Buffer     *Buffer     // active buffer being edited
-	Previous   Operation   // last operation performed, available to repeat
-	Undo       []Operation // stack of operations to undo
-	Insert     *Insert     // when in insert mode, the current insert operation
+	Cursor    Point       // cursor position
+	Offset    Size        // display offset
+	Buffer    *Buffer     // active buffer being edited
+	size      Size        // size of editing area
+	pasteText string      // used to cut/copy and paste
+	pasteMode int         // how to paste the string on the pasteboard
+	previous  Operation   // last operation performed, available to repeat
+	undo      []Operation // stack of operations to undo
+	insert    *Insert     // when in insert mode, the current insert operation
 }
 
 func NewEditor() *Editor {
@@ -106,27 +106,27 @@ func (e *Editor) Perform(op Operation, multiplier int) {
 	// perform the operation
 	inverse := op.Perform(e, multiplier)
 	// save the operation for repeats
-	e.Previous = op
+	e.previous = op
 	// save the inverse of the operation for undo
 	if inverse != nil {
-		e.Undo = append(e.Undo, inverse)
+		e.undo = append(e.undo, inverse)
 	}
 }
 
 func (e *Editor) Repeat() {
-	if e.Previous != nil {
-		inverse := e.Previous.Perform(e, 0)
+	if e.previous != nil {
+		inverse := e.previous.Perform(e, 0)
 		if inverse != nil {
-			e.Undo = append(e.Undo, inverse)
+			e.undo = append(e.undo, inverse)
 		}
 	}
 }
 
 func (e *Editor) PerformUndo() {
-	if len(e.Undo) > 0 {
-		last := len(e.Undo) - 1
-		undo := e.Undo[last]
-		e.Undo = e.Undo[0:last]
+	if len(e.undo) > 0 {
+		last := len(e.undo) - 1
+		undo := e.undo[last]
+		e.undo = e.undo[0:last]
 		undo.Perform(e, 0)
 	}
 }
@@ -168,14 +168,14 @@ func (e *Editor) Scroll() {
 	if e.Cursor.Row < e.Offset.Rows {
 		e.Offset.Rows = e.Cursor.Row
 	}
-	if e.Cursor.Row-e.Offset.Rows >= e.EditSize.Rows {
-		e.Offset.Rows = e.Cursor.Row - e.EditSize.Rows + 1
+	if e.Cursor.Row-e.Offset.Rows >= e.size.Rows {
+		e.Offset.Rows = e.Cursor.Row - e.size.Rows + 1
 	}
 	if e.Cursor.Col < e.Offset.Cols {
 		e.Offset.Cols = e.Cursor.Col
 	}
-	if e.Cursor.Col-e.Offset.Cols >= e.EditSize.Cols {
-		e.Offset.Cols = e.Cursor.Col - e.EditSize.Cols + 1
+	if e.Cursor.Col-e.Offset.Cols >= e.size.Cols {
+		e.Offset.Cols = e.Cursor.Col - e.size.Cols + 1
 	}
 }
 
@@ -216,8 +216,8 @@ func (e *Editor) MoveCursor(direction int) {
 // These editor primitives will make changes in insert mode and associate them with to the current operation.
 
 func (e *Editor) InsertChar(c rune) {
-	if e.Insert != nil {
-		e.Insert.Text += string(c)
+	if e.insert != nil {
+		e.insert.Text += string(c)
 	}
 	if c == '\n' {
 		e.InsertRow()
@@ -253,10 +253,10 @@ func (e *Editor) BackspaceChar() rune {
 	if len(e.Buffer.Rows) == 0 {
 		return rune(0)
 	}
-	if len(e.Insert.Text) == 0 {
+	if len(e.insert.Text) == 0 {
 		return rune(0)
 	}
-	e.Insert.Text = e.Insert.Text[0 : len(e.Insert.Text)-1]
+	e.insert.Text = e.insert.Text[0 : len(e.insert.Text)-1]
 	if e.Cursor.Col > 0 {
 		c := e.Buffer.Rows[e.Cursor.Row].DeleteChar(e.Cursor.Col - 1)
 		e.Cursor.Col--
@@ -289,7 +289,6 @@ func (e *Editor) YankRow(multiplier int) {
 	}
 
 	e.SetPasteBoard(pasteText, PasteNewLine)
-
 }
 
 func (e *Editor) KeepCursorInRow() {
@@ -372,7 +371,7 @@ func (e *Editor) DeleteRowsAtCursor(multiplier int) string {
 }
 
 func (e *Editor) SetPasteBoard(text string, mode int) {
-	e.pasteBoard = text
+	e.pasteText = text
 	e.pasteMode = mode
 }
 
@@ -475,7 +474,7 @@ func (e *Editor) InsertText(text string, position int) (Point, int) {
 }
 
 func (e *Editor) SetInsertOperation(insert *Insert) {
-	e.Insert = insert
+	e.insert = insert
 }
 
 func (e *Editor) GetPasteMode() int {
@@ -483,7 +482,7 @@ func (e *Editor) GetPasteMode() int {
 }
 
 func (e *Editor) GetPasteText() string {
-	return e.pasteBoard
+	return e.pasteText
 }
 
 func (e *Editor) ReverseCaseCharactersAtCursor(multiplier int) {
@@ -503,4 +502,31 @@ func (e *Editor) ReverseCaseCharactersAtCursor(multiplier int) {
 			e.Cursor.Col++
 		}
 	}
+}
+
+func (e *Editor) PageUp() {
+	// move to the top of the screen
+	e.Cursor.Row = e.Offset.Rows
+	// move up by a page
+	for i := 0; i < e.size.Rows; i++ {
+		e.MoveCursor(MoveUp)
+	}
+}
+
+func (e *Editor) PageDown() {
+	// move to the bottom of the screen
+	e.Cursor.Row = e.Offset.Rows + e.size.Rows - 1
+	// move down by a page
+	for i := 0; i < e.size.Rows; i++ {
+		e.MoveCursor(MoveDown)
+	}
+}
+
+func (e *Editor) SetSize(s Size) {
+	e.size = s
+}
+
+func (e *Editor) CloseInsert() {
+	e.insert.Close()
+	e.insert = nil
 }

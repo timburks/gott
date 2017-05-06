@@ -38,11 +38,10 @@ func (op *Op) init(e Editable, multiplier int) {
 	}
 }
 
-func (op *Op) copy(other *Op) {
-	op.Cursor.Row = other.Cursor.Row
-	op.Cursor.Col = other.Cursor.Col
+func (op *Op) copyForUndo(other *Op) {
+	op.Cursor = other.Cursor
 	op.Multiplier = other.Multiplier
-	op.Undo = other.Undo
+	op.Undo = true
 }
 
 // Replace a character
@@ -56,8 +55,7 @@ func (op *ReplaceCharacter) Perform(e Editable, multiplier int) Operation {
 	op.init(e, multiplier)
 	old := e.ReplaceCharacterAtCursor(op.Cursor, op.Character)
 	inverse := &ReplaceCharacter{}
-	inverse.copy(&op.Op)
-	inverse.Undo = true
+	inverse.copyForUndo(&op.Op)
 	inverse.Character = old
 	return inverse
 }
@@ -78,8 +76,7 @@ func (op *DeleteRow) Perform(e Editable, multiplier int) Operation {
 		Position: InsertAtCursor,
 		Text:     deletedText,
 	}
-	inverse.copy(&op.Op)
-	inverse.Undo = true
+	inverse.copyForUndo(&op.Op)
 	return inverse
 }
 
@@ -98,8 +95,7 @@ func (op *DeleteWord) Perform(e Editable, multiplier int) Operation {
 		Position: InsertAtCursor,
 		Text:     string(deletedText),
 	}
-	inverse.copy(&op.Op)
-	inverse.Undo = true
+	inverse.copyForUndo(&op.Op)
 	return inverse
 }
 
@@ -120,8 +116,7 @@ func (op *DeleteCharacter) Perform(e Editable, multiplier int) Operation {
 		Position: InsertAtCursor,
 		Text:     deletedText,
 	}
-	inverse.copy(&op.Op)
-	inverse.Undo = true
+	inverse.copyForUndo(&op.Op)
 	return inverse
 }
 
@@ -146,10 +141,9 @@ func (op *Paste) Perform(e Editable, multiplier int) Operation {
 	if e.GetPasteMode() == PasteNewLine {
 		e.SetCursor(cursor)
 		inverse := &DeleteCharacter{}
-		inverse.copy(&op.Op)
+		inverse.copyForUndo(&op.Op)
 		inverse.Multiplier = len(e.GetPasteText())
 		inverse.Cursor.Col = 0
-		inverse.Undo = true
 		return inverse
 	} else {
 		return nil
@@ -176,12 +170,15 @@ func (op *Insert) Perform(e Editable, multiplier int) Operation {
 		e.SetInsertOperation(op)
 	}
 
-	op.Cursor, op.Commander.Mode = e.InsertText(op.Text, op.Position)
+	var newMode int
+	op.Cursor, newMode = e.InsertText(op.Text, op.Position)
+	if op.Commander != nil {
+		op.Commander.Mode = newMode
+	}
 
 	inverse := &DeleteCharacter{}
-	inverse.copy(&op.Op)
+	inverse.copyForUndo(&op.Op)
 	inverse.Multiplier = len(op.Text)
-	inverse.Undo = true
 	if op.Position == InsertAtNewLineBelowCursor ||
 		op.Position == InsertAtNewLineAboveCursor {
 		inverse.FinallyDeleteRow = true
@@ -210,7 +207,6 @@ func (op *ReverseCaseCharacter) Perform(e Editable, multiplier int) Operation {
 	}
 
 	inverse := &ReverseCaseCharacter{}
-	inverse.copy(&op.Op)
-	inverse.Undo = true
+	inverse.copyForUndo(&op.Op)
 	return inverse
 }

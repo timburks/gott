@@ -26,11 +26,13 @@ type Window struct {
 
 func (window *Window) Render(e *Editor, c *Commander) {
 	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
-	w, h := termbox.Size()
-	window.size.Rows = h
-	window.size.Cols = w
-	e.EditSize.Rows = window.size.Rows - 2
-	e.EditSize.Cols = window.size.Cols
+	var windowSize Size
+	windowSize.Cols, windowSize.Rows = termbox.Size()
+	window.size = windowSize
+
+	editSize := windowSize
+	editSize.Rows -= 2
+	e.SetSize(editSize)
 
 	e.Scroll()
 	window.RenderInfoBar(e, c)

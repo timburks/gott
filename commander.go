@@ -94,19 +94,9 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 		case termbox.KeyEsc:
 			break
 		case termbox.KeyPgup:
-			// move to the top of the screen
-			e.Cursor.Row = e.Offset.Rows
-			// move up by a page
-			for i := 0; i < e.EditSize.Rows; i++ {
-				e.MoveCursor(MoveUp)
-			}
+			e.PageUp()
 		case termbox.KeyPgdn:
-			// move to the bottom of the screen
-			e.Cursor.Row = e.Offset.Rows + e.EditSize.Rows - 1
-			// move down by a page
-			for i := 0; i < e.EditSize.Rows; i++ {
-				e.MoveCursor(MoveDown)
-			}
+			e.PageDown()
 		case termbox.KeyCtrlA, termbox.KeyHome:
 			// move to beginning of line
 			e.Cursor.Col = 0
@@ -214,8 +204,7 @@ func (c *Commander) ProcessKeyInsertMode(event termbox.Event) error {
 	if key != 0 {
 		switch key {
 		case termbox.KeyEsc: // end an insert operation.
-			e.Insert.Close()
-			e.Insert = nil
+			e.CloseInsert()
 			c.Mode = ModeEdit
 			e.KeepCursorInRow()
 		case termbox.KeyBackspace2:
