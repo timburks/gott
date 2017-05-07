@@ -62,61 +62,82 @@ type Rect struct {
 }
 
 type Editor interface {
-	GetCursor() Point
-	SetCursor(cursor Point)
+	// Set the size of the screen.
 	SetSize(size Size)
-	GetOffset() Size
+
+	// Text being edited is stored in buffers.
 	GetBuffer() Buffer
 
+	// File operations.
+	ReadFile(path string) error
+	WriteFile(path string) error
+	Bytes() []byte
+
+	// Manage the cursor location.
+	GetCursor() Point
+	SetCursor(cursor Point)
+	MoveCursor(direction int)
 	MoveCursorToStartOfLine()
 	MoveCursorToStartOfLineBelowCursor()
+	MoveToBeginningOfLine()
+	MoveToEndOfLine()
+	KeepCursorInRow()
+	PageUp()
+	PageDown()
 
+	// Recompute the display offset to keep the cursor onscreen.
+	Scroll()
+	GetOffset() Size
+
+	// Low-level editing functions.
 	ReplaceCharacterAtCursor(cursor Point, c rune) rune
 	DeleteRowsAtCursor(multiplier int) string
 	DeleteWordsAtCursor(multiplier int) string
 	DeleteCharactersAtCursor(multiplier int, undo bool, finallyDeleteRow bool) string
 	InsertChar(c rune)
+	BackspaceChar() rune
 	InsertText(text string, position int) (Point, int)
 	ReverseCaseCharactersAtCursor(multiplier int)
 
+	// Cut/copy and paste support
+	YankRow(multiplier int)
 	SetPasteBoard(text string, mode int)
 	GetPasteMode() int
 	GetPasteText() string
-	SetInsertOperation(insert InsertOperation)
 
-	Scroll()
-
+	// Operations are the preferred way to make changes.
+	// Operations are designed to be repeated and undone.
 	Perform(op Operation, multiplier int)
-	YankRow(multiplier int)
-	PageUp()
-	PageDown()
-
-	MoveToBeginningOfLine()
-	MoveToEndOfLine()
-	MoveCursor(direction int)
-	PerformSearch(text string)
-	PerformUndo()
 	Repeat()
-	CloseInsert()
-	KeepCursorInRow()
-	BackspaceChar() rune
-	ReadFile(path string) error
-	WriteFile(path string) error
-	Bytes() []byte
+	PerformUndo()
 
+	// When the editor is in insert mode, the Insert operation collects changes.
+	SetInsertOperation(insert InsertOperation)
+	CloseInsert()
+
+	// Search.
+	PerformSearch(text string)
+
+	// Additional features.
 	Gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error)
 }
 
 type Buffer interface {
-	Render(origin Point, size Size, offset Size)
-	GetRowCount() int
-	GetFileName() string
+	// Read bytes into a buffer.
 	ReadBytes(bytes []byte)
+
+	// Buffer information.
+	GetFileName() string
+	GetRowCount() int
 	TextAfter(row, col int) string
+
+	// Draw the buffer contents.
+	Render(origin Point, size Size, offset Size)
 }
 
 type Operation interface {
-	Perform(e Editor, multiplier int) Operation // performs the operation and returns its inverse
+	// Perform an operation and return its inverse.
+	Perform(e Editor, multiplier int) Operation
 }
 
 type InsertOperation interface {
