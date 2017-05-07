@@ -63,7 +63,7 @@ func (e *Editor) WriteFile(path string) error {
 	defer f.Close()
 	b := e.Bytes()
 	if strings.HasSuffix(path, ".go") {
-		out, err := Gofmt(e.Buffer.FileName, b)
+		out, err := e.Gofmt(e.Buffer.FileName, b)
 		if err == nil {
 			f.Write(out)
 		} else {

@@ -103,6 +103,8 @@ type Editor interface {
 	ReadFile(path string) error
 	WriteFile(path string) error
 	Bytes() []byte
+
+	Gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error)
 }
 
 type Buffer interface {

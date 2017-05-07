@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"github.com/nsf/termbox-go"
-	"github.com/timburks/gott/editor"
 	"github.com/timburks/gott/operations"
 	gott "github.com/timburks/gott/types"
 )
@@ -355,7 +354,7 @@ func (c *Commander) PerformCommand() {
 			c.mode = gott.ModeQuit
 			return
 		case "fmt":
-			out, err := editor.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
+			out, err := e.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
 			if err == nil {
 				e.GetBuffer().ReadBytes(out)
 			}

@@ -22,7 +22,7 @@ import (
 )
 
 // Run the gofmt tool.
-func Gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error) {
+func (e *Editor) Gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error) {
 	if false {
 		return inputBytes, nil
 	}
