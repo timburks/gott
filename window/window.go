@@ -18,7 +18,6 @@ import (
 
 	"github.com/nsf/termbox-go"
 
-	"github.com/timburks/gott/commander"
 	"github.com/timburks/gott/editor"
 	gott "github.com/timburks/gott/types"
 )
@@ -32,54 +31,54 @@ func NewWindow() *Window {
 	return &Window{}
 }
 
-func (window *Window) Render(e *editor.Editor, c *commander.Commander) {
+func (w *Window) Render(e *editor.Editor, c gott.Commander) {
 	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
 	var windowSize gott.Size
 	windowSize.Cols, windowSize.Rows = termbox.Size()
-	window.size = windowSize
+	w.size = windowSize
 
 	editSize := windowSize
 	editSize.Rows -= 2
 	e.SetSize(editSize)
 
 	e.Scroll()
-	window.RenderInfoBar(e, c)
-	window.RenderMessageBar(e, c)
+	w.RenderInfoBar(e, c)
+	w.RenderMessageBar(e, c)
 	bufferOrigin := gott.Point{Row: 0, Col: 0}
-	bufferSize := gott.Size{Rows: window.size.Rows - 2, Cols: window.size.Cols}
+	bufferSize := gott.Size{Rows: w.size.Rows - 2, Cols: w.size.Cols}
 	e.Buffer.Render(bufferOrigin, bufferSize, e.Offset)
 	termbox.SetCursor(e.Cursor.Col-e.Offset.Cols, e.Cursor.Row-e.Offset.Rows)
 	termbox.Flush()
 }
 
-func (window *Window) RenderInfoBar(e *editor.Editor, c *commander.Commander) {
+func (w *Window) RenderInfoBar(e *editor.Editor, c gott.Commander) {
 	finalText := fmt.Sprintf(" %d/%d ", e.Cursor.Row, e.Buffer.RowCount())
 	text := " the gott editor - " + e.Buffer.FileName + " "
-	for len(text) < window.size.Cols-len(finalText)-1 {
+	for len(text) < w.size.Cols-len(finalText)-1 {
 		text = text + " "
 	}
 	text += finalText
 	for x, ch := range text {
-		termbox.SetCell(x, window.size.Rows-2,
+		termbox.SetCell(x, w.size.Rows-2,
 			rune(ch),
 			termbox.ColorBlack, termbox.ColorWhite)
 	}
 }
 
-func (window *Window) RenderMessageBar(e *editor.Editor, c *commander.Commander) {
+func (w *Window) RenderMessageBar(e *editor.Editor, c gott.Commander) {
 	var line string
 	switch c.GetMode() {
 	case gott.ModeCommand:
-		line += ":" + c.Command()
+		line += ":" + c.GetCommand()
 	case gott.ModeSearch:
-		line += "/" + c.SearchText()
+		line += "/" + c.GetSearchText()
 	default:
-		line += c.Message()
+		line += c.GetMessage()
 	}
-	if len(line) > window.size.Cols {
-		line = line[0:window.size.Cols]
+	if len(line) > w.size.Cols {
+		line = line[0:w.size.Cols]
 	}
 	for x, ch := range line {
-		termbox.SetCell(x, window.size.Rows-1, rune(ch), termbox.ColorBlack, termbox.ColorWhite)
+		termbox.SetCell(x, w.size.Rows-1, rune(ch), termbox.ColorBlack, termbox.ColorWhite)
 	}
 }

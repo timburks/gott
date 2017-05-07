@@ -48,7 +48,8 @@ func (c *Commander) SetMode(m int) {
 	c.mode = m
 }
 
-func (c *Commander) ProcessEvent(event termbox.Event) error {
+func (c *Commander) ProcessNextEvent() error {
+	event := termbox.PollEvent()
 	if c.debug {
 		c.message = fmt.Sprintf("event=%+v", event)
 	}
@@ -381,14 +382,14 @@ func (c *Commander) Multiplier() int {
 	return int(i)
 }
 
-func (c *Commander) SearchText() string {
+func (c *Commander) GetSearchText() string {
 	return c.searchText
 }
 
-func (c *Commander) Command() string {
+func (c *Commander) GetCommand() string {
 	return c.command
 }
 
-func (c *Commander) Message() string {
+func (c *Commander) GetMessage() string {
 	return c.message
 }

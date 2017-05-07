@@ -62,8 +62,7 @@ func main() {
 	// run the event loop.
 	for commander.GetMode() != gott.ModeQuit {
 		window.Render(editor, commander)
-		event := termbox.PollEvent()
-		err = commander.ProcessEvent(event)
+		err = commander.ProcessNextEvent()
 		if err != nil {
 			log.Output(1, err.Error())
 		}
