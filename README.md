@@ -11,7 +11,7 @@ and Jeremy Ruten's
 tutorial.
 
 "gott" means "good" in Swedish, which is a presumptuous thing to 
-call a thousand-line console text editor. Naming things is hard.
+call a tiny console text editor. Naming things is hard.
 
 ## Implementation
 
