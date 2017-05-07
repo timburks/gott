@@ -26,7 +26,7 @@ import (
 
 // The Commander converts user input into commands for the Editor.
 type Commander struct {
-	editor     *editor.Editor
+	editor     gott.Editor
 	mode       int    // editor mode
 	debug      bool   // debug mode displays information about events (key codes, etc)
 	editKeys   string // edit key sequences in progress
@@ -36,7 +36,7 @@ type Commander struct {
 	multiplier string // multiplier string as it is being entered
 }
 
-func NewCommander(e *editor.Editor) *Commander {
+func NewCommander(e gott.Editor) *Commander {
 	return &Commander{editor: e, mode: gott.ModeEdit}
 }
 
@@ -217,7 +217,7 @@ func (c *Commander) ProcessKeyInsertMode(event termbox.Event) error {
 		case termbox.KeyTab:
 			e.InsertChar(' ')
 			for {
-				if e.Cursor.Col%8 == 0 {
+				if e.GetCursor().Col%8 == 0 {
 					break
 				}
 				e.InsertChar(' ')
@@ -307,13 +307,16 @@ func (c *Commander) PerformCommand() {
 
 		i, err := strconv.ParseInt(parts[0], 10, 64)
 		if err == nil {
-			e.Cursor.Row = int(i - 1)
-			if e.Cursor.Row > e.Buffer.GetRowCount()-1 {
-				e.Cursor.Row = e.Buffer.GetRowCount() - 1
+			newRow := int(i - 1)
+			if newRow > e.GetBuffer().GetRowCount()-1 {
+				newRow = e.GetBuffer().GetRowCount() - 1
 			}
-			if e.Cursor.Row < 0 {
-				e.Cursor.Row = 0
+			if newRow < 0 {
+				newRow = 0
 			}
+			cursor := e.GetCursor()
+			cursor.Row = newRow
+			e.SetCursor(cursor)
 		}
 		switch parts[0] {
 		case "q":
@@ -338,7 +341,7 @@ func (c *Commander) PerformCommand() {
 			if len(parts) == 2 {
 				filename = parts[1]
 			} else {
-				filename = e.Buffer.FileName
+				filename = e.GetBuffer().GetFileName()
 			}
 			e.WriteFile(filename)
 		case "wq":
@@ -346,21 +349,24 @@ func (c *Commander) PerformCommand() {
 			if len(parts) == 2 {
 				filename = parts[1]
 			} else {
-				filename = e.Buffer.FileName
+				filename = e.GetBuffer().GetFileName()
 			}
 			e.WriteFile(filename)
 			c.mode = gott.ModeQuit
 			return
 		case "fmt":
-			out, err := editor.Gofmt(e.Buffer.FileName, e.Bytes())
+			out, err := editor.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
 			if err == nil {
-				e.Buffer.ReadBytes(out)
+				e.GetBuffer().ReadBytes(out)
 			}
 		case "$":
-			e.Cursor.Row = e.Buffer.GetRowCount() - 1
-			if e.Cursor.Row < 0 {
-				e.Cursor.Row = 0
+			newRow := e.GetBuffer().GetRowCount() - 1
+			if newRow < 0 {
+				newRow = 0
 			}
+			cursor := e.GetCursor()
+			cursor.Row = newRow
+			e.SetCursor(cursor)
 		default:
 			c.message = "nope"
 		}

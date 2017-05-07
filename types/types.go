@@ -85,12 +85,31 @@ type Editor interface {
 	SetInsertOperation(insert InsertOperation)
 
 	Scroll()
+
+	Perform(op Operation, multiplier int)
+	YankRow(multiplier int)
+	PageUp()
+	PageDown()
+
+	MoveToBeginningOfLine()
+	MoveToEndOfLine()
+	MoveCursor(direction int)
+	PerformSearch(text string)
+	PerformUndo()
+	Repeat()
+	CloseInsert()
+	KeepCursorInRow()
+	BackspaceChar() rune
+	ReadFile(path string) error
+	WriteFile(path string) error
+	Bytes() []byte
 }
 
 type Buffer interface {
 	Render(origin Point, size Size, offset Size)
 	GetRowCount() int
 	GetFileName() string
+	ReadBytes(bytes []byte)
 }
 
 type Operation interface {
