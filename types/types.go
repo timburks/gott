@@ -98,6 +98,7 @@ type Editor interface {
 	BackspaceChar() rune
 	InsertText(text string, position int) (Point, int)
 	ReverseCaseCharactersAtCursor(multiplier int)
+	JoinRow(multiplier int) []Point
 
 	// Cut/copy and paste support
 	YankRow(multiplier int)

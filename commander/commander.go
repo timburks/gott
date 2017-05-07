@@ -173,6 +173,8 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 			e.Perform(&operations.Insert{Position: gott.InsertAtNewLineAboveCursor, Commander: c}, c.Multiplier())
 		case 'x':
 			e.Perform(&operations.DeleteCharacter{}, c.Multiplier())
+		case 'J':
+			e.Perform(&operations.JoinLine{}, c.Multiplier())
 		case 'p': // PasteText
 			e.Perform(&operations.Paste{}, c.Multiplier())
 		case '~': // reverse case

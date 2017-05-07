@@ -249,6 +249,24 @@ func (e *Editor) BackspaceChar() rune {
 	}
 }
 
+func (e *Editor) JoinRow(multiplier int) []gott.Point {
+	if e.buffer.GetRowCount() == 0 {
+		return nil
+	}
+	// remove the next row and join it with this one
+	insertions := make([]gott.Point, 0)
+	for i := 0; i < multiplier; i++ {
+		oldRowText := e.buffer.rows[e.cursor.Row+1].Text
+		var newCursor gott.Point
+		newCursor.Col = len(e.buffer.rows[e.cursor.Row].Text)
+		e.buffer.rows[e.cursor.Row].Text = append(e.buffer.rows[e.cursor.Row].Text, oldRowText...)
+		e.buffer.rows = append(e.buffer.rows[0:e.cursor.Row+1], e.buffer.rows[e.cursor.Row+2:]...)
+		e.cursor.Col = newCursor.Col
+		insertions = append(insertions, e.cursor)
+	}
+	return insertions
+}
+
 func (e *Editor) YankRow(multiplier int) {
 	if e.buffer.GetRowCount() == 0 {
 		return

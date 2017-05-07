@@ -197,3 +197,17 @@ func TestCopyPaste(t *testing.T) {
 	e.PerformUndo()
 	final(t, e)
 }
+
+func TestJoinRow(t *testing.T) {
+	e := setup(t)
+	e.SetCursor(gott.Point{Row: 0, Col: 3})
+	// join three lines
+	e.Perform(&operations.JoinLine{}, 3)
+	// sample the expected text
+	expected := "THE GETTYSBURG ADDRESS:Four score and seven years ago our fathers brought forth on this"
+	if sample := e.GetBuffer().TextAfter(0, 0); sample != expected {
+		t.Errorf("Unexpected sample after paste: '%s'", sample)
+	}
+	e.PerformUndo()
+	final(t, e)
+}
