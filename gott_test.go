@@ -163,3 +163,33 @@ func TestReplaceCharacter(t *testing.T) {
 	editor.PerformUndo()
 	final(t, editor)
 }
+
+func TestCopyPaste(t *testing.T) {
+	editor := setup(t)
+	editor.Cursor = Point{Row: 3, Col: 3}
+	// copy three rows
+	editor.YankRow(3)
+	editor.Cursor = Point{Row: 2, Col: 0}
+	// paste them three times
+	editor.Perform(&Paste{}, 3)
+	// verify that we added 9 rows
+	if rowCount := editor.Buffer.RowCount(); rowCount != (38 + 9) {
+		t.Errorf("Invalid row count after paste: %d", rowCount)
+	}
+	// sample the expected text
+	expected := "Four score and seven years ago our fathers brought forth on this"
+	if sample := editor.Buffer.TextAfter(3, 0); sample != expected {
+		t.Errorf("Unexpected sample after paste: '%s'", sample)
+	}
+	if sample := editor.Buffer.TextAfter(6, 0); sample != expected {
+		t.Errorf("Unexpected sample after paste: '%s'", sample)
+	}
+	if sample := editor.Buffer.TextAfter(9, 0); sample != expected {
+		t.Errorf("Unexpected sample after paste: '%s'", sample)
+	}
+	if sample := editor.Buffer.TextAfter(12, 0); sample != expected {
+		t.Errorf("Unexpected sample after paste: '%s'", sample)
+	}
+	editor.PerformUndo()
+	final(t, editor)
+}

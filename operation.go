@@ -126,14 +126,16 @@ func (op *Paste) Perform(e Editable, multiplier int) Operation {
 
 	cursor := op.Cursor
 
-	for _, c := range e.GetPasteText() {
-		e.InsertChar(c)
+	for i := 0; i < op.Multiplier; i++ {
+		for _, c := range e.GetPasteText() {
+			e.InsertChar(c)
+		}
 	}
 	if e.GetPasteMode() == PasteNewLine {
 		e.SetCursor(cursor)
 		inverse := &DeleteCharacter{}
 		inverse.copyForUndo(&op.Op)
-		inverse.Multiplier = len(e.GetPasteText())
+		inverse.Multiplier = len(e.GetPasteText()) * op.Multiplier
 		inverse.Cursor.Col = 0
 		return inverse
 	} else {
