@@ -2,7 +2,7 @@
 
 # gott
 
-**gott** is a little text editor that I'm writing as a hobby project. It was inspired by 
+**gott** is a little text editor that was created as a hobby project. It was inspired by 
 [antirez's kilo](http://antirez.com/news/108) 
 and Jeremy Ruten's 
 [Build Your Own Text Editor](http://viewsourcecode.org/snaptoken/kilo/) 
