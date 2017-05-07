@@ -55,15 +55,15 @@ const (
 
 // The Editor manages the editing of text in a Buffer.
 type Editor struct {
-	Cursor    Point       // cursor position
-	Offset    Size        // display offset
-	Buffer    *Buffer     // active buffer being edited
-	size      Size        // size of editing area
-	pasteText string      // used to cut/copy and paste
-	pasteMode int         // how to paste the string on the pasteboard
-	previous  Operation   // last operation performed, available to repeat
-	undo      []Operation // stack of operations to undo
-	insert    *Insert     // when in insert mode, the current insert operation
+	Cursor    Point           // cursor position
+	Offset    Size            // display offset
+	Buffer    *Buffer         // active buffer being edited
+	size      Size            // size of editing area
+	pasteText string          // used to cut/copy and paste
+	pasteMode int             // how to paste the string on the pasteboard
+	previous  Operation       // last operation performed, available to repeat
+	undo      []Operation     // stack of operations to undo
+	insert    InsertOperation // when in insert mode, the current insert operation
 }
 
 func NewEditor() *Editor {
@@ -221,7 +221,7 @@ func (e *Editor) MoveCursor(direction int) {
 
 func (e *Editor) InsertChar(c rune) {
 	if e.insert != nil {
-		e.insert.Text += string(c)
+		e.insert.AddCharacter(c)
 	}
 	if c == '\n' {
 		e.InsertRow()
@@ -257,10 +257,10 @@ func (e *Editor) BackspaceChar() rune {
 	if e.Buffer.RowCount() == 0 {
 		return rune(0)
 	}
-	if len(e.insert.Text) == 0 {
+	if e.insert.Length() == 0 {
 		return rune(0)
 	}
-	e.insert.Text = e.insert.Text[0 : len(e.insert.Text)-1]
+	e.insert.DeleteCharacter()
 	if e.Cursor.Col > 0 {
 		c := e.Buffer.rows[e.Cursor.Row].DeleteChar(e.Cursor.Col - 1)
 		e.Cursor.Col--

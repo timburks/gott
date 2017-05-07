@@ -13,10 +13,6 @@
 //
 package main
 
-type Operation interface {
-	Perform(e Editable, multiplier int) Operation // performs the operation and returns its inverse
-}
-
 type Op struct {
 	Cursor     Point
 	Multiplier int
@@ -178,6 +174,18 @@ func (op *Insert) Perform(e Editable, multiplier int) Operation {
 	}
 	op.Inverse = inverse
 	return inverse
+}
+
+func (op *Insert) Length() int {
+	return len(op.Text)
+}
+
+func (op *Insert) AddCharacter(c rune) {
+	op.Text += string(c)
+}
+
+func (op *Insert) DeleteCharacter() {
+	op.Text = op.Text[0 : len(op.Text)-1]
 }
 
 func (op *Insert) Close() {

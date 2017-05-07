@@ -35,3 +35,15 @@ type Editable interface {
 	GetPasteMode() int
 	GetPasteText() string
 }
+
+type Operation interface {
+	Perform(e Editable, multiplier int) Operation // performs the operation and returns its inverse
+}
+
+type InsertOperation interface {
+	Operation
+	AddCharacter(c rune)
+	DeleteCharacter()
+	Close()
+	Length() int
+}
