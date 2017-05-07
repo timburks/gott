@@ -20,7 +20,7 @@ import (
 // Reverse the case of a character
 
 type ReverseCaseCharacter struct {
-	Op
+	operation
 }
 
 func (op *ReverseCaseCharacter) Perform(e gott.Editor, multiplier int) gott.Operation {
@@ -31,6 +31,6 @@ func (op *ReverseCaseCharacter) Perform(e gott.Editor, multiplier int) gott.Oper
 	}
 
 	inverse := &ReverseCaseCharacter{}
-	inverse.copyForUndo(&op.Op)
+	inverse.copyForUndo(&op.operation)
 	return inverse
 }

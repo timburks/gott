@@ -20,7 +20,7 @@ import (
 // Replace a character
 
 type ReplaceCharacter struct {
-	Op
+	operation
 	Character rune
 }
 
@@ -28,7 +28,7 @@ func (op *ReplaceCharacter) Perform(e gott.Editor, multiplier int) gott.Operatio
 	op.init(e, multiplier)
 	old := e.ReplaceCharacterAtCursor(op.Cursor, op.Character)
 	inverse := &ReplaceCharacter{}
-	inverse.copyForUndo(&op.Op)
+	inverse.copyForUndo(&op.operation)
 	inverse.Character = old
 	return inverse
 }

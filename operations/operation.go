@@ -17,13 +17,13 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-type Op struct {
+type operation struct {
 	Cursor     gott.Point
 	Multiplier int
 	Undo       bool
 }
 
-func (op *Op) init(e gott.Editor, multiplier int) {
+func (op *operation) init(e gott.Editor, multiplier int) {
 	if op.Undo {
 		e.SetCursor(op.Cursor)
 	} else {
@@ -34,7 +34,7 @@ func (op *Op) init(e gott.Editor, multiplier int) {
 	}
 }
 
-func (op *Op) copyForUndo(other *Op) {
+func (op *operation) copyForUndo(other *operation) {
 	op.Cursor = other.Cursor
 	op.Multiplier = other.Multiplier
 	op.Undo = true

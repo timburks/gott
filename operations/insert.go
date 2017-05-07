@@ -20,7 +20,7 @@ import (
 // Insert
 
 type Insert struct {
-	Op
+	operation
 	Position  int
 	Text      string
 	Inverse   *DeleteCharacter
@@ -44,7 +44,7 @@ func (op *Insert) Perform(e gott.Editor, multiplier int) gott.Operation {
 	}
 
 	inverse := &DeleteCharacter{}
-	inverse.copyForUndo(&op.Op)
+	inverse.copyForUndo(&op.operation)
 	inverse.Multiplier = len(op.Text)
 	if op.Position == gott.InsertAtNewLineBelowCursor ||
 		op.Position == gott.InsertAtNewLineAboveCursor {

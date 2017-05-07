@@ -14,13 +14,13 @@
 package operations
 
 import (
-        gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/types"
 )
 
 // Delete a row
 
 type DeleteRow struct {
-	Op
+	operation
 }
 
 func (op *DeleteRow) Perform(e gott.Editor, multiplier int) gott.Operation {
@@ -32,6 +32,6 @@ func (op *DeleteRow) Perform(e gott.Editor, multiplier int) gott.Operation {
 		Position: gott.InsertAtCursor,
 		Text:     deletedText,
 	}
-	inverse.copyForUndo(&op.Op)
+	inverse.copyForUndo(&op.operation)
 	return inverse
 }

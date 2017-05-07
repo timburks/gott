@@ -20,7 +20,7 @@ import (
 // Delete a character
 
 type DeleteCharacter struct {
-	Op
+	operation
 	FinallyDeleteRow bool
 }
 
@@ -31,6 +31,6 @@ func (op *DeleteCharacter) Perform(e gott.Editor, multiplier int) gott.Operation
 		Position: gott.InsertAtCursor,
 		Text:     deletedText,
 	}
-	inverse.copyForUndo(&op.Op)
+	inverse.copyForUndo(&op.operation)
 	return inverse
 }

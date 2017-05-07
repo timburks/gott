@@ -20,7 +20,7 @@ import (
 // Delete a word
 
 type DeleteWord struct {
-	Op
+	operation
 }
 
 func (op *DeleteWord) Perform(e gott.Editor, multiplier int) gott.Operation {
@@ -31,6 +31,6 @@ func (op *DeleteWord) Perform(e gott.Editor, multiplier int) gott.Operation {
 		Position: gott.InsertAtCursor,
 		Text:     string(deletedText),
 	}
-	inverse.copyForUndo(&op.Op)
+	inverse.copyForUndo(&op.operation)
 	return inverse
 }

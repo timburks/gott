@@ -20,7 +20,7 @@ import (
 // Paste
 
 type Paste struct {
-	Op
+	operation
 }
 
 func (op *Paste) Perform(e gott.Editor, multiplier int) gott.Operation {
@@ -40,7 +40,7 @@ func (op *Paste) Perform(e gott.Editor, multiplier int) gott.Operation {
 	if e.GetPasteMode() == gott.PasteNewLine {
 		e.SetCursor(cursor)
 		inverse := &DeleteCharacter{}
-		inverse.copyForUndo(&op.Op)
+		inverse.copyForUndo(&op.operation)
 		inverse.Multiplier = len(e.GetPasteText()) * op.Multiplier
 		inverse.Cursor.Col = 0
 		return inverse
