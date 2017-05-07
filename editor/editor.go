@@ -105,7 +105,7 @@ func (e *Editor) PerformUndo() {
 }
 
 func (e *Editor) PerformSearch(text string) {
-	if e.Buffer.RowCount() == 0 {
+	if e.Buffer.GetRowCount() == 0 {
 		return
 	}
 	row := e.Cursor.Row
@@ -113,7 +113,7 @@ func (e *Editor) PerformSearch(text string) {
 
 	for {
 		var s string
-		if col < e.Buffer.RowLength(row) {
+		if col < e.Buffer.GetRowLength(row) {
 			s = e.Buffer.TextAfter(row, col)
 		} else {
 			s = ""
@@ -127,7 +127,7 @@ func (e *Editor) PerformSearch(text string) {
 		} else {
 			col = 0
 			row = row + 1
-			if row == e.Buffer.RowCount() {
+			if row == e.Buffer.GetRowCount() {
 				row = 0
 			}
 		}
@@ -159,8 +159,8 @@ func (e *Editor) MoveCursor(direction int) {
 			e.Cursor.Col--
 		}
 	case gott.MoveRight:
-		if e.Cursor.Row < e.Buffer.RowCount() {
-			rowLength := e.Buffer.RowLength(e.Cursor.Row)
+		if e.Cursor.Row < e.Buffer.GetRowCount() {
+			rowLength := e.Buffer.GetRowLength(e.Cursor.Row)
 			if e.Cursor.Col < rowLength-1 {
 				e.Cursor.Col++
 			}
@@ -170,13 +170,13 @@ func (e *Editor) MoveCursor(direction int) {
 			e.Cursor.Row--
 		}
 	case gott.MoveDown:
-		if e.Cursor.Row < e.Buffer.RowCount()-1 {
+		if e.Cursor.Row < e.Buffer.GetRowCount()-1 {
 			e.Cursor.Row++
 		}
 	}
 	// don't go past the end of the current line
-	if e.Cursor.Row < e.Buffer.RowCount() {
-		rowLength := e.Buffer.RowLength(e.Cursor.Row)
+	if e.Cursor.Row < e.Buffer.GetRowCount() {
+		rowLength := e.Buffer.GetRowLength(e.Cursor.Row)
 		if e.Cursor.Col > rowLength-1 {
 			e.Cursor.Col = rowLength - 1
 			if e.Cursor.Col < 0 {
@@ -199,7 +199,7 @@ func (e *Editor) InsertChar(c rune) {
 		return
 	}
 	// if the cursor is past the nmber of rows, add a row
-	for e.Cursor.Row >= e.Buffer.RowCount() {
+	for e.Cursor.Row >= e.Buffer.GetRowCount() {
 		e.AppendBlankRow()
 	}
 	e.Buffer.InsertCharacter(e.Cursor.Row, e.Cursor.Col, c)
@@ -207,7 +207,7 @@ func (e *Editor) InsertChar(c rune) {
 }
 
 func (e *Editor) InsertRow() {
-	if e.Cursor.Row >= e.Buffer.RowCount() {
+	if e.Cursor.Row >= e.Buffer.GetRowCount() {
 		// we should never get here
 		e.AppendBlankRow()
 	} else {
@@ -223,7 +223,7 @@ func (e *Editor) InsertRow() {
 }
 
 func (e *Editor) BackspaceChar() rune {
-	if e.Buffer.RowCount() == 0 {
+	if e.Buffer.GetRowCount() == 0 {
 		return rune(0)
 	}
 	if e.insert.Length() == 0 {
@@ -250,13 +250,13 @@ func (e *Editor) BackspaceChar() rune {
 }
 
 func (e *Editor) YankRow(multiplier int) {
-	if e.Buffer.RowCount() == 0 {
+	if e.Buffer.GetRowCount() == 0 {
 		return
 	}
 	pasteText := ""
 	for i := 0; i < multiplier; i++ {
 		position := e.Cursor.Row + i
-		if position < e.Buffer.RowCount() {
+		if position < e.Buffer.GetRowCount() {
 			pasteText += string(e.Buffer.rows[position].Text) + "\n"
 		}
 	}
@@ -265,11 +265,11 @@ func (e *Editor) YankRow(multiplier int) {
 }
 
 func (e *Editor) KeepCursorInRow() {
-	if e.Buffer.RowCount() == 0 {
+	if e.Buffer.GetRowCount() == 0 {
 		e.Cursor.Col = 0
 	} else {
-		if e.Cursor.Row >= e.Buffer.RowCount() {
-			e.Cursor.Row = e.Buffer.RowCount() - 1
+		if e.Cursor.Row >= e.Buffer.GetRowCount() {
+			e.Cursor.Row = e.Buffer.GetRowCount() - 1
 		}
 		if e.Cursor.Row < 0 {
 			e.Cursor.Row = 0
@@ -330,7 +330,7 @@ func (e *Editor) DeleteRowsAtCursor(multiplier int) string {
 	deletedText := ""
 	for i := 0; i < multiplier; i++ {
 		row := e.Cursor.Row
-		if row < e.Buffer.RowCount() {
+		if row < e.Buffer.GetRowCount() {
 			if i > 0 {
 				deletedText += "\n"
 			}
@@ -340,7 +340,7 @@ func (e *Editor) DeleteRowsAtCursor(multiplier int) string {
 			break
 		}
 	}
-	e.Cursor.Row = clipToRange(e.Cursor.Row, 0, e.Buffer.RowCount()-1)
+	e.Cursor.Row = clipToRange(e.Cursor.Row, 0, e.Buffer.GetRowCount()-1)
 	return deletedText
 }
 
@@ -352,7 +352,7 @@ func (e *Editor) SetPasteBoard(text string, mode int) {
 func (e *Editor) DeleteWordsAtCursor(multiplier int) string {
 	deletedText := ""
 	for i := 0; i < multiplier; i++ {
-		if e.Buffer.RowCount() == 0 {
+		if e.Buffer.GetRowCount() == 0 {
 			break
 		}
 		// if the row is empty, delete the row...
@@ -397,14 +397,14 @@ func (e *Editor) DeleteCharactersAtCursor(multiplier int, undo bool, finallyDele
 	if e.Cursor.Col < 0 {
 		e.Cursor.Col = 0
 	}
-	if finallyDeleteRow && e.Buffer.RowCount() > 0 {
+	if finallyDeleteRow && e.Buffer.GetRowCount() > 0 {
 		e.Buffer.DeleteRow(e.Cursor.Row)
 	}
 	return deletedText
 }
 
 func (e *Editor) InsertText(text string, position int) (gott.Point, int) {
-	if e.Buffer.RowCount() == 0 {
+	if e.Buffer.GetRowCount() == 0 {
 		e.AppendBlankRow()
 	}
 	switch position {
@@ -451,7 +451,7 @@ func (e *Editor) GetPasteText() string {
 }
 
 func (e *Editor) ReverseCaseCharactersAtCursor(multiplier int) {
-	if e.Buffer.RowCount() == 0 {
+	if e.Buffer.GetRowCount() == 0 {
 		return
 	}
 	row := &e.Buffer.rows[e.Cursor.Row]
@@ -502,10 +502,18 @@ func (e *Editor) MoveToBeginningOfLine() {
 
 func (e *Editor) MoveToEndOfLine() {
 	e.Cursor.Col = 0
-	if e.Cursor.Row < e.Buffer.RowCount() {
-		e.Cursor.Col = e.Buffer.RowLength(e.Cursor.Row) - 1
+	if e.Cursor.Row < e.Buffer.GetRowCount() {
+		e.Cursor.Col = e.Buffer.GetRowLength(e.Cursor.Row) - 1
 		if e.Cursor.Col < 0 {
 			e.Cursor.Col = 0
 		}
 	}
+}
+
+func (e *Editor) GetBuffer() gott.Buffer {
+	return e.Buffer
+}
+
+func (e *Editor) GetOffset() gott.Size {
+	return e.Offset
 }

@@ -24,7 +24,7 @@ type ReplaceCharacter struct {
 	Character rune
 }
 
-func (op *ReplaceCharacter) Perform(e gott.Editable, multiplier int) gott.Operation {
+func (op *ReplaceCharacter) Perform(e gott.Editor, multiplier int) gott.Operation {
 	op.init(e, multiplier)
 	old := e.ReplaceCharacterAtCursor(op.Cursor, op.Character)
 	inverse := &ReplaceCharacter{}

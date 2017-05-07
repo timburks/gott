@@ -34,6 +34,10 @@ func NewBuffer() *Buffer {
 	return b
 }
 
+func (b *Buffer) GetFileName() string {
+	return b.FileName
+}
+
 func (b *Buffer) ReadBytes(bytes []byte) {
 	s := string(bytes)
 	lines := strings.Split(s, "\n")
@@ -54,11 +58,11 @@ func (b *Buffer) Bytes() []byte {
 	return []byte(s)
 }
 
-func (b *Buffer) RowCount() int {
+func (b *Buffer) GetRowCount() int {
 	return len(b.rows)
 }
 
-func (b *Buffer) RowLength(i int) int {
+func (b *Buffer) GetRowLength(i int) int {
 	if i < len(b.rows) {
 		return b.rows[i].Length()
 	} else {
@@ -88,14 +92,14 @@ func (b *Buffer) DeleteRow(row int) {
 
 func (b *Buffer) DeleteCharacters(row int, col int, count int, joinLines bool) string {
 	deletedText := ""
-	if b.RowCount() == 0 {
+	if b.GetRowCount() == 0 {
 		return deletedText
 	}
 	for i := 0; i < count; i++ {
 		if col < b.rows[row].Length() {
 			c := b.rows[row].DeleteChar(col)
 			deletedText += string(c)
-		} else if joinLines && row < b.RowCount()-1 {
+		} else if joinLines && row < b.GetRowCount()-1 {
 			// join next row to current row
 			nextRow := b.rows[row+1]
 			b.rows[row].Join(nextRow)

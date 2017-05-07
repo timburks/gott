@@ -18,7 +18,6 @@ import (
 
 	"github.com/nsf/termbox-go"
 
-	"github.com/timburks/gott/editor"
 	gott "github.com/timburks/gott/types"
 )
 
@@ -31,7 +30,7 @@ func NewWindow() *Window {
 	return &Window{}
 }
 
-func (w *Window) Render(e *editor.Editor, c gott.Commander) {
+func (w *Window) Render(e gott.Editor, c gott.Commander) {
 	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
 	var windowSize gott.Size
 	windowSize.Cols, windowSize.Rows = termbox.Size()
@@ -46,14 +45,14 @@ func (w *Window) Render(e *editor.Editor, c gott.Commander) {
 	w.RenderMessageBar(e, c)
 	bufferOrigin := gott.Point{Row: 0, Col: 0}
 	bufferSize := gott.Size{Rows: w.size.Rows - 2, Cols: w.size.Cols}
-	e.Buffer.Render(bufferOrigin, bufferSize, e.Offset)
-	termbox.SetCursor(e.Cursor.Col-e.Offset.Cols, e.Cursor.Row-e.Offset.Rows)
+	e.GetBuffer().Render(bufferOrigin, bufferSize, e.GetOffset())
+	termbox.SetCursor(e.GetCursor().Col-e.GetOffset().Cols, e.GetCursor().Row-e.GetOffset().Rows)
 	termbox.Flush()
 }
 
-func (w *Window) RenderInfoBar(e *editor.Editor, c gott.Commander) {
-	finalText := fmt.Sprintf(" %d/%d ", e.Cursor.Row, e.Buffer.RowCount())
-	text := " the gott editor - " + e.Buffer.FileName + " "
+func (w *Window) RenderInfoBar(e gott.Editor, c gott.Commander) {
+	finalText := fmt.Sprintf(" %d/%d ", e.GetCursor().Row, e.GetBuffer().GetRowCount())
+	text := " the gott editor - " + e.GetBuffer().GetFileName() + " "
 	for len(text) < w.size.Cols-len(finalText)-1 {
 		text = text + " "
 	}
@@ -65,7 +64,7 @@ func (w *Window) RenderInfoBar(e *editor.Editor, c gott.Commander) {
 	}
 }
 
-func (w *Window) RenderMessageBar(e *editor.Editor, c gott.Commander) {
+func (w *Window) RenderMessageBar(e gott.Editor, c gott.Commander) {
 	var line string
 	switch c.GetMode() {
 	case gott.ModeCommand:

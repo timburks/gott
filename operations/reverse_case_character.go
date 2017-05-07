@@ -23,7 +23,7 @@ type ReverseCaseCharacter struct {
 	Op
 }
 
-func (op *ReverseCaseCharacter) Perform(e gott.Editable, multiplier int) gott.Operation {
+func (op *ReverseCaseCharacter) Perform(e gott.Editor, multiplier int) gott.Operation {
 	op.init(e, multiplier)
 	e.ReverseCaseCharactersAtCursor(op.Multiplier)
 	if op.Undo {

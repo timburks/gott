@@ -23,7 +23,7 @@ type DeleteRow struct {
 	Op
 }
 
-func (op *DeleteRow) Perform(e gott.Editable, multiplier int) gott.Operation {
+func (op *DeleteRow) Perform(e gott.Editor, multiplier int) gott.Operation {
 	e.MoveCursorToStartOfLine()
 	op.init(e, multiplier)
 	deletedText := e.DeleteRowsAtCursor(op.Multiplier)

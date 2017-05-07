@@ -61,9 +61,12 @@ type Rect struct {
 	Size   Size
 }
 
-type Editable interface {
+type Editor interface {
 	GetCursor() Point
 	SetCursor(cursor Point)
+	SetSize(size Size)
+	GetOffset() Size
+	GetBuffer() Buffer
 
 	MoveCursorToStartOfLine()
 	MoveCursorToStartOfLineBelowCursor()
@@ -77,13 +80,21 @@ type Editable interface {
 	ReverseCaseCharactersAtCursor(multiplier int)
 
 	SetPasteBoard(text string, mode int)
-	SetInsertOperation(insert InsertOperation)
 	GetPasteMode() int
 	GetPasteText() string
+	SetInsertOperation(insert InsertOperation)
+
+	Scroll()
+}
+
+type Buffer interface {
+	Render(origin Point, size Size, offset Size)
+	GetRowCount() int
+	GetFileName() string
 }
 
 type Operation interface {
-	Perform(e Editable, multiplier int) Operation // performs the operation and returns its inverse
+	Perform(e Editor, multiplier int) Operation // performs the operation and returns its inverse
 }
 
 type InsertOperation interface {

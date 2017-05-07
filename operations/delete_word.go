@@ -23,7 +23,7 @@ type DeleteWord struct {
 	Op
 }
 
-func (op *DeleteWord) Perform(e gott.Editable, multiplier int) gott.Operation {
+func (op *DeleteWord) Perform(e gott.Editor, multiplier int) gott.Operation {
 	op.init(e, multiplier)
 	deletedText := e.DeleteWordsAtCursor(op.Multiplier)
 	e.SetPasteBoard(deletedText, gott.InsertAtCursor)

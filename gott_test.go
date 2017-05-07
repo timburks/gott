@@ -54,7 +54,7 @@ func TestDeleteRow(t *testing.T) {
 	editor := setup(t)
 	editor.Cursor = gott.Point{Row: 20, Col: 0}
 	editor.Perform(&operations.DeleteRow{}, 20)
-	if rowCount := editor.Buffer.RowCount(); rowCount != 20 {
+	if rowCount := editor.Buffer.GetRowCount(); rowCount != 20 {
 		t.Errorf("Invalid row count after deletion: %d", rowCount)
 	}
 	editor.PerformUndo()
@@ -177,7 +177,7 @@ func TestCopyPaste(t *testing.T) {
 	// paste them three times
 	editor.Perform(&operations.Paste{}, 3)
 	// verify that we added 9 rows
-	if rowCount := editor.Buffer.RowCount(); rowCount != (38 + 9) {
+	if rowCount := editor.Buffer.GetRowCount(); rowCount != (38 + 9) {
 		t.Errorf("Invalid row count after paste: %d", rowCount)
 	}
 	// sample the expected text

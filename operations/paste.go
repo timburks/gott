@@ -23,7 +23,7 @@ type Paste struct {
 	Op
 }
 
-func (op *Paste) Perform(e gott.Editable, multiplier int) gott.Operation {
+func (op *Paste) Perform(e gott.Editor, multiplier int) gott.Operation {
 	if e.GetPasteMode() == gott.PasteNewLine {
 		e.MoveCursorToStartOfLineBelowCursor()
 	}

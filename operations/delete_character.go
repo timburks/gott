@@ -24,7 +24,7 @@ type DeleteCharacter struct {
 	FinallyDeleteRow bool
 }
 
-func (op *DeleteCharacter) Perform(e gott.Editable, multiplier int) gott.Operation {
+func (op *DeleteCharacter) Perform(e gott.Editor, multiplier int) gott.Operation {
 	op.init(e, multiplier)
 	deletedText := e.DeleteCharactersAtCursor(op.Multiplier, op.Undo, op.FinallyDeleteRow)
 	inverse := &Insert{

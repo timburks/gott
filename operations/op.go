@@ -23,7 +23,7 @@ type Op struct {
 	Undo       bool
 }
 
-func (op *Op) init(e gott.Editable, multiplier int) {
+func (op *Op) init(e gott.Editor, multiplier int) {
 	if op.Undo {
 		e.SetCursor(op.Cursor)
 	} else {

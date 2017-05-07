@@ -27,7 +27,7 @@ type Insert struct {
 	Commander gott.Commander
 }
 
-func (op *Insert) Perform(e gott.Editable, multiplier int) gott.Operation {
+func (op *Insert) Perform(e gott.Editor, multiplier int) gott.Operation {
 	op.init(e, multiplier)
 
 	if op.Text != "" {
