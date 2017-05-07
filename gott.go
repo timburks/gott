@@ -25,11 +25,9 @@ import (
 	"github.com/timburks/gott/window"
 )
 
-const VERSION = "0.1.3"
-
 func main() {
-	// open a log file
-	f, err := os.OpenFile(os.Getenv("HOME")+"/.gott.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	// Open a log file.
+	f, err := os.OpenFile(os.Getenv("HOME")+"/.gottlog", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		log.Output(1, err.Error())
 		return
@@ -37,7 +35,7 @@ func main() {
 	log.SetOutput(f)
 	defer f.Close()
 
-	// open the terminal.
+	// Open the terminal.
 	err = termbox.Init()
 	if err != nil {
 		log.Output(1, err.Error())
@@ -45,24 +43,28 @@ func main() {
 	}
 	defer termbox.Close()
 
-	// create our editor.
-	editor := editor.NewEditor()
-	window := window.NewWindow()
-	commander := commander.NewCommander(editor)
+	// The editor manages all text manipulation.
+	e := editor.NewEditor()
 
-	// if a file was specified on the command-line, read it.
+	// The window manages display.
+	w := window.NewWindow()
+
+	// The commander converts user inputs into commands for the editor.
+	c := commander.NewCommander(e)
+
+	// If a file was specified on the command line, read it.
 	if len(os.Args) > 1 {
 		filename := os.Args[1]
-		err = editor.ReadFile(filename)
+		err = e.ReadFile(filename)
 		if err != nil {
 			log.Output(1, err.Error())
 		}
 	}
 
-	// run the event loop.
-	for commander.GetMode() != gott.ModeQuit {
-		window.Render(editor, commander)
-		err = commander.ProcessNextEvent()
+	// Run the main event loop.
+	for c.GetMode() != gott.ModeQuit {
+		w.Render(e, c)
+		err = c.ProcessNextEvent()
 		if err != nil {
 			log.Output(1, err.Error())
 		}

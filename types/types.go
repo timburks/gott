@@ -112,6 +112,7 @@ type Buffer interface {
 	GetRowCount() int
 	GetFileName() string
 	ReadBytes(bytes []byte)
+	TextAfter(row, col int) string
 }
 
 type Operation interface {

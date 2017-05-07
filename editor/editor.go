@@ -24,9 +24,9 @@ import (
 
 // The Editor manages the editing of text in a Buffer.
 type Editor struct {
-	Cursor    gott.Point           // cursor position
-	Offset    gott.Size            // display offset
-	Buffer    *Buffer              // active buffer being edited
+	cursor    gott.Point           // cursor position
+	offset    gott.Size            // display offset
+	buffer    *Buffer              // active buffer being edited
 	size      gott.Size            // size of editing area
 	pasteText string               // used to cut/copy and paste
 	pasteMode int                  // how to paste the string on the pasteboard
@@ -37,7 +37,7 @@ type Editor struct {
 
 func NewEditor() *Editor {
 	e := &Editor{}
-	e.Buffer = NewBuffer()
+	e.buffer = NewBuffer()
 	return e
 }
 
@@ -46,13 +46,13 @@ func (e *Editor) ReadFile(path string) error {
 	if err != nil {
 		return err
 	}
-	e.Buffer.ReadBytes(b)
-	e.Buffer.FileName = path
+	e.buffer.ReadBytes(b)
+	e.buffer.FileName = path
 	return nil
 }
 
 func (e *Editor) Bytes() []byte {
-	return e.Buffer.Bytes()
+	return e.buffer.Bytes()
 }
 
 func (e *Editor) WriteFile(path string) error {
@@ -63,7 +63,7 @@ func (e *Editor) WriteFile(path string) error {
 	defer f.Close()
 	b := e.Bytes()
 	if strings.HasSuffix(path, ".go") {
-		out, err := e.Gofmt(e.Buffer.FileName, b)
+		out, err := e.Gofmt(e.buffer.FileName, b)
 		if err == nil {
 			f.Write(out)
 		} else {
@@ -105,82 +105,82 @@ func (e *Editor) PerformUndo() {
 }
 
 func (e *Editor) PerformSearch(text string) {
-	if e.Buffer.GetRowCount() == 0 {
+	if e.buffer.GetRowCount() == 0 {
 		return
 	}
-	row := e.Cursor.Row
-	col := e.Cursor.Col + 1
+	row := e.cursor.Row
+	col := e.cursor.Col + 1
 
 	for {
 		var s string
-		if col < e.Buffer.GetRowLength(row) {
-			s = e.Buffer.TextAfter(row, col)
+		if col < e.buffer.GetRowLength(row) {
+			s = e.buffer.TextAfter(row, col)
 		} else {
 			s = ""
 		}
 		i := strings.Index(s, text)
 		if i != -1 {
 			// found it
-			e.Cursor.Row = row
-			e.Cursor.Col = col + i
+			e.cursor.Row = row
+			e.cursor.Col = col + i
 			return
 		} else {
 			col = 0
 			row = row + 1
-			if row == e.Buffer.GetRowCount() {
+			if row == e.buffer.GetRowCount() {
 				row = 0
 			}
 		}
-		if row == e.Cursor.Row {
+		if row == e.cursor.Row {
 			break
 		}
 	}
 }
 
 func (e *Editor) Scroll() {
-	if e.Cursor.Row < e.Offset.Rows {
-		e.Offset.Rows = e.Cursor.Row
+	if e.cursor.Row < e.offset.Rows {
+		e.offset.Rows = e.cursor.Row
 	}
-	if e.Cursor.Row-e.Offset.Rows >= e.size.Rows {
-		e.Offset.Rows = e.Cursor.Row - e.size.Rows + 1
+	if e.cursor.Row-e.offset.Rows >= e.size.Rows {
+		e.offset.Rows = e.cursor.Row - e.size.Rows + 1
 	}
-	if e.Cursor.Col < e.Offset.Cols {
-		e.Offset.Cols = e.Cursor.Col
+	if e.cursor.Col < e.offset.Cols {
+		e.offset.Cols = e.cursor.Col
 	}
-	if e.Cursor.Col-e.Offset.Cols >= e.size.Cols {
-		e.Offset.Cols = e.Cursor.Col - e.size.Cols + 1
+	if e.cursor.Col-e.offset.Cols >= e.size.Cols {
+		e.offset.Cols = e.cursor.Col - e.size.Cols + 1
 	}
 }
 
 func (e *Editor) MoveCursor(direction int) {
 	switch direction {
 	case gott.MoveLeft:
-		if e.Cursor.Col > 0 {
-			e.Cursor.Col--
+		if e.cursor.Col > 0 {
+			e.cursor.Col--
 		}
 	case gott.MoveRight:
-		if e.Cursor.Row < e.Buffer.GetRowCount() {
-			rowLength := e.Buffer.GetRowLength(e.Cursor.Row)
-			if e.Cursor.Col < rowLength-1 {
-				e.Cursor.Col++
+		if e.cursor.Row < e.buffer.GetRowCount() {
+			rowLength := e.buffer.GetRowLength(e.cursor.Row)
+			if e.cursor.Col < rowLength-1 {
+				e.cursor.Col++
 			}
 		}
 	case gott.MoveUp:
-		if e.Cursor.Row > 0 {
-			e.Cursor.Row--
+		if e.cursor.Row > 0 {
+			e.cursor.Row--
 		}
 	case gott.MoveDown:
-		if e.Cursor.Row < e.Buffer.GetRowCount()-1 {
-			e.Cursor.Row++
+		if e.cursor.Row < e.buffer.GetRowCount()-1 {
+			e.cursor.Row++
 		}
 	}
 	// don't go past the end of the current line
-	if e.Cursor.Row < e.Buffer.GetRowCount() {
-		rowLength := e.Buffer.GetRowLength(e.Cursor.Row)
-		if e.Cursor.Col > rowLength-1 {
-			e.Cursor.Col = rowLength - 1
-			if e.Cursor.Col < 0 {
-				e.Cursor.Col = 0
+	if e.cursor.Row < e.buffer.GetRowCount() {
+		rowLength := e.buffer.GetRowLength(e.cursor.Row)
+		if e.cursor.Col > rowLength-1 {
+			e.cursor.Col = rowLength - 1
+			if e.cursor.Col < 0 {
+				e.cursor.Col = 0
 			}
 		}
 	}
@@ -194,55 +194,55 @@ func (e *Editor) InsertChar(c rune) {
 	}
 	if c == '\n' {
 		e.InsertRow()
-		e.Cursor.Row++
-		e.Cursor.Col = 0
+		e.cursor.Row++
+		e.cursor.Col = 0
 		return
 	}
 	// if the cursor is past the nmber of rows, add a row
-	for e.Cursor.Row >= e.Buffer.GetRowCount() {
+	for e.cursor.Row >= e.buffer.GetRowCount() {
 		e.AppendBlankRow()
 	}
-	e.Buffer.InsertCharacter(e.Cursor.Row, e.Cursor.Col, c)
-	e.Cursor.Col += 1
+	e.buffer.InsertCharacter(e.cursor.Row, e.cursor.Col, c)
+	e.cursor.Col += 1
 }
 
 func (e *Editor) InsertRow() {
-	if e.Cursor.Row >= e.Buffer.GetRowCount() {
+	if e.cursor.Row >= e.buffer.GetRowCount() {
 		// we should never get here
 		e.AppendBlankRow()
 	} else {
-		newRow := e.Buffer.rows[e.Cursor.Row].Split(e.Cursor.Col)
-		i := e.Cursor.Row + 1
+		newRow := e.buffer.rows[e.cursor.Row].Split(e.cursor.Col)
+		i := e.cursor.Row + 1
 		// add a dummy row at the end of the Rows slice
 		e.AppendBlankRow()
 		// move rows to make room for the one we are adding
-		copy(e.Buffer.rows[i+1:], e.Buffer.rows[i:])
+		copy(e.buffer.rows[i+1:], e.buffer.rows[i:])
 		// add the new row
-		e.Buffer.rows[i] = newRow
+		e.buffer.rows[i] = newRow
 	}
 }
 
 func (e *Editor) BackspaceChar() rune {
-	if e.Buffer.GetRowCount() == 0 {
+	if e.buffer.GetRowCount() == 0 {
 		return rune(0)
 	}
 	if e.insert.Length() == 0 {
 		return rune(0)
 	}
 	e.insert.DeleteCharacter()
-	if e.Cursor.Col > 0 {
-		c := e.Buffer.rows[e.Cursor.Row].DeleteChar(e.Cursor.Col - 1)
-		e.Cursor.Col--
+	if e.cursor.Col > 0 {
+		c := e.buffer.rows[e.cursor.Row].DeleteChar(e.cursor.Col - 1)
+		e.cursor.Col--
 		return c
-	} else if e.Cursor.Row > 0 {
+	} else if e.cursor.Row > 0 {
 		// remove the current row and join it with the previous one
-		oldRowText := e.Buffer.rows[e.Cursor.Row].Text
+		oldRowText := e.buffer.rows[e.cursor.Row].Text
 		var newCursor gott.Point
-		newCursor.Col = len(e.Buffer.rows[e.Cursor.Row-1].Text)
-		e.Buffer.rows[e.Cursor.Row-1].Text = append(e.Buffer.rows[e.Cursor.Row-1].Text, oldRowText...)
-		e.Buffer.rows = append(e.Buffer.rows[0:e.Cursor.Row], e.Buffer.rows[e.Cursor.Row+1:]...)
-		e.Cursor.Row--
-		e.Cursor.Col = newCursor.Col
+		newCursor.Col = len(e.buffer.rows[e.cursor.Row-1].Text)
+		e.buffer.rows[e.cursor.Row-1].Text = append(e.buffer.rows[e.cursor.Row-1].Text, oldRowText...)
+		e.buffer.rows = append(e.buffer.rows[0:e.cursor.Row], e.buffer.rows[e.cursor.Row+1:]...)
+		e.cursor.Row--
+		e.cursor.Col = newCursor.Col
 		return rune('\n')
 	} else {
 		return rune(0)
@@ -250,14 +250,14 @@ func (e *Editor) BackspaceChar() rune {
 }
 
 func (e *Editor) YankRow(multiplier int) {
-	if e.Buffer.GetRowCount() == 0 {
+	if e.buffer.GetRowCount() == 0 {
 		return
 	}
 	pasteText := ""
 	for i := 0; i < multiplier; i++ {
-		position := e.Cursor.Row + i
-		if position < e.Buffer.GetRowCount() {
-			pasteText += string(e.Buffer.rows[position].Text) + "\n"
+		position := e.cursor.Row + i
+		if position < e.buffer.GetRowCount() {
+			pasteText += string(e.buffer.rows[position].Text) + "\n"
 		}
 	}
 
@@ -265,82 +265,82 @@ func (e *Editor) YankRow(multiplier int) {
 }
 
 func (e *Editor) KeepCursorInRow() {
-	if e.Buffer.GetRowCount() == 0 {
-		e.Cursor.Col = 0
+	if e.buffer.GetRowCount() == 0 {
+		e.cursor.Col = 0
 	} else {
-		if e.Cursor.Row >= e.Buffer.GetRowCount() {
-			e.Cursor.Row = e.Buffer.GetRowCount() - 1
+		if e.cursor.Row >= e.buffer.GetRowCount() {
+			e.cursor.Row = e.buffer.GetRowCount() - 1
 		}
-		if e.Cursor.Row < 0 {
-			e.Cursor.Row = 0
+		if e.cursor.Row < 0 {
+			e.cursor.Row = 0
 		}
-		lastIndexInRow := e.Buffer.rows[e.Cursor.Row].Length() - 1
-		if e.Cursor.Col > lastIndexInRow {
-			e.Cursor.Col = lastIndexInRow
+		lastIndexInRow := e.buffer.rows[e.cursor.Row].Length() - 1
+		if e.cursor.Col > lastIndexInRow {
+			e.cursor.Col = lastIndexInRow
 		}
-		if e.Cursor.Col < 0 {
-			e.Cursor.Col = 0
+		if e.cursor.Col < 0 {
+			e.cursor.Col = 0
 		}
 	}
 }
 
 func (e *Editor) AppendBlankRow() {
-	e.Buffer.rows = append(e.Buffer.rows, NewRow(""))
+	e.buffer.rows = append(e.buffer.rows, NewRow(""))
 }
 
 func (e *Editor) InsertLineAboveCursor() {
 	e.AppendBlankRow()
-	copy(e.Buffer.rows[e.Cursor.Row+1:], e.Buffer.rows[e.Cursor.Row:])
-	e.Buffer.rows[e.Cursor.Row] = NewRow("")
-	e.Cursor.Col = 0
+	copy(e.buffer.rows[e.cursor.Row+1:], e.buffer.rows[e.cursor.Row:])
+	e.buffer.rows[e.cursor.Row] = NewRow("")
+	e.cursor.Col = 0
 }
 
 func (e *Editor) InsertLineBelowCursor() {
 	e.AppendBlankRow()
-	copy(e.Buffer.rows[e.Cursor.Row+2:], e.Buffer.rows[e.Cursor.Row+1:])
-	e.Buffer.rows[e.Cursor.Row+1] = NewRow("")
-	e.Cursor.Row += 1
-	e.Cursor.Col = 0
+	copy(e.buffer.rows[e.cursor.Row+2:], e.buffer.rows[e.cursor.Row+1:])
+	e.buffer.rows[e.cursor.Row+1] = NewRow("")
+	e.cursor.Row += 1
+	e.cursor.Col = 0
 }
 
 func (e *Editor) MoveCursorToStartOfLine() {
-	e.Cursor.Col = 0
+	e.cursor.Col = 0
 }
 
 func (e *Editor) MoveCursorToStartOfLineBelowCursor() {
-	e.Cursor.Col = 0
-	e.Cursor.Row += 1
+	e.cursor.Col = 0
+	e.cursor.Row += 1
 }
 
 // editable
 
 func (e *Editor) GetCursor() gott.Point {
-	return e.Cursor
+	return e.cursor
 }
 
 func (e *Editor) SetCursor(cursor gott.Point) {
-	e.Cursor = cursor
+	e.cursor = cursor
 }
 
 func (e *Editor) ReplaceCharacterAtCursor(cursor gott.Point, c rune) rune {
-	return e.Buffer.rows[cursor.Row].ReplaceChar(cursor.Col, c)
+	return e.buffer.rows[cursor.Row].ReplaceChar(cursor.Col, c)
 }
 
 func (e *Editor) DeleteRowsAtCursor(multiplier int) string {
 	deletedText := ""
 	for i := 0; i < multiplier; i++ {
-		row := e.Cursor.Row
-		if row < e.Buffer.GetRowCount() {
+		row := e.cursor.Row
+		if row < e.buffer.GetRowCount() {
 			if i > 0 {
 				deletedText += "\n"
 			}
-			deletedText += string(e.Buffer.rows[row].Text)
-			e.Buffer.rows = append(e.Buffer.rows[0:row], e.Buffer.rows[row+1:]...)
+			deletedText += string(e.buffer.rows[row].Text)
+			e.buffer.rows = append(e.buffer.rows[0:row], e.buffer.rows[row+1:]...)
 		} else {
 			break
 		}
 	}
-	e.Cursor.Row = clipToRange(e.Cursor.Row, 0, e.Buffer.GetRowCount()-1)
+	e.cursor.Row = clipToRange(e.cursor.Row, 0, e.buffer.GetRowCount()-1)
 	return deletedText
 }
 
@@ -352,37 +352,37 @@ func (e *Editor) SetPasteBoard(text string, mode int) {
 func (e *Editor) DeleteWordsAtCursor(multiplier int) string {
 	deletedText := ""
 	for i := 0; i < multiplier; i++ {
-		if e.Buffer.GetRowCount() == 0 {
+		if e.buffer.GetRowCount() == 0 {
 			break
 		}
 		// if the row is empty, delete the row...
-		row := e.Cursor.Row
-		col := e.Cursor.Col
-		b := e.Buffer
+		row := e.cursor.Row
+		col := e.cursor.Col
+		b := e.buffer
 		if col >= b.rows[row].Length() {
-			position := e.Cursor.Row
-			e.Buffer.rows = append(e.Buffer.rows[0:position], e.Buffer.rows[position+1:]...)
+			position := e.cursor.Row
+			e.buffer.rows = append(e.buffer.rows[0:position], e.buffer.rows[position+1:]...)
 			deletedText += "\n"
 			e.KeepCursorInRow()
 		} else {
 			// else do this...
-			c := e.Buffer.rows[e.Cursor.Row].DeleteChar(e.Cursor.Col)
+			c := e.buffer.rows[e.cursor.Row].DeleteChar(e.cursor.Col)
 			deletedText += string(c)
 			for {
-				if e.Cursor.Col > e.Buffer.rows[e.Cursor.Row].Length()-1 {
+				if e.cursor.Col > e.buffer.rows[e.cursor.Row].Length()-1 {
 					break
 				}
 				if c == ' ' {
 					break
 				}
-				c = e.Buffer.rows[e.Cursor.Row].DeleteChar(e.Cursor.Col)
+				c = e.buffer.rows[e.cursor.Row].DeleteChar(e.cursor.Col)
 				deletedText += string(c)
 			}
-			if e.Cursor.Col > e.Buffer.rows[e.Cursor.Row].Length()-1 {
-				e.Cursor.Col--
+			if e.cursor.Col > e.buffer.rows[e.cursor.Row].Length()-1 {
+				e.cursor.Col--
 			}
-			if e.Cursor.Col < 0 {
-				e.Cursor.Col = 0
+			if e.cursor.Col < 0 {
+				e.cursor.Col = 0
 			}
 		}
 	}
@@ -390,33 +390,33 @@ func (e *Editor) DeleteWordsAtCursor(multiplier int) string {
 }
 
 func (e *Editor) DeleteCharactersAtCursor(multiplier int, undo bool, finallyDeleteRow bool) string {
-	deletedText := e.Buffer.DeleteCharacters(e.Cursor.Row, e.Cursor.Col, multiplier, undo)
-	if e.Cursor.Col > e.Buffer.rows[e.Cursor.Row].Length()-1 {
-		e.Cursor.Col--
+	deletedText := e.buffer.DeleteCharacters(e.cursor.Row, e.cursor.Col, multiplier, undo)
+	if e.cursor.Col > e.buffer.rows[e.cursor.Row].Length()-1 {
+		e.cursor.Col--
 	}
-	if e.Cursor.Col < 0 {
-		e.Cursor.Col = 0
+	if e.cursor.Col < 0 {
+		e.cursor.Col = 0
 	}
-	if finallyDeleteRow && e.Buffer.GetRowCount() > 0 {
-		e.Buffer.DeleteRow(e.Cursor.Row)
+	if finallyDeleteRow && e.buffer.GetRowCount() > 0 {
+		e.buffer.DeleteRow(e.cursor.Row)
 	}
 	return deletedText
 }
 
 func (e *Editor) InsertText(text string, position int) (gott.Point, int) {
-	if e.Buffer.GetRowCount() == 0 {
+	if e.buffer.GetRowCount() == 0 {
 		e.AppendBlankRow()
 	}
 	switch position {
 	case gott.InsertAtCursor:
 		break
 	case gott.InsertAfterCursor:
-		e.Cursor.Col++
-		e.Cursor.Col = clipToRange(e.Cursor.Col, 0, e.Buffer.rows[e.Cursor.Row].Length())
+		e.cursor.Col++
+		e.cursor.Col = clipToRange(e.cursor.Col, 0, e.buffer.rows[e.cursor.Row].Length())
 	case gott.InsertAtStartOfLine:
-		e.Cursor.Col = 0
+		e.cursor.Col = 0
 	case gott.InsertAfterEndOfLine:
-		e.Cursor.Col = e.Buffer.rows[e.Cursor.Row].Length()
+		e.cursor.Col = e.buffer.rows[e.cursor.Row].Length()
 	case gott.InsertAtNewLineBelowCursor:
 		e.InsertLineBelowCursor()
 	case gott.InsertAtNewLineAboveCursor:
@@ -424,18 +424,18 @@ func (e *Editor) InsertText(text string, position int) (gott.Point, int) {
 	}
 	var mode int
 	if text != "" {
-		r := e.Cursor.Row
-		c := e.Cursor.Col
+		r := e.cursor.Row
+		c := e.cursor.Col
 		for _, c := range text {
 			e.InsertChar(c)
 		}
-		e.Cursor.Row = r
-		e.Cursor.Col = c
+		e.cursor.Row = r
+		e.cursor.Col = c
 		mode = gott.ModeEdit
 	} else {
 		mode = gott.ModeInsert
 	}
-	return e.Cursor, mode
+	return e.cursor, mode
 }
 
 func (e *Editor) SetInsertOperation(insert gott.InsertOperation) {
@@ -451,27 +451,27 @@ func (e *Editor) GetPasteText() string {
 }
 
 func (e *Editor) ReverseCaseCharactersAtCursor(multiplier int) {
-	if e.Buffer.GetRowCount() == 0 {
+	if e.buffer.GetRowCount() == 0 {
 		return
 	}
-	row := &e.Buffer.rows[e.Cursor.Row]
+	row := &e.buffer.rows[e.cursor.Row]
 	for i := 0; i < multiplier; i++ {
-		c := row.Text[e.Cursor.Col]
+		c := row.Text[e.cursor.Col]
 		if unicode.IsUpper(c) {
-			row.ReplaceChar(e.Cursor.Col, unicode.ToLower(c))
+			row.ReplaceChar(e.cursor.Col, unicode.ToLower(c))
 		}
 		if unicode.IsLower(c) {
-			row.ReplaceChar(e.Cursor.Col, unicode.ToUpper(c))
+			row.ReplaceChar(e.cursor.Col, unicode.ToUpper(c))
 		}
-		if e.Cursor.Col < row.Length()-1 {
-			e.Cursor.Col++
+		if e.cursor.Col < row.Length()-1 {
+			e.cursor.Col++
 		}
 	}
 }
 
 func (e *Editor) PageUp() {
 	// move to the top of the screen
-	e.Cursor.Row = e.Offset.Rows
+	e.cursor.Row = e.offset.Rows
 	// move up by a page
 	for i := 0; i < e.size.Rows; i++ {
 		e.MoveCursor(gott.MoveUp)
@@ -480,7 +480,7 @@ func (e *Editor) PageUp() {
 
 func (e *Editor) PageDown() {
 	// move to the bottom of the screen
-	e.Cursor.Row = e.Offset.Rows + e.size.Rows - 1
+	e.cursor.Row = e.offset.Rows + e.size.Rows - 1
 	// move down by a page
 	for i := 0; i < e.size.Rows; i++ {
 		e.MoveCursor(gott.MoveDown)
@@ -497,23 +497,23 @@ func (e *Editor) CloseInsert() {
 }
 
 func (e *Editor) MoveToBeginningOfLine() {
-	e.Cursor.Col = 0
+	e.cursor.Col = 0
 }
 
 func (e *Editor) MoveToEndOfLine() {
-	e.Cursor.Col = 0
-	if e.Cursor.Row < e.Buffer.GetRowCount() {
-		e.Cursor.Col = e.Buffer.GetRowLength(e.Cursor.Row) - 1
-		if e.Cursor.Col < 0 {
-			e.Cursor.Col = 0
+	e.cursor.Col = 0
+	if e.cursor.Row < e.buffer.GetRowCount() {
+		e.cursor.Col = e.buffer.GetRowLength(e.cursor.Row) - 1
+		if e.cursor.Col < 0 {
+			e.cursor.Col = 0
 		}
 	}
 }
 
 func (e *Editor) GetBuffer() gott.Buffer {
-	return e.Buffer
+	return e.buffer
 }
 
 func (e *Editor) GetOffset() gott.Size {
-	return e.Offset
+	return e.offset
 }
