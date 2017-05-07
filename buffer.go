@@ -14,7 +14,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/nsf/termbox-go"
@@ -55,15 +54,52 @@ func (b *Buffer) RowCount() int {
 }
 
 func (b *Buffer) RowLength(i int) int {
-	return b.rows[i].Length()
+	if i < len(b.rows) {
+		return b.rows[i].Length()
+	} else {
+		return 0
+	}
 }
 
-func (b *Buffer) TextAfterPosition(row, col int) string {
-	return string(b.rows[row].Text[col:])
+func (b *Buffer) TextAfter(row, col int) string {
+	if row < len(b.rows) {
+		return b.rows[row].TextAfter(col)
+	} else {
+		return ""
+	}
 }
 
 func (b *Buffer) InsertCharacter(row, col int, c rune) {
-	b.rows[row].InsertChar(col, c)
+	if row < len(b.rows) {
+		b.rows[row].InsertChar(col, c)
+	}
+}
+
+func (b *Buffer) DeleteRow(row int) {
+	if row < len(b.rows) {
+		b.rows = append(b.rows[0:row], b.rows[row+1:]...)
+	}
+}
+
+func (b *Buffer) DeleteCharacters(row int, col int, count int, joinLines bool) string {
+	deletedText := ""
+	if b.RowCount() == 0 {
+		return deletedText
+	}
+	for i := 0; i < count; i++ {
+		if col < b.rows[row].Length() {
+			c := b.rows[row].DeleteChar(col)
+			deletedText += string(c)
+		} else if joinLines && row < b.RowCount()-1 {
+			// join next row to current row
+			nextRow := b.rows[row+1]
+			b.rows[row].Join(nextRow)
+			// remove next row
+			b.DeleteRow(row + 1)
+			deletedText += "\n"
+		}
+	}
+	return deletedText
 }
 
 // draw text in an area defined by origin and size with a specified offset into the buffer
@@ -79,14 +115,6 @@ func (b *Buffer) Render(origin Point, size Size, offset Size) {
 			}
 		} else {
 			line = "~"
-			if i == size.Rows/3 {
-				welcome := fmt.Sprintf("the gott editor -- version %s", VERSION)
-				padding := (size.Cols - len(welcome)) / 2
-				for j := 1; j <= padding; j++ {
-					line = line + " "
-				}
-				line += welcome
-			}
 		}
 		// truncate line to fit screen
 		if len(line) > size.Cols {

@@ -35,50 +35,64 @@ func (r *Row) Length() int {
 	return len(r.Text)
 }
 
-func (r *Row) InsertChar(position int, c rune) {
+func (r *Row) InsertChar(col int, c rune) {
 	line := make([]rune, 0)
-	if position <= len(r.Text) {
-		line = append(line, r.Text[0:position]...)
+	if col <= len(r.Text) {
+		line = append(line, r.Text[0:col]...)
 	} else {
 		line = append(line, r.Text...)
 	}
 	line = append(line, c)
-	if position < len(r.Text) {
-		line = append(line, r.Text[position:]...)
+	if col < len(r.Text) {
+		line = append(line, r.Text[col:]...)
 	}
 	r.Text = line
 }
 
-// replace character at position and return the replaced character
-func (r *Row) ReplaceChar(position int, c rune) rune {
-	if (position < 0) || (position >= len(r.Text)) {
+// replace character at col and return the replaced character
+func (r *Row) ReplaceChar(col int, c rune) rune {
+	if (col < 0) || (col >= len(r.Text)) {
 		return rune(0)
 	}
-	result := rune(r.Text[position])
-	r.Text[position] = c
+	result := rune(r.Text[col])
+	r.Text[col] = c
 	return result
 }
 
-// delete character at position and return the deleted character
-func (r *Row) DeleteChar(position int) rune {
+// delete character at col and return the deleted character
+func (r *Row) DeleteChar(col int) rune {
 	if len(r.Text) == 0 {
 		return 0
 	}
-	if position > len(r.Text)-1 {
-		position = len(r.Text) - 1
+	if col > len(r.Text)-1 {
+		col = len(r.Text) - 1
 	}
-	c := rune(r.Text[position])
-	r.Text = append(r.Text[0:position], r.Text[position+1:]...)
+	c := rune(r.Text[col])
+	r.Text = append(r.Text[0:col], r.Text[col+1:]...)
 	return c
 }
 
-// split row at position, return a new row containing the remaining text.
-func (r *Row) Split(position int) Row {
-	if position < len(r.Text) {
-		after := r.Text[position:]
-		r.Text = r.Text[0:position]
+// splits row at col, return a new row containing the remaining text.
+func (r *Row) Split(col int) Row {
+	if col < len(r.Text) {
+		after := r.Text[col:]
+		r.Text = r.Text[0:col]
 		return NewRow(string(after))
 	} else {
 		return NewRow("")
+	}
+}
+
+// joins rows by appending the passed-in row to the current row
+func (r *Row) Join(other Row) {
+	r.Text = append(r.Text, other.Text...)
+}
+
+// returns the text after a specified column
+func (r *Row) TextAfter(col int) string {
+	if col < len(r.Text) {
+		return string(r.Text[col:])
+	} else {
+		return ""
 	}
 }

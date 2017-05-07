@@ -20,7 +20,7 @@ type Editable interface {
 	SetCursor(cursor Point)
 
 	MoveCursorToStartOfLine()
-	MoveToStartOfLineBelowCursor()
+	MoveCursorToStartOfLineBelowCursor()
 
 	ReplaceCharacterAtCursor(cursor Point, c rune) rune
 	DeleteRowsAtCursor(multiplier int) string

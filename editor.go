@@ -141,7 +141,7 @@ func (e *Editor) PerformSearch(text string) {
 	for {
 		var s string
 		if col < e.Buffer.RowLength(row) {
-			s = e.Buffer.TextAfterPosition(row, col)
+			s = e.Buffer.TextAfter(row, col)
 		} else {
 			s = ""
 		}
@@ -334,7 +334,7 @@ func (e *Editor) MoveCursorToStartOfLine() {
 	e.Cursor.Col = 0
 }
 
-func (e *Editor) MoveToStartOfLineBelowCursor() {
+func (e *Editor) MoveCursorToStartOfLineBelowCursor() {
 	e.Cursor.Col = 0
 	e.Cursor.Row += 1
 }
@@ -356,17 +356,16 @@ func (e *Editor) ReplaceCharacterAtCursor(cursor Point, c rune) rune {
 func (e *Editor) DeleteRowsAtCursor(multiplier int) string {
 	deletedText := ""
 	for i := 0; i < multiplier; i++ {
-		position := e.Cursor.Row
-		if position < e.Buffer.RowCount() {
-			deletedText += string(e.Buffer.rows[position].Text)
+		row := e.Cursor.Row
+		if row < e.Buffer.RowCount() {
+			deletedText += string(e.Buffer.rows[row].Text)
 			deletedText += "\n"
-			e.Buffer.rows = append(e.Buffer.rows[0:position], e.Buffer.rows[position+1:]...)
-			position = clipToRange(position, 0, e.Buffer.RowCount()-1)
-			e.Cursor.Row = position
+			e.Buffer.rows = append(e.Buffer.rows[0:row], e.Buffer.rows[row+1:]...)
 		} else {
 			break
 		}
 	}
+	e.Cursor.Row = clipToRange(e.Cursor.Row, 0, e.Buffer.RowCount()-1)
 	return deletedText
 }
 
@@ -382,10 +381,14 @@ func (e *Editor) DeleteWordsAtCursor(multiplier int) string {
 			break
 		}
 		// if the row is empty, delete the row...
-		if e.Buffer.rows[e.Cursor.Row].Length() == 0 {
+		row := e.Cursor.Row
+		col := e.Cursor.Col
+		b := e.Buffer
+		if col >= b.rows[row].Length() {
 			position := e.Cursor.Row
 			e.Buffer.rows = append(e.Buffer.rows[0:position], e.Buffer.rows[position+1:]...)
 			deletedText += "\n"
+			e.KeepCursorInRow()
 		} else {
 			// else do this...
 			c := e.Buffer.rows[e.Cursor.Row].DeleteChar(e.Cursor.Col)
@@ -412,20 +415,7 @@ func (e *Editor) DeleteWordsAtCursor(multiplier int) string {
 }
 
 func (e *Editor) DeleteCharactersAtCursor(multiplier int, undo bool, finallyDeleteRow bool) string {
-	deletedText := ""
-	if e.Buffer.RowCount() == 0 {
-		return deletedText
-	}
-	for i := 0; i < multiplier; i++ {
-		if e.Buffer.rows[e.Cursor.Row].Length() > 0 {
-			c := e.Buffer.rows[e.Cursor.Row].DeleteChar(e.Cursor.Col)
-			deletedText += string(c)
-		} else if undo && e.Cursor.Row < e.Buffer.RowCount()-1 {
-			// delete current row
-			e.Buffer.rows = append(e.Buffer.rows[0:e.Cursor.Row], e.Buffer.rows[e.Cursor.Row+1:]...)
-			deletedText += "\n"
-		}
-	}
+	deletedText := e.Buffer.DeleteCharacters(e.Cursor.Row, e.Cursor.Col, multiplier, undo)
 	if e.Cursor.Col > e.Buffer.rows[e.Cursor.Row].Length()-1 {
 		e.Cursor.Col--
 	}
@@ -433,7 +423,7 @@ func (e *Editor) DeleteCharactersAtCursor(multiplier int, undo bool, finallyDele
 		e.Cursor.Col = 0
 	}
 	if finallyDeleteRow && e.Buffer.RowCount() > 0 {
-		e.Buffer.rows = append(e.Buffer.rows[0:e.Cursor.Row], e.Buffer.rows[e.Cursor.Row+1:]...)
+		e.Buffer.DeleteRow(e.Cursor.Row)
 	}
 	return deletedText
 }
@@ -532,12 +522,10 @@ func (e *Editor) CloseInsert() {
 }
 
 func (e *Editor) MoveToBeginningOfLine() {
-	// move to beginning of line
 	e.Cursor.Col = 0
 }
 
 func (e *Editor) MoveToEndOfLine() {
-	// move to end of line
 	e.Cursor.Col = 0
 	if e.Cursor.Row < e.Buffer.RowCount() {
 		e.Cursor.Col = e.Buffer.RowLength(e.Cursor.Row) - 1

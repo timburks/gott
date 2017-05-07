@@ -108,10 +108,10 @@ type DeleteCharacter struct {
 
 func (op *DeleteCharacter) Perform(e Editable, multiplier int) Operation {
 	op.init(e, multiplier)
-	log.Printf("Deleting %d character(s) at row %d", op.Multiplier, e.GetCursor().Row)
+	log.Printf("Deleting %d character(s) at %d,%d undo=%t", op.Multiplier, e.GetCursor().Row, e.GetCursor().Col, op.Undo)
 
 	deletedText := e.DeleteCharactersAtCursor(op.Multiplier, op.Undo, op.FinallyDeleteRow)
-
+	log.Printf("Deleted: [%s]", deletedText)
 	inverse := &Insert{
 		Position: InsertAtCursor,
 		Text:     deletedText,
@@ -128,7 +128,7 @@ type Paste struct {
 
 func (op *Paste) Perform(e Editable, multiplier int) Operation {
 	if e.GetPasteMode() == PasteNewLine {
-		e.MoveToStartOfLineBelowCursor()
+		e.MoveCursorToStartOfLineBelowCursor()
 	}
 
 	op.init(e, multiplier)
