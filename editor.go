@@ -93,9 +93,13 @@ func (e *Editor) WriteFile(path string) error {
 	}
 	defer f.Close()
 	b := e.Bytes()
-	out, err := gofmt(e.Buffer.FileName, b)
-	if err == nil {
-		f.Write(out)
+	if strings.HasSuffix(path, ".go") {
+		out, err := gofmt(e.Buffer.FileName, b)
+		if err == nil {
+			f.Write(out)
+		} else {
+			f.Write(b)
+		}
 	} else {
 		f.Write(b)
 	}
@@ -358,8 +362,10 @@ func (e *Editor) DeleteRowsAtCursor(multiplier int) string {
 	for i := 0; i < multiplier; i++ {
 		row := e.Cursor.Row
 		if row < e.Buffer.RowCount() {
+			if i > 0 {
+				deletedText += "\n"
+			}
 			deletedText += string(e.Buffer.rows[row].Text)
-			deletedText += "\n"
 			e.Buffer.rows = append(e.Buffer.rows[0:row], e.Buffer.rows[row+1:]...)
 		} else {
 			break

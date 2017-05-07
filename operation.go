@@ -69,7 +69,6 @@ type DeleteRow struct {
 func (op *DeleteRow) Perform(e Editable, multiplier int) Operation {
 	e.MoveCursorToStartOfLine()
 	op.init(e, multiplier)
-	log.Printf("Deleting %d row(s) at row %d", op.Multiplier, e.GetCursor().Row)
 	deletedText := e.DeleteRowsAtCursor(op.Multiplier)
 	e.SetPasteBoard(deletedText, PasteNewLine)
 	inverse := &Insert{
