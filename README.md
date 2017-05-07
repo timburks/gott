@@ -2,20 +2,17 @@
 
 # gott
 
-gott is a little text editor that I'm writing as a hobby project.
-
-It was inspired by 
+**gott** is a little text editor that I'm writing as a hobby project. It was inspired by 
 [antirez's kilo](http://antirez.com/news/108) 
 and Jeremy Ruten's 
 [Build Your Own Text Editor](http://viewsourcecode.org/snaptoken/kilo/) 
-tutorial.
-
-"gott" means "good" in Swedish, which is a presumptuous thing to 
+tutorial. 
+**gott** means "good" in Swedish, which is a presumptuous thing to 
 call a tiny console text editor. Naming things is hard.
 
 ## Implementation
 
-gott is written in Go and uses [nsf/termbox-go](https://github.com/nsf/termbox-go).
+**gott** is written in Go and uses [nsf/termbox-go](https://github.com/nsf/termbox-go).
 
 ## Goals
 
@@ -24,7 +21,7 @@ I hope to integrate many of the Go-specific features that are often added as
 
 ## Legal
 
-gott is released under the Apache License, version 2.0.
+**gott** is released under the Apache License, version 2.0.
 
 ## Author
 
