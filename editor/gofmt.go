@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package main
+package editor
 
 import (
 	"io/ioutil"
@@ -22,7 +22,7 @@ import (
 )
 
 // Run the gofmt tool.
-func gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error) {
+func Gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error) {
 	if false {
 		return inputBytes, nil
 	}

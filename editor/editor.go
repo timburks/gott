@@ -11,59 +11,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package main
+package editor
 
 import (
 	"io/ioutil"
 	"os"
 	"strings"
 	"unicode"
-)
 
-// Editor modes
-const (
-	ModeEdit    = 0
-	ModeInsert  = 1
-	ModeCommand = 2
-	ModeSearch  = 3
-	ModeQuit    = 9999
-)
-
-// Move directions
-const (
-	MoveUp    = 0
-	MoveDown  = 1
-	MoveRight = 2
-	MoveLeft  = 3
-)
-
-// Insert positions
-const (
-	InsertAtCursor             = 0
-	InsertAfterCursor          = 1
-	InsertAtStartOfLine        = 2
-	InsertAfterEndOfLine       = 3
-	InsertAtNewLineBelowCursor = 4
-	InsertAtNewLineAboveCursor = 5
-)
-
-// Paste modes
-const (
-	PasteAtCursor = 0
-	PasteNewLine  = 1
+	gott "github.com/timburks/gott/types"
 )
 
 // The Editor manages the editing of text in a Buffer.
 type Editor struct {
-	Cursor    Point           // cursor position
-	Offset    Size            // display offset
-	Buffer    *Buffer         // active buffer being edited
-	size      Size            // size of editing area
-	pasteText string          // used to cut/copy and paste
-	pasteMode int             // how to paste the string on the pasteboard
-	previous  Operation       // last operation performed, available to repeat
-	undo      []Operation     // stack of operations to undo
-	insert    InsertOperation // when in insert mode, the current insert operation
+	Cursor    gott.Point           // cursor position
+	Offset    gott.Size            // display offset
+	Buffer    *Buffer              // active buffer being edited
+	size      gott.Size            // size of editing area
+	pasteText string               // used to cut/copy and paste
+	pasteMode int                  // how to paste the string on the pasteboard
+	previous  gott.Operation       // last operation performed, available to repeat
+	undo      []gott.Operation     // stack of operations to undo
+	insert    gott.InsertOperation // when in insert mode, the current insert operation
 }
 
 func NewEditor() *Editor {
@@ -94,7 +63,7 @@ func (e *Editor) WriteFile(path string) error {
 	defer f.Close()
 	b := e.Bytes()
 	if strings.HasSuffix(path, ".go") {
-		out, err := gofmt(e.Buffer.FileName, b)
+		out, err := Gofmt(e.Buffer.FileName, b)
 		if err == nil {
 			f.Write(out)
 		} else {
@@ -106,7 +75,7 @@ func (e *Editor) WriteFile(path string) error {
 	return nil
 }
 
-func (e *Editor) Perform(op Operation, multiplier int) {
+func (e *Editor) Perform(op gott.Operation, multiplier int) {
 	// perform the operation
 	inverse := op.Perform(e, multiplier)
 	// save the operation for repeats
@@ -185,22 +154,22 @@ func (e *Editor) Scroll() {
 
 func (e *Editor) MoveCursor(direction int) {
 	switch direction {
-	case MoveLeft:
+	case gott.MoveLeft:
 		if e.Cursor.Col > 0 {
 			e.Cursor.Col--
 		}
-	case MoveRight:
+	case gott.MoveRight:
 		if e.Cursor.Row < e.Buffer.RowCount() {
 			rowLength := e.Buffer.RowLength(e.Cursor.Row)
 			if e.Cursor.Col < rowLength-1 {
 				e.Cursor.Col++
 			}
 		}
-	case MoveUp:
+	case gott.MoveUp:
 		if e.Cursor.Row > 0 {
 			e.Cursor.Row--
 		}
-	case MoveDown:
+	case gott.MoveDown:
 		if e.Cursor.Row < e.Buffer.RowCount()-1 {
 			e.Cursor.Row++
 		}
@@ -268,7 +237,7 @@ func (e *Editor) BackspaceChar() rune {
 	} else if e.Cursor.Row > 0 {
 		// remove the current row and join it with the previous one
 		oldRowText := e.Buffer.rows[e.Cursor.Row].Text
-		var newCursor Point
+		var newCursor gott.Point
 		newCursor.Col = len(e.Buffer.rows[e.Cursor.Row-1].Text)
 		e.Buffer.rows[e.Cursor.Row-1].Text = append(e.Buffer.rows[e.Cursor.Row-1].Text, oldRowText...)
 		e.Buffer.rows = append(e.Buffer.rows[0:e.Cursor.Row], e.Buffer.rows[e.Cursor.Row+1:]...)
@@ -292,7 +261,7 @@ func (e *Editor) YankRow(multiplier int) {
 		}
 	}
 
-	e.SetPasteBoard(pasteText, PasteNewLine)
+	e.SetPasteBoard(pasteText, gott.PasteNewLine)
 }
 
 func (e *Editor) KeepCursorInRow() {
@@ -345,15 +314,15 @@ func (e *Editor) MoveCursorToStartOfLineBelowCursor() {
 
 // editable
 
-func (e *Editor) GetCursor() Point {
+func (e *Editor) GetCursor() gott.Point {
 	return e.Cursor
 }
 
-func (e *Editor) SetCursor(cursor Point) {
+func (e *Editor) SetCursor(cursor gott.Point) {
 	e.Cursor = cursor
 }
 
-func (e *Editor) ReplaceCharacterAtCursor(cursor Point, c rune) rune {
+func (e *Editor) ReplaceCharacterAtCursor(cursor gott.Point, c rune) rune {
 	return e.Buffer.rows[cursor.Row].ReplaceChar(cursor.Col, c)
 }
 
@@ -434,23 +403,23 @@ func (e *Editor) DeleteCharactersAtCursor(multiplier int, undo bool, finallyDele
 	return deletedText
 }
 
-func (e *Editor) InsertText(text string, position int) (Point, int) {
+func (e *Editor) InsertText(text string, position int) (gott.Point, int) {
 	if e.Buffer.RowCount() == 0 {
 		e.AppendBlankRow()
 	}
 	switch position {
-	case InsertAtCursor:
+	case gott.InsertAtCursor:
 		break
-	case InsertAfterCursor:
+	case gott.InsertAfterCursor:
 		e.Cursor.Col++
 		e.Cursor.Col = clipToRange(e.Cursor.Col, 0, e.Buffer.rows[e.Cursor.Row].Length())
-	case InsertAtStartOfLine:
+	case gott.InsertAtStartOfLine:
 		e.Cursor.Col = 0
-	case InsertAfterEndOfLine:
+	case gott.InsertAfterEndOfLine:
 		e.Cursor.Col = e.Buffer.rows[e.Cursor.Row].Length()
-	case InsertAtNewLineBelowCursor:
+	case gott.InsertAtNewLineBelowCursor:
 		e.InsertLineBelowCursor()
-	case InsertAtNewLineAboveCursor:
+	case gott.InsertAtNewLineAboveCursor:
 		e.InsertLineAboveCursor()
 	}
 	var mode int
@@ -462,14 +431,14 @@ func (e *Editor) InsertText(text string, position int) (Point, int) {
 		}
 		e.Cursor.Row = r
 		e.Cursor.Col = c
-		mode = ModeEdit
+		mode = gott.ModeEdit
 	} else {
-		mode = ModeInsert
+		mode = gott.ModeInsert
 	}
 	return e.Cursor, mode
 }
 
-func (e *Editor) SetInsertOperation(insert *Insert) {
+func (e *Editor) SetInsertOperation(insert gott.InsertOperation) {
 	e.insert = insert
 }
 
@@ -505,7 +474,7 @@ func (e *Editor) PageUp() {
 	e.Cursor.Row = e.Offset.Rows
 	// move up by a page
 	for i := 0; i < e.size.Rows; i++ {
-		e.MoveCursor(MoveUp)
+		e.MoveCursor(gott.MoveUp)
 	}
 }
 
@@ -514,11 +483,11 @@ func (e *Editor) PageDown() {
 	e.Cursor.Row = e.Offset.Rows + e.size.Rows - 1
 	// move down by a page
 	for i := 0; i < e.size.Rows; i++ {
-		e.MoveCursor(MoveDown)
+		e.MoveCursor(gott.MoveDown)
 	}
 }
 
-func (e *Editor) SetSize(s Size) {
+func (e *Editor) SetSize(s gott.Size) {
 	e.size = s
 }
 

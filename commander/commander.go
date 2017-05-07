@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package main
+package commander
 
 import (
 	"fmt"
@@ -19,11 +19,14 @@ import (
 	"strings"
 
 	"github.com/nsf/termbox-go"
+	"github.com/timburks/gott/editor"
+	"github.com/timburks/gott/operations"
+	gott "github.com/timburks/gott/types"
 )
 
 // The Commander converts user input into commands for the Editor.
 type Commander struct {
-	editor     *Editor
+	editor     *editor.Editor
 	mode       int    // editor mode
 	debug      bool   // debug mode displays information about events (key codes, etc)
 	editKeys   string // edit key sequences in progress
@@ -33,8 +36,8 @@ type Commander struct {
 	multiplier string // multiplier string as it is being entered
 }
 
-func NewCommander(e *Editor) *Commander {
-	return &Commander{editor: e, mode: ModeEdit}
+func NewCommander(e *editor.Editor) *Commander {
+	return &Commander{editor: e, mode: gott.ModeEdit}
 }
 
 func (c *Commander) GetMode() int {
@@ -76,17 +79,17 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 		case "d":
 			switch ch {
 			case 'd':
-				e.Perform(&DeleteRow{}, c.Multiplier())
+				e.Perform(&operations.DeleteRow{}, c.Multiplier())
 			case 'w':
-				e.Perform(&DeleteWord{}, c.Multiplier())
+				e.Perform(&operations.DeleteWord{}, c.Multiplier())
 			}
 		case "r":
 			if key != 0 {
 				if key == termbox.KeySpace {
-					e.Perform(&ReplaceCharacter{Character: rune(' ')}, c.Multiplier())
+					e.Perform(&operations.ReplaceCharacter{Character: rune(' ')}, c.Multiplier())
 				}
 			} else if ch != 0 {
-				e.Perform(&ReplaceCharacter{Character: rune(event.Ch)}, c.Multiplier())
+				e.Perform(&operations.ReplaceCharacter{Character: rune(event.Ch)}, c.Multiplier())
 			}
 		case "y":
 			switch ch {
@@ -112,13 +115,13 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 		case termbox.KeyCtrlE, termbox.KeyEnd:
 			e.MoveToEndOfLine()
 		case termbox.KeyArrowUp:
-			e.MoveCursor(MoveUp)
+			e.MoveCursor(gott.MoveUp)
 		case termbox.KeyArrowDown:
-			e.MoveCursor(MoveDown)
+			e.MoveCursor(gott.MoveDown)
 		case termbox.KeyArrowLeft:
-			e.MoveCursor(MoveLeft)
+			e.MoveCursor(gott.MoveLeft)
 		case termbox.KeyArrowRight:
-			e.MoveCursor(MoveRight)
+			e.MoveCursor(gott.MoveRight)
 		}
 	}
 	if ch != 0 {
@@ -132,13 +135,13 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 		// commands go to the message bar
 		//
 		case ':':
-			c.mode = ModeCommand
+			c.mode = gott.ModeCommand
 			c.command = ""
 		//
 		// search queries go to the message bar
 		//
 		case '/':
-			c.mode = ModeSearch
+			c.mode = gott.ModeSearch
 			c.searchText = ""
 		case 'n': // repeat the last search
 			e.PerformSearch(c.searchText)
@@ -146,34 +149,34 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 		// cursor movement isn't logged
 		//
 		case 'h':
-			e.MoveCursor(MoveLeft)
+			e.MoveCursor(gott.MoveLeft)
 		case 'j':
-			e.MoveCursor(MoveDown)
+			e.MoveCursor(gott.MoveDown)
 		case 'k':
-			e.MoveCursor(MoveUp)
+			e.MoveCursor(gott.MoveUp)
 		case 'l':
-			e.MoveCursor(MoveRight)
+			e.MoveCursor(gott.MoveRight)
 		//
 		// "performed" operations are saved for undo and repetition
 		//
 		case 'i':
-			e.Perform(&Insert{Position: InsertAtCursor, Commander: c}, c.Multiplier())
+			e.Perform(&operations.Insert{Position: gott.InsertAtCursor, Commander: c}, c.Multiplier())
 		case 'a':
-			e.Perform(&Insert{Position: InsertAfterCursor, Commander: c}, c.Multiplier())
+			e.Perform(&operations.Insert{Position: gott.InsertAfterCursor, Commander: c}, c.Multiplier())
 		case 'I':
-			e.Perform(&Insert{Position: InsertAtStartOfLine, Commander: c}, c.Multiplier())
+			e.Perform(&operations.Insert{Position: gott.InsertAtStartOfLine, Commander: c}, c.Multiplier())
 		case 'A':
-			e.Perform(&Insert{Position: InsertAfterEndOfLine, Commander: c}, c.Multiplier())
+			e.Perform(&operations.Insert{Position: gott.InsertAfterEndOfLine, Commander: c}, c.Multiplier())
 		case 'o':
-			e.Perform(&Insert{Position: InsertAtNewLineBelowCursor, Commander: c}, c.Multiplier())
+			e.Perform(&operations.Insert{Position: gott.InsertAtNewLineBelowCursor, Commander: c}, c.Multiplier())
 		case 'O':
-			e.Perform(&Insert{Position: InsertAtNewLineAboveCursor, Commander: c}, c.Multiplier())
+			e.Perform(&operations.Insert{Position: gott.InsertAtNewLineAboveCursor, Commander: c}, c.Multiplier())
 		case 'x':
-			e.Perform(&DeleteCharacter{}, c.Multiplier())
+			e.Perform(&operations.DeleteCharacter{}, c.Multiplier())
 		case 'p': // PasteText
-			e.Perform(&Paste{}, c.Multiplier())
+			e.Perform(&operations.Paste{}, c.Multiplier())
 		case '~': // reverse case
-			e.Perform(&ReverseCaseCharacter{}, c.Multiplier())
+			e.Perform(&operations.ReverseCaseCharacter{}, c.Multiplier())
 		//
 		// a few keys open multi-key commands
 		//
@@ -206,7 +209,7 @@ func (c *Commander) ProcessKeyInsertMode(event termbox.Event) error {
 		switch key {
 		case termbox.KeyEsc: // end an insert operation.
 			e.CloseInsert()
-			c.mode = ModeEdit
+			c.mode = gott.ModeEdit
 			e.KeepCursorInRow()
 		case termbox.KeyBackspace2:
 			e.BackspaceChar()
@@ -236,7 +239,7 @@ func (c *Commander) ProcessKeyCommandMode(event termbox.Event) error {
 	if key != 0 {
 		switch key {
 		case termbox.KeyEsc:
-			c.mode = ModeEdit
+			c.mode = gott.ModeEdit
 		case termbox.KeyEnter:
 			c.PerformCommand()
 		case termbox.KeyBackspace2:
@@ -261,10 +264,10 @@ func (c *Commander) ProcessKeySearchMode(event termbox.Event) error {
 	if key != 0 {
 		switch key {
 		case termbox.KeyEsc:
-			c.mode = ModeEdit
+			c.mode = gott.ModeEdit
 		case termbox.KeyEnter:
 			e.PerformSearch(c.searchText)
-			c.mode = ModeEdit
+			c.mode = gott.ModeEdit
 		case termbox.KeyBackspace2:
 			if len(c.searchText) > 0 {
 				c.searchText = c.searchText[0 : len(c.searchText)-1]
@@ -283,13 +286,13 @@ func (c *Commander) ProcessKeySearchMode(event termbox.Event) error {
 func (c *Commander) ProcessKey(event termbox.Event) error {
 	var err error
 	switch c.mode {
-	case ModeEdit:
+	case gott.ModeEdit:
 		err = c.ProcessKeyEditMode(event)
-	case ModeInsert:
+	case gott.ModeInsert:
 		err = c.ProcessKeyInsertMode(event)
-	case ModeCommand:
+	case gott.ModeCommand:
 		err = c.ProcessKeyCommandMode(event)
-	case ModeSearch:
+	case gott.ModeSearch:
 		err = c.ProcessKeySearchMode(event)
 	}
 	return err
@@ -313,7 +316,7 @@ func (c *Commander) PerformCommand() {
 		}
 		switch parts[0] {
 		case "q":
-			c.mode = ModeQuit
+			c.mode = gott.ModeQuit
 			return
 		case "r":
 			if len(parts) == 2 {
@@ -345,10 +348,10 @@ func (c *Commander) PerformCommand() {
 				filename = e.Buffer.FileName
 			}
 			e.WriteFile(filename)
-			c.mode = ModeQuit
+			c.mode = gott.ModeQuit
 			return
 		case "fmt":
-			out, err := gofmt(e.Buffer.FileName, e.Bytes())
+			out, err := editor.Gofmt(e.Buffer.FileName, e.Bytes())
 			if err == nil {
 				e.Buffer.ReadBytes(out)
 			}
@@ -362,7 +365,7 @@ func (c *Commander) PerformCommand() {
 		}
 	}
 	c.command = ""
-	c.mode = ModeEdit
+	c.mode = gott.ModeEdit
 }
 
 func (c *Commander) Multiplier() int {

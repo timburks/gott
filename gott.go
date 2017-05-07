@@ -18,9 +18,14 @@ import (
 	"os"
 
 	"github.com/nsf/termbox-go"
+
+	"github.com/timburks/gott/commander"
+	"github.com/timburks/gott/editor"
+	gott "github.com/timburks/gott/types"
+	"github.com/timburks/gott/window"
 )
 
-const VERSION = "0.1.2"
+const VERSION = "0.1.3"
 
 func main() {
 	// open a log file
@@ -41,9 +46,9 @@ func main() {
 	defer termbox.Close()
 
 	// create our editor.
-	editor := NewEditor()
-	window := NewWindow()
-	commander := NewCommander(editor)
+	editor := editor.NewEditor()
+	window := window.NewWindow()
+	commander := commander.NewCommander(editor)
 
 	// if a file was specified on the command-line, read it.
 	if len(os.Args) > 1 {
@@ -55,7 +60,7 @@ func main() {
 	}
 
 	// run the event loop.
-	for commander.GetMode() != ModeQuit {
+	for commander.GetMode() != gott.ModeQuit {
 		window.Render(editor, commander)
 		event := termbox.PollEvent()
 		err = commander.ProcessEvent(event)

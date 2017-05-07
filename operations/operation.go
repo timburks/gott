@@ -11,15 +11,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package main
+package operations
+
+import (
+	gott "github.com/timburks/gott/types"
+)
 
 type Op struct {
-	Cursor     Point
+	Cursor     gott.Point
 	Multiplier int
 	Undo       bool
 }
 
-func (op *Op) init(e Editable, multiplier int) {
+func (op *Op) init(e gott.Editable, multiplier int) {
 	if op.Undo {
 		e.SetCursor(op.Cursor)
 	} else {
@@ -43,7 +47,7 @@ type ReplaceCharacter struct {
 	Character rune
 }
 
-func (op *ReplaceCharacter) Perform(e Editable, multiplier int) Operation {
+func (op *ReplaceCharacter) Perform(e gott.Editable, multiplier int) gott.Operation {
 	op.init(e, multiplier)
 	old := e.ReplaceCharacterAtCursor(op.Cursor, op.Character)
 	inverse := &ReplaceCharacter{}
@@ -58,13 +62,13 @@ type DeleteRow struct {
 	Op
 }
 
-func (op *DeleteRow) Perform(e Editable, multiplier int) Operation {
+func (op *DeleteRow) Perform(e gott.Editable, multiplier int) gott.Operation {
 	e.MoveCursorToStartOfLine()
 	op.init(e, multiplier)
 	deletedText := e.DeleteRowsAtCursor(op.Multiplier)
-	e.SetPasteBoard(deletedText, PasteNewLine)
+	e.SetPasteBoard(deletedText, gott.PasteNewLine)
 	inverse := &Insert{
-		Position: InsertAtCursor,
+		Position: gott.InsertAtCursor,
 		Text:     deletedText,
 	}
 	inverse.copyForUndo(&op.Op)
@@ -77,12 +81,12 @@ type DeleteWord struct {
 	Op
 }
 
-func (op *DeleteWord) Perform(e Editable, multiplier int) Operation {
+func (op *DeleteWord) Perform(e gott.Editable, multiplier int) gott.Operation {
 	op.init(e, multiplier)
 	deletedText := e.DeleteWordsAtCursor(op.Multiplier)
-	e.SetPasteBoard(deletedText, InsertAtCursor)
+	e.SetPasteBoard(deletedText, gott.InsertAtCursor)
 	inverse := &Insert{
-		Position: InsertAtCursor,
+		Position: gott.InsertAtCursor,
 		Text:     string(deletedText),
 	}
 	inverse.copyForUndo(&op.Op)
@@ -96,11 +100,11 @@ type DeleteCharacter struct {
 	FinallyDeleteRow bool
 }
 
-func (op *DeleteCharacter) Perform(e Editable, multiplier int) Operation {
+func (op *DeleteCharacter) Perform(e gott.Editable, multiplier int) gott.Operation {
 	op.init(e, multiplier)
 	deletedText := e.DeleteCharactersAtCursor(op.Multiplier, op.Undo, op.FinallyDeleteRow)
 	inverse := &Insert{
-		Position: InsertAtCursor,
+		Position: gott.InsertAtCursor,
 		Text:     deletedText,
 	}
 	inverse.copyForUndo(&op.Op)
@@ -113,8 +117,8 @@ type Paste struct {
 	Op
 }
 
-func (op *Paste) Perform(e Editable, multiplier int) Operation {
-	if e.GetPasteMode() == PasteNewLine {
+func (op *Paste) Perform(e gott.Editable, multiplier int) gott.Operation {
+	if e.GetPasteMode() == gott.PasteNewLine {
 		e.MoveCursorToStartOfLineBelowCursor()
 	}
 
@@ -127,7 +131,7 @@ func (op *Paste) Perform(e Editable, multiplier int) Operation {
 			e.InsertChar(c)
 		}
 	}
-	if e.GetPasteMode() == PasteNewLine {
+	if e.GetPasteMode() == gott.PasteNewLine {
 		e.SetCursor(cursor)
 		inverse := &DeleteCharacter{}
 		inverse.copyForUndo(&op.Op)
@@ -146,10 +150,10 @@ type Insert struct {
 	Position  int
 	Text      string
 	Inverse   *DeleteCharacter
-	Commander *Commander
+	Commander gott.Commander
 }
 
-func (op *Insert) Perform(e Editable, multiplier int) Operation {
+func (op *Insert) Perform(e gott.Editable, multiplier int) gott.Operation {
 	op.init(e, multiplier)
 
 	if op.Text != "" {
@@ -168,8 +172,8 @@ func (op *Insert) Perform(e Editable, multiplier int) Operation {
 	inverse := &DeleteCharacter{}
 	inverse.copyForUndo(&op.Op)
 	inverse.Multiplier = len(op.Text)
-	if op.Position == InsertAtNewLineBelowCursor ||
-		op.Position == InsertAtNewLineAboveCursor {
+	if op.Position == gott.InsertAtNewLineBelowCursor ||
+		op.Position == gott.InsertAtNewLineAboveCursor {
 		inverse.FinallyDeleteRow = true
 	}
 	op.Inverse = inverse
@@ -198,7 +202,7 @@ type ReverseCaseCharacter struct {
 	Op
 }
 
-func (op *ReverseCaseCharacter) Perform(e Editable, multiplier int) Operation {
+func (op *ReverseCaseCharacter) Perform(e gott.Editable, multiplier int) gott.Operation {
 	op.init(e, multiplier)
 	e.ReverseCaseCharactersAtCursor(op.Multiplier)
 	if op.Undo {

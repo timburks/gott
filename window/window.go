@@ -11,26 +11,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package main
+package window
 
 import (
 	"fmt"
 
 	"github.com/nsf/termbox-go"
+
+	"github.com/timburks/gott/commander"
+	"github.com/timburks/gott/editor"
+	gott "github.com/timburks/gott/types"
 )
 
 // The Window draws the state of an Editor.
 type Window struct {
-	size Size // screen size
+	size gott.Size // screen size
 }
 
 func NewWindow() *Window {
 	return &Window{}
 }
 
-func (window *Window) Render(e *Editor, c *Commander) {
+func (window *Window) Render(e *editor.Editor, c *commander.Commander) {
 	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
-	var windowSize Size
+	var windowSize gott.Size
 	windowSize.Cols, windowSize.Rows = termbox.Size()
 	window.size = windowSize
 
@@ -41,15 +45,15 @@ func (window *Window) Render(e *Editor, c *Commander) {
 	e.Scroll()
 	window.RenderInfoBar(e, c)
 	window.RenderMessageBar(e, c)
-	bufferOrigin := Point{Row: 0, Col: 0}
-	bufferSize := Size{Rows: window.size.Rows - 2, Cols: window.size.Cols}
+	bufferOrigin := gott.Point{Row: 0, Col: 0}
+	bufferSize := gott.Size{Rows: window.size.Rows - 2, Cols: window.size.Cols}
 	e.Buffer.Render(bufferOrigin, bufferSize, e.Offset)
 	termbox.SetCursor(e.Cursor.Col-e.Offset.Cols, e.Cursor.Row-e.Offset.Rows)
 	termbox.Flush()
 }
 
-func (window *Window) RenderInfoBar(e *Editor, c *Commander) {
-	finalText := fmt.Sprintf(" %d/%d ", e.Cursor.Row, len(e.Buffer.rows))
+func (window *Window) RenderInfoBar(e *editor.Editor, c *commander.Commander) {
+	finalText := fmt.Sprintf(" %d/%d ", e.Cursor.Row, e.Buffer.RowCount())
 	text := " the gott editor - " + e.Buffer.FileName + " "
 	for len(text) < window.size.Cols-len(finalText)-1 {
 		text = text + " "
@@ -62,12 +66,12 @@ func (window *Window) RenderInfoBar(e *Editor, c *Commander) {
 	}
 }
 
-func (window *Window) RenderMessageBar(e *Editor, c *Commander) {
+func (window *Window) RenderMessageBar(e *editor.Editor, c *commander.Commander) {
 	var line string
 	switch c.GetMode() {
-	case ModeCommand:
+	case gott.ModeCommand:
 		line += ":" + c.Command()
-	case ModeSearch:
+	case gott.ModeSearch:
 		line += "/" + c.SearchText()
 	default:
 		line += c.Message()

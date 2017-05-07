@@ -11,12 +11,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package main
+package editor
 
 import (
 	"strings"
 
 	"github.com/nsf/termbox-go"
+
+	gott "github.com/timburks/gott/types"
 )
 
 // A Buffer represents a file being edited
@@ -106,7 +108,7 @@ func (b *Buffer) DeleteCharacters(row int, col int, count int, joinLines bool) s
 }
 
 // draw text in an area defined by origin and size with a specified offset into the buffer
-func (b *Buffer) Render(origin Point, size Size, offset Size) {
+func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
 	for i := origin.Row; i < origin.Row+size.Rows; i++ {
 		var line string
 		if (i + offset.Rows) < len(b.rows) {

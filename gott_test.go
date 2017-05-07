@@ -17,12 +17,16 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/timburks/gott/editor"
+	"github.com/timburks/gott/operations"
+	gott "github.com/timburks/gott/types"
 )
 
 const source = "test/gettysburg-address.txt"
 
-func setup(t *testing.T) *Editor {
-	editor := NewEditor()
+func setup(t *testing.T) *editor.Editor {
+	editor := editor.NewEditor()
 	err := editor.ReadFile(source)
 	if err != nil {
 		t.Errorf("Read failed: %+v", err)
@@ -30,7 +34,7 @@ func setup(t *testing.T) *Editor {
 	return editor
 }
 
-func final(t *testing.T, editor *Editor) {
+func final(t *testing.T, editor *editor.Editor) {
 	editor.WriteFile("test-final.txt")
 	err := exec.Command("diff", "test-final.txt", source).Run()
 	if err != nil {
@@ -48,8 +52,8 @@ func TestReadWriteInvariance(t *testing.T) {
 
 func TestDeleteRow(t *testing.T) {
 	editor := setup(t)
-	editor.Cursor = Point{Row: 20, Col: 0}
-	editor.Perform(&DeleteRow{}, 20)
+	editor.Cursor = gott.Point{Row: 20, Col: 0}
+	editor.Perform(&operations.DeleteRow{}, 20)
 	if rowCount := editor.Buffer.RowCount(); rowCount != 20 {
 		t.Errorf("Invalid row count after deletion: %d", rowCount)
 	}
@@ -59,8 +63,8 @@ func TestDeleteRow(t *testing.T) {
 
 func TestDeleteWord(t *testing.T) {
 	editor := setup(t)
-	editor.Cursor = Point{Row: 19, Col: 0}
-	editor.Perform(&DeleteWord{}, 5)
+	editor.Cursor = gott.Point{Row: 19, Col: 0}
+	editor.Perform(&operations.DeleteWord{}, 5)
 	expected := "remaining before us--that from these"
 	if remainder := editor.Buffer.TextAfter(19, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
@@ -71,8 +75,8 @@ func TestDeleteWord(t *testing.T) {
 
 func TestDeleteCharacter(t *testing.T) {
 	editor := setup(t)
-	editor.Cursor = Point{Row: 19, Col: 0}
-	editor.Perform(&DeleteCharacter{}, 28)
+	editor.Cursor = gott.Point{Row: 19, Col: 0}
+	editor.Perform(&operations.DeleteCharacter{}, 28)
 	expected := "remaining before us--that from these"
 	if remainder := editor.Buffer.TextAfter(19, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
@@ -83,43 +87,43 @@ func TestDeleteCharacter(t *testing.T) {
 
 func TestInsert(t *testing.T) {
 	editor := setup(t)
-	editor.Cursor = Point{Row: 1, Col: 0}
-	insert := &Insert{Position: InsertAtCursor, Text: "hello, world!"}
+	editor.Cursor = gott.Point{Row: 1, Col: 0}
+	insert := &operations.Insert{Position: gott.InsertAtCursor, Text: "hello, world!"}
 	editor.Perform(insert, 1)
 	expected := "hello, world!"
 	if remainder := editor.Buffer.TextAfter(1, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
-	editor.Cursor = Point{Row: 0, Col: 3}
-	insert = &Insert{Position: InsertAfterCursor, Text: "BIG LEAGUE "}
+	editor.Cursor = gott.Point{Row: 0, Col: 3}
+	insert = &operations.Insert{Position: gott.InsertAfterCursor, Text: "BIG LEAGUE "}
 	editor.Perform(insert, 1)
 	expected = "THE BIG LEAGUE GETTYSBURG ADDRESS:"
 	if remainder := editor.Buffer.TextAfter(0, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
-	editor.Cursor = Point{Row: 3, Col: 3}
-	insert = &Insert{Position: InsertAfterEndOfLine, Text: " very"}
+	editor.Cursor = gott.Point{Row: 3, Col: 3}
+	insert = &operations.Insert{Position: gott.InsertAfterEndOfLine, Text: " very"}
 	editor.Perform(insert, 1)
 	expected = "Four score and seven years ago our fathers brought forth on this very"
 	if remainder := editor.Buffer.TextAfter(3, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
-	editor.Cursor = Point{Row: 4, Col: 3}
-	insert = &Insert{Position: InsertAtStartOfLine, Text: "nice "}
+	editor.Cursor = gott.Point{Row: 4, Col: 3}
+	insert = &operations.Insert{Position: gott.InsertAtStartOfLine, Text: "nice "}
 	editor.Perform(insert, 1)
 	expected = "nice continent a new nation, conceived in liberty and dedicated to the"
 	if remainder := editor.Buffer.TextAfter(4, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
-	editor.Cursor = Point{Row: 21, Col: 3}
-	insert = &Insert{Position: InsertAtNewLineAboveCursor, Text: "most"}
+	editor.Cursor = gott.Point{Row: 21, Col: 3}
+	insert = &operations.Insert{Position: gott.InsertAtNewLineAboveCursor, Text: "most"}
 	editor.Perform(insert, 1)
 	expected = "most"
 	if remainder := editor.Buffer.TextAfter(21, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
-	editor.Cursor = Point{Row: 22, Col: 3}
-	insert = &Insert{Position: InsertAtNewLineBelowCursor, Text: "excellent"}
+	editor.Cursor = gott.Point{Row: 22, Col: 3}
+	insert = &operations.Insert{Position: gott.InsertAtNewLineBelowCursor, Text: "excellent"}
 	editor.Perform(insert, 1)
 	expected = "excellent"
 	if remainder := editor.Buffer.TextAfter(23, 0); remainder != expected {
@@ -136,8 +140,8 @@ func TestInsert(t *testing.T) {
 
 func TestReverseCase(t *testing.T) {
 	editor := setup(t)
-	editor.Cursor = Point{Row: 0, Col: 1}
-	editor.Perform(&ReverseCaseCharacter{}, 20)
+	editor.Cursor = gott.Point{Row: 0, Col: 1}
+	editor.Perform(&operations.ReverseCaseCharacter{}, 20)
 	expected := "The gettysburg addresS:"
 	if remainder := editor.Buffer.TextAfter(0, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
@@ -148,12 +152,12 @@ func TestReverseCase(t *testing.T) {
 
 func TestReplaceCharacter(t *testing.T) {
 	editor := setup(t)
-	editor.Cursor = Point{Row: 0, Col: 0}
-	editor.Perform(&ReplaceCharacter{Character: 'X'}, 1)
-	editor.Cursor = Point{Row: 0, Col: 1}
-	editor.Perform(&ReplaceCharacter{Character: 'X'}, 1)
-	editor.Cursor = Point{Row: 0, Col: 2}
-	editor.Perform(&ReplaceCharacter{Character: 'X'}, 1)
+	editor.Cursor = gott.Point{Row: 0, Col: 0}
+	editor.Perform(&operations.ReplaceCharacter{Character: 'X'}, 1)
+	editor.Cursor = gott.Point{Row: 0, Col: 1}
+	editor.Perform(&operations.ReplaceCharacter{Character: 'X'}, 1)
+	editor.Cursor = gott.Point{Row: 0, Col: 2}
+	editor.Perform(&operations.ReplaceCharacter{Character: 'X'}, 1)
 	expected := "XXX GETTYSBURG ADDRESS:"
 	if remainder := editor.Buffer.TextAfter(0, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
@@ -166,12 +170,12 @@ func TestReplaceCharacter(t *testing.T) {
 
 func TestCopyPaste(t *testing.T) {
 	editor := setup(t)
-	editor.Cursor = Point{Row: 3, Col: 3}
+	editor.Cursor = gott.Point{Row: 3, Col: 3}
 	// copy three rows
 	editor.YankRow(3)
-	editor.Cursor = Point{Row: 2, Col: 0}
+	editor.Cursor = gott.Point{Row: 2, Col: 0}
 	// paste them three times
-	editor.Perform(&Paste{}, 3)
+	editor.Perform(&operations.Paste{}, 3)
 	// verify that we added 9 rows
 	if rowCount := editor.Buffer.RowCount(); rowCount != (38 + 9) {
 		t.Errorf("Invalid row count after paste: %d", rowCount)

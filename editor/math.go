@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package main
+package editor
 
 // Clip values to the closed interval [min,max].
 // The min has priority: if max < min, min wins.
