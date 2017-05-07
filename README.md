@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/timburks/gott.svg?branch=master)](https://travis-ci.org/timburks/gott)
+
 # gott
 
 gott is a little text editor that I'm writing as a hobby project.

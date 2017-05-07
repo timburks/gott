@@ -87,7 +87,6 @@ type DeleteWord struct {
 
 func (op *DeleteWord) Perform(e Editable, multiplier int) Operation {
 	op.init(e, multiplier)
-	log.Printf("Deleting %d words(s) at row %d", op.Multiplier, e.GetCursor().Row)
 	deletedText := e.DeleteWordsAtCursor(op.Multiplier)
 	e.SetPasteBoard(deletedText, InsertAtCursor)
 	inverse := &Insert{
@@ -107,10 +106,7 @@ type DeleteCharacter struct {
 
 func (op *DeleteCharacter) Perform(e Editable, multiplier int) Operation {
 	op.init(e, multiplier)
-	log.Printf("Deleting %d character(s) at %d,%d undo=%t", op.Multiplier, e.GetCursor().Row, e.GetCursor().Col, op.Undo)
-
 	deletedText := e.DeleteCharactersAtCursor(op.Multiplier, op.Undo, op.FinallyDeleteRow)
-	log.Printf("Deleted: [%s]", deletedText)
 	inverse := &Insert{
 		Position: InsertAtCursor,
 		Text:     deletedText,

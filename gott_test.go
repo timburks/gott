@@ -33,7 +33,6 @@ func TestReadWriteInvariance(t *testing.T) {
 	final(t, editor)
 }
 
-// delete rows past the end of file and undo
 func TestDeleteRow(t *testing.T) {
 	editor := setup(t)
 	editor.Cursor = Point{Row: 20, Col: 0}
@@ -41,6 +40,51 @@ func TestDeleteRow(t *testing.T) {
 	if rowCount := editor.Buffer.RowCount(); rowCount != 20 {
 		t.Errorf("Invalid row count after deletion: %d", rowCount)
 	}
+	editor.PerformUndo()
+	final(t, editor)
+}
+
+func TestDeleteWord(t *testing.T) {
+	editor := setup(t)
+	editor.Cursor = Point{Row: 19, Col: 0}
+	editor.Perform(&DeleteWord{}, 5)
+	expected := "remaining before us--that from these"
+	if remainder := editor.Buffer.TextAfter(19, 0); remainder != expected {
+		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
+	}
+	editor.PerformUndo()
+	final(t, editor)
+}
+
+func TestDeleteCharacter(t *testing.T) {
+	editor := setup(t)
+	editor.Cursor = Point{Row: 19, Col: 0}
+	editor.Perform(&DeleteCharacter{}, 28)
+	expected := "remaining before us--that from these"
+	if remainder := editor.Buffer.TextAfter(19, 0); remainder != expected {
+		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
+	}
+	editor.PerformUndo()
+	final(t, editor)
+}
+
+func TestInsert(t *testing.T) {
+	editor := setup(t)
+	editor.Cursor = Point{Row: 1, Col: 0}
+	insert := &Insert{Position: InsertAtCursor, Text: "hello, world!"}
+	editor.Perform(insert, 1)
+	expected := "hello, world!"
+	if remainder := editor.Buffer.TextAfter(1, 0); remainder != expected {
+		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
+	}
+	editor.Cursor = Point{Row: 0, Col: 4}
+	insert = &Insert{Position: InsertAtCursor, Text: "BIG LEAGUE "}
+	editor.Perform(insert, 1)
+	expected = "THE BIG LEAGUE GETTYSBURG ADDRESS:"
+	if remainder := editor.Buffer.TextAfter(0, 0); remainder != expected {
+		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
+	}
+	editor.PerformUndo()
 	editor.PerformUndo()
 	final(t, editor)
 }
