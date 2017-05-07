@@ -107,7 +107,7 @@ func (b *Buffer) DeleteCharacters(row int, col int, count int, joinLines bool) s
 
 // draw text in an area defined by origin and size with a specified offset into the buffer
 func (b *Buffer) Render(origin Point, size Size, offset Size) {
-	for i := origin.Row; i < size.Rows; i++ {
+	for i := origin.Row; i < origin.Row+size.Rows; i++ {
 		var line string
 		if (i + offset.Rows) < len(b.rows) {
 			line = b.rows[i+offset.Rows].DisplayText()
