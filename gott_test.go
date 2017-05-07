@@ -90,13 +90,75 @@ func TestInsert(t *testing.T) {
 	if remainder := editor.Buffer.TextAfter(1, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
-	editor.Cursor = Point{Row: 0, Col: 4}
-	insert = &Insert{Position: InsertAtCursor, Text: "BIG LEAGUE "}
+	editor.Cursor = Point{Row: 0, Col: 3}
+	insert = &Insert{Position: InsertAfterCursor, Text: "BIG LEAGUE "}
 	editor.Perform(insert, 1)
 	expected = "THE BIG LEAGUE GETTYSBURG ADDRESS:"
 	if remainder := editor.Buffer.TextAfter(0, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
+	editor.Cursor = Point{Row: 3, Col: 3}
+	insert = &Insert{Position: InsertAfterEndOfLine, Text: " very"}
+	editor.Perform(insert, 1)
+	expected = "Four score and seven years ago our fathers brought forth on this very"
+	if remainder := editor.Buffer.TextAfter(3, 0); remainder != expected {
+		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
+	}
+	editor.Cursor = Point{Row: 4, Col: 3}
+	insert = &Insert{Position: InsertAtStartOfLine, Text: "nice "}
+	editor.Perform(insert, 1)
+	expected = "nice continent a new nation, conceived in liberty and dedicated to the"
+	if remainder := editor.Buffer.TextAfter(4, 0); remainder != expected {
+		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
+	}
+	editor.Cursor = Point{Row: 21, Col: 3}
+	insert = &Insert{Position: InsertAtNewLineAboveCursor, Text: "most"}
+	editor.Perform(insert, 1)
+	expected = "most"
+	if remainder := editor.Buffer.TextAfter(21, 0); remainder != expected {
+		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
+	}
+	editor.Cursor = Point{Row: 22, Col: 3}
+	insert = &Insert{Position: InsertAtNewLineBelowCursor, Text: "excellent"}
+	editor.Perform(insert, 1)
+	expected = "excellent"
+	if remainder := editor.Buffer.TextAfter(23, 0); remainder != expected {
+		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
+	}
+	editor.PerformUndo()
+	editor.PerformUndo()
+	editor.PerformUndo()
+	editor.PerformUndo()
+	editor.PerformUndo()
+	editor.PerformUndo()
+	final(t, editor)
+}
+
+func TestReverseCase(t *testing.T) {
+	editor := setup(t)
+	editor.Cursor = Point{Row: 0, Col: 1}
+	editor.Perform(&ReverseCaseCharacter{}, 20)
+	expected := "The gettysburg addresS:"
+	if remainder := editor.Buffer.TextAfter(0, 0); remainder != expected {
+		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
+	}
+	editor.PerformUndo()
+	final(t, editor)
+}
+
+func TestReplaceCharacter(t *testing.T) {
+	editor := setup(t)
+	editor.Cursor = Point{Row: 0, Col: 0}
+	editor.Perform(&ReplaceCharacter{Character: 'X'}, 1)
+	editor.Cursor = Point{Row: 0, Col: 1}
+	editor.Perform(&ReplaceCharacter{Character: 'X'}, 1)
+	editor.Cursor = Point{Row: 0, Col: 2}
+	editor.Perform(&ReplaceCharacter{Character: 'X'}, 1)
+	expected := "XXX GETTYSBURG ADDRESS:"
+	if remainder := editor.Buffer.TextAfter(0, 0); remainder != expected {
+		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
+	}
+	editor.PerformUndo()
 	editor.PerformUndo()
 	editor.PerformUndo()
 	final(t, editor)

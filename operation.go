@@ -13,10 +13,6 @@
 //
 package main
 
-import (
-	"log"
-)
-
 type Operation interface {
 	Perform(e Editable, multiplier int) Operation // performs the operation and returns its inverse
 }
@@ -194,8 +190,6 @@ type ReverseCaseCharacter struct {
 
 func (op *ReverseCaseCharacter) Perform(e Editable, multiplier int) Operation {
 	op.init(e, multiplier)
-	log.Printf("Reversing case of %d character(s) at row %d", op.Multiplier, e.GetCursor().Row)
-
 	e.ReverseCaseCharactersAtCursor(op.Multiplier)
 	if op.Undo {
 		e.SetCursor(op.Cursor)
