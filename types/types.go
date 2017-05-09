@@ -99,6 +99,7 @@ type Editor interface {
 	InsertText(text string, position int) (Point, int)
 	ReverseCaseCharactersAtCursor(multiplier int)
 	JoinRow(multiplier int) []Point
+	ChangeWordAtCursor(multiplier int, text string) (string, int)
 
 	// Cut/copy and paste support
 	YankRow(multiplier int)

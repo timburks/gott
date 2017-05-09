@@ -421,6 +421,27 @@ func (e *Editor) DeleteCharactersAtCursor(multiplier int, undo bool, finallyDele
 	return deletedText
 }
 
+func (e *Editor) ChangeWordAtCursor(multiplier int, text string) (string, int) {
+	// delete the next N words and enter insert mode.
+	deletedText := e.DeleteWordsAtCursor(multiplier)
+
+	var mode int
+	if text != "" {
+		r := e.cursor.Row
+		c := e.cursor.Col
+		for _, c := range text {
+			e.InsertChar(c)
+		}
+		e.cursor.Row = r
+		e.cursor.Col = c
+		mode = gott.ModeEdit
+	} else {
+		mode = gott.ModeInsert
+	}
+
+	return deletedText, mode
+}
+
 func (e *Editor) InsertText(text string, position int) (gott.Point, int) {
 	if e.buffer.GetRowCount() == 0 {
 		e.AppendBlankRow()

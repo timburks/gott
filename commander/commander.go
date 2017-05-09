@@ -76,6 +76,11 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 	// multikey commands have highest precedence
 	if len(c.editKeys) > 0 {
 		switch c.editKeys {
+		case "c":
+			switch ch {
+			case 'w':
+				e.Perform(&operations.ChangeWord{Commander: c}, c.Multiplier())
+			}
 		case "d":
 			switch ch {
 			case 'd':
@@ -182,6 +187,8 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 		//
 		// a few keys open multi-key commands
 		//
+		case 'c':
+			c.editKeys = "c"
 		case 'd':
 			c.editKeys = "d"
 		case 'y':
