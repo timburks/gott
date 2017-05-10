@@ -40,23 +40,45 @@ func (op *ChangeWord) Perform(e gott.Editor, multiplier int) gott.Operation {
 	if op.Commander != nil {
 		op.Commander.SetMode(newMode)
 	}
-	inverse := &Insert{
+
+	delete := &DeleteCharacter{}
+	delete.copyForUndo(&op.operation)
+	delete.Multiplier = len(op.Text)
+	op.Inverse = delete
+
+	reinsert := &Insert{
 		Position: gott.InsertAtCursor,
 		Text:     string(deletedText),
 	}
+	reinsert.copyForUndo(&op.operation)
+	reinsert.Multiplier = 1
+
+	operations := make([]gott.Operation, 0)
+	// first delete inserted characters
+	operations = append(operations, delete)
+
+	// then reinsert deleted words
+	operations = append(operations, reinsert)
+	inverse := &Sequence{
+		Operations: operations,
+	}
 	inverse.copyForUndo(&op.operation)
+	inverse.Multiplier = 1
 	return inverse
 }
 
-func (op *ChangeWord) AddCharacter(c rune) {
-
-}
-func (op *ChangeWord) DeleteCharacter() {
-
-}
-func (op *ChangeWord) Close() {
-
-}
 func (op *ChangeWord) Length() int {
-	return 0
+	return len(op.Text)
+}
+
+func (op *ChangeWord) AddCharacter(c rune) {
+	op.Text += string(c)
+}
+
+func (op *ChangeWord) DeleteCharacter() {
+	op.Text = op.Text[0 : len(op.Text)-1]
+}
+
+func (op *ChangeWord) Close() {
+	op.Inverse.Multiplier = len(op.Text)
 }

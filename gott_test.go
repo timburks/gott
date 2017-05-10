@@ -211,3 +211,17 @@ func TestJoinRow(t *testing.T) {
 	e.PerformUndo()
 	final(t, e)
 }
+
+func TestChangeWord(t *testing.T) {
+	e := setup(t)
+	e.SetCursor(gott.Point{Row: 3, Col: 0})
+	// change four words
+	e.Perform(&operations.ChangeWord{Text: "47 "}, 4)
+	// sample the expected text
+	expected := "47 years ago our fathers brought forth on this"
+	if sample := e.GetBuffer().TextAfter(3, 0); sample != expected {
+		t.Errorf("Unexpected sample after paste: '%s'", sample)
+	}
+	e.PerformUndo()
+	final(t, e)
+}

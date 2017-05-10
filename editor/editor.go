@@ -426,7 +426,7 @@ func (e *Editor) ChangeWordAtCursor(multiplier int, text string) (string, int) {
 	deletedText := e.DeleteWordsAtCursor(multiplier)
 
 	var mode int
-	if text != "" {
+	if text != "" { // repeat
 		r := e.cursor.Row
 		c := e.cursor.Col
 		for _, c := range text {
