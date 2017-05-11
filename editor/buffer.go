@@ -137,6 +137,7 @@ func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
 	comment, _ := regexp.Compile("\\/\\/.*$")
 	quoted, _ := regexp.Compile("\"[^\"]*\"")
 	keyword, _ := regexp.Compile("break|default|func|interface|select|case|defer|go|map|struct|chan|else|goto|package|switch|const|fallthrough|if|range|type|continue|for|import|return|var")
+	keyword.Longest()
 	for i := origin.Row; i < origin.Row+size.Rows; i++ {
 		var line string
 		if (i + offset.Rows) < len(b.rows) {
