@@ -42,6 +42,7 @@ func main() {
 		return
 	}
 	defer termbox.Close()
+	termbox.SetOutputMode(termbox.Output256)
 
 	// The editor manages all text manipulation.
 	e := editor.NewEditor()
