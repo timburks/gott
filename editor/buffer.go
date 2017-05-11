@@ -14,8 +14,6 @@
 package editor
 
 import (
-	"encoding/hex"
-	"regexp"
 	"strings"
 	"unicode"
 
@@ -132,18 +130,18 @@ func checkalphanum(line string, start, end int) bool {
 
 // draw text in an area defined by origin and size with a specified offset into the buffer
 func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
-	hexPattern, _ := regexp.Compile("0x[0-9|a-f][0-9|a-f]")
-	punctuationPattern, _ := regexp.Compile("\\(|\\)|,|:|=|\\[|\\]|\\{|\\}|\\+|-|\\*|<|>|;")
-	comment, _ := regexp.Compile("\\/\\/.*$")
-	quoted, _ := regexp.Compile("\"[^\"]*\"")
-	keyword, _ := regexp.Compile("break|default|func|interface|select|case|defer|go|map|struct|chan|else|goto|package|switch|const|fallthrough|if|range|type|continue|for|import|return|var")
-	keyword.Longest()
 	for i := origin.Row; i < origin.Row+size.Rows; i++ {
 		var line string
+		var colors []termbox.Attribute
 		if (i + offset.Rows) < len(b.rows) {
+			b.rows[i+offset.Rows].Color()
+
 			line = b.rows[i+offset.Rows].DisplayText()
+			colors = b.rows[i+offset.Rows].Colors
+
 			if offset.Cols < len(line) {
 				line = line[offset.Cols:]
+				colors = colors[offset.Cols:]
 			} else {
 				line = ""
 			}
@@ -153,56 +151,9 @@ func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
 		// truncate line to fit screen
 		if len(line) > size.Cols {
 			line = line[0:size.Cols]
+			colors = colors[0:size.Cols]
 		}
 
-		colors := make([]termbox.Attribute, len(line), len(line))
-		for j, _ := range line {
-			colors[j] = 0xff
-		}
-		matches := keyword.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				// if there's an alphanumeric character on either side, skip this
-				if !checkalphanum(line, match[0], match[1]) {
-					for k := match[0]; k < match[1]; k++ {
-						colors[k] = 0x70
-					}
-				}
-			}
-		}
-		matches = punctuationPattern.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				for k := match[0]; k < match[1]; k++ {
-					colors[k] = 0x71
-				}
-			}
-		}
-		matches = hexPattern.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				for k := match[0]; k < match[1]; k++ {
-					x, _ := hex.DecodeString(line[match[0]+2 : match[1]])
-					colors[k] = termbox.Attribute(x[0])
-				}
-			}
-		}
-		matches = quoted.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				for k := match[0]; k < match[1]; k++ {
-					colors[k] = 0xe0
-				}
-			}
-		}
-		matches = comment.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				for k := match[0]; k < match[1]; k++ {
-					colors[k] = 0xf8
-				}
-			}
-		}
 		for j, c := range line {
 			termbox.SetCell(j+origin.Col, i, rune(c), colors[j], 0x01)
 		}

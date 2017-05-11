@@ -13,11 +13,18 @@
 //
 package editor
 
-import "strings"
+import (
+	"encoding/hex"
+	"regexp"
+	"strings"
+
+	"github.com/nsf/termbox-go"
+)
 
 // A row of text in the editor
 type Row struct {
-	Text []rune
+	Text   []rune
+	Colors []termbox.Attribute
 }
 
 // We replace any tabs with spaces
@@ -94,5 +101,65 @@ func (r *Row) TextAfter(col int) string {
 		return string(r.Text[col:])
 	} else {
 		return ""
+	}
+}
+
+func (r *Row) Color() {
+	r.Colors = make([]termbox.Attribute, len(r.Text), len(r.Text))
+	for j, _ := range r.Colors {
+		r.Colors[j] = 0xff
+	}
+
+	hexPattern, _ := regexp.Compile("0x[0-9|a-f][0-9|a-f]")
+	punctuationPattern, _ := regexp.Compile("\\(|\\)|,|:|=|\\[|\\]|\\{|\\}|\\+|-|\\*|<|>|;")
+	comment, _ := regexp.Compile("\\/\\/.*$")
+	quoted, _ := regexp.Compile("\"[^\"]*\"")
+	keyword, _ := regexp.Compile("break|default|func|interface|select|case|defer|go|map|struct|chan|else|goto|package|switch|const|fallthrough|if|range|type|continue|for|import|return|var")
+	keyword.Longest()
+
+	line := string(r.Text)
+	matches := keyword.FindAllSubmatchIndex([]byte(line), -1)
+	if matches != nil {
+		for _, match := range matches {
+			// if there's an alphanumeric character on either side, skip this
+			if !checkalphanum(line, match[0], match[1]) {
+				for k := match[0]; k < match[1]; k++ {
+					r.Colors[k] = 0x70
+				}
+			}
+		}
+	}
+	matches = punctuationPattern.FindAllSubmatchIndex([]byte(line), -1)
+	if matches != nil {
+		for _, match := range matches {
+			for k := match[0]; k < match[1]; k++ {
+				r.Colors[k] = 0x71
+			}
+		}
+	}
+	matches = hexPattern.FindAllSubmatchIndex([]byte(line), -1)
+	if matches != nil {
+		for _, match := range matches {
+			for k := match[0]; k < match[1]; k++ {
+				x, _ := hex.DecodeString(line[match[0]+2 : match[1]])
+				r.Colors[k] = termbox.Attribute(x[0])
+			}
+		}
+	}
+	matches = quoted.FindAllSubmatchIndex([]byte(line), -1)
+	if matches != nil {
+		for _, match := range matches {
+			for k := match[0]; k < match[1]; k++ {
+				r.Colors[k] = 0xe0
+			}
+		}
+	}
+	matches = comment.FindAllSubmatchIndex([]byte(line), -1)
+	if matches != nil {
+		for _, match := range matches {
+			for k := match[0]; k < match[1]; k++ {
+				r.Colors[k] = 0xf8
+			}
+		}
 	}
 }
