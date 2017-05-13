@@ -147,6 +147,8 @@ func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
 			}
 		} else {
 			line = "~"
+			colors = make([]termbox.Attribute, 1, 1)
+			colors[0] = termbox.ColorWhite
 		}
 		// truncate line to fit screen
 		if len(line) > size.Cols {
@@ -155,7 +157,11 @@ func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
 		}
 
 		for j, c := range line {
-			termbox.SetCell(j+origin.Col, i, rune(c), colors[j], 0x01)
+			var color = termbox.ColorRed // indicates a problem
+			if j < len(colors) {
+				color = colors[j]
+			}
+			termbox.SetCell(j+origin.Col, i, rune(c), color, 0x01)
 		}
 	}
 }
