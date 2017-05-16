@@ -137,6 +137,11 @@ type Buffer interface {
 	Render(origin Point, size Size, offset Size)
 }
 
+type Highlighter interface {
+	// Perform syntax coloring on text in a buffer.
+	Highlight(b *Buffer)
+}
+
 type Operation interface {
 	// Perform an operation and return its inverse.
 	Perform(e Editor, multiplier int) Operation

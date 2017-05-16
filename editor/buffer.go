@@ -25,27 +25,40 @@ import (
 // A Buffer represents a file being edited
 
 type Buffer struct {
-	rows     []Row
-	FileName string
+	rows        []*Row
+	fileName    string
+	Highlighted bool
+	mode        string
 }
 
 func NewBuffer() *Buffer {
 	b := &Buffer{}
-	b.rows = make([]Row, 0)
+	b.rows = make([]*Row, 0)
+	b.Highlighted = false
 	return b
 }
 
 func (b *Buffer) GetFileName() string {
-	return b.FileName
+	return b.fileName
+}
+
+func (b *Buffer) SetFileName(name string) {
+	b.fileName = name
+	if strings.HasSuffix(name, ".go") {
+		b.mode = "go"
+	} else {
+		b.mode = "txt"
+	}
 }
 
 func (b *Buffer) ReadBytes(bytes []byte) {
 	s := string(bytes)
 	lines := strings.Split(s, "\n")
-	b.rows = make([]Row, 0)
+	b.rows = make([]*Row, 0)
 	for _, line := range lines {
 		b.rows = append(b.rows, NewRow(line))
 	}
+	b.Highlighted = false
 }
 
 func (b *Buffer) Bytes() []byte {
@@ -80,18 +93,21 @@ func (b *Buffer) TextAfter(row, col int) string {
 }
 
 func (b *Buffer) InsertCharacter(row, col int, c rune) {
+	b.Highlighted = false
 	if row < len(b.rows) {
 		b.rows[row].InsertChar(col, c)
 	}
 }
 
 func (b *Buffer) DeleteRow(row int) {
+	b.Highlighted = false
 	if row < len(b.rows) {
 		b.rows = append(b.rows[0:row], b.rows[row+1:]...)
 	}
 }
 
 func (b *Buffer) DeleteCharacters(row int, col int, count int, joinLines bool) string {
+	b.Highlighted = false
 	deletedText := ""
 	if b.GetRowCount() == 0 {
 		return deletedText
@@ -130,11 +146,20 @@ func checkalphanum(line string, start, end int) bool {
 
 // draw text in an area defined by origin and size with a specified offset into the buffer
 func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
+
+	if !b.Highlighted {
+		switch b.mode {
+		case "go":
+			h := NewGoHighlighter()
+			h.Highlight(b)
+		}
+		b.Highlighted = true
+	}
+
 	for i := origin.Row; i < origin.Row+size.Rows; i++ {
 		var line string
 		var colors []termbox.Attribute
 		if (i + offset.Rows) < len(b.rows) {
-			b.rows[i+offset.Rows].Color()
 
 			line = b.rows[i+offset.Rows].DisplayText()
 			colors = b.rows[i+offset.Rows].Colors
@@ -157,7 +182,7 @@ func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
 		}
 
 		for j, c := range line {
-			var color = termbox.ColorRed // indicates a problem
+			var color = termbox.ColorWhite
 			if j < len(colors) {
 				color = colors[j]
 			}

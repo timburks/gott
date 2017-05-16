@@ -47,7 +47,7 @@ func (e *Editor) ReadFile(path string) error {
 		return err
 	}
 	e.buffer.ReadBytes(b)
-	e.buffer.FileName = path
+	e.buffer.SetFileName(path)
 	return nil
 }
 
@@ -63,7 +63,7 @@ func (e *Editor) WriteFile(path string) error {
 	defer f.Close()
 	b := e.Bytes()
 	if strings.HasSuffix(path, ".go") {
-		out, err := e.Gofmt(e.buffer.FileName, b)
+		out, err := e.Gofmt(e.buffer.GetFileName(), b)
 		if err == nil {
 			f.Write(out)
 		} else {
@@ -207,6 +207,7 @@ func (e *Editor) InsertChar(c rune) {
 }
 
 func (e *Editor) InsertRow() {
+	e.buffer.Highlighted = false
 	if e.cursor.Row >= e.buffer.GetRowCount() {
 		// we should never get here
 		e.AppendBlankRow()
@@ -229,6 +230,7 @@ func (e *Editor) BackspaceChar() rune {
 	if e.insert.Length() == 0 {
 		return rune(0)
 	}
+	e.buffer.Highlighted = false
 	e.insert.DeleteCharacter()
 	if e.cursor.Col > 0 {
 		c := e.buffer.rows[e.cursor.Row].DeleteChar(e.cursor.Col - 1)
@@ -253,6 +255,7 @@ func (e *Editor) JoinRow(multiplier int) []gott.Point {
 	if e.buffer.GetRowCount() == 0 {
 		return nil
 	}
+	e.buffer.Highlighted = false
 	// remove the next row and join it with this one
 	insertions := make([]gott.Point, 0)
 	for i := 0; i < multiplier; i++ {
@@ -307,6 +310,7 @@ func (e *Editor) AppendBlankRow() {
 }
 
 func (e *Editor) InsertLineAboveCursor() {
+	e.buffer.Highlighted = false
 	e.AppendBlankRow()
 	copy(e.buffer.rows[e.cursor.Row+1:], e.buffer.rows[e.cursor.Row:])
 	e.buffer.rows[e.cursor.Row] = NewRow("")
@@ -314,6 +318,7 @@ func (e *Editor) InsertLineAboveCursor() {
 }
 
 func (e *Editor) InsertLineBelowCursor() {
+	e.buffer.Highlighted = false
 	e.AppendBlankRow()
 	copy(e.buffer.rows[e.cursor.Row+2:], e.buffer.rows[e.cursor.Row+1:])
 	e.buffer.rows[e.cursor.Row+1] = NewRow("")
@@ -341,10 +346,12 @@ func (e *Editor) SetCursor(cursor gott.Point) {
 }
 
 func (e *Editor) ReplaceCharacterAtCursor(cursor gott.Point, c rune) rune {
+	e.buffer.Highlighted = false
 	return e.buffer.rows[cursor.Row].ReplaceChar(cursor.Col, c)
 }
 
 func (e *Editor) DeleteRowsAtCursor(multiplier int) string {
+	e.buffer.Highlighted = false
 	deletedText := ""
 	for i := 0; i < multiplier; i++ {
 		row := e.cursor.Row
@@ -368,6 +375,7 @@ func (e *Editor) SetPasteBoard(text string, mode int) {
 }
 
 func (e *Editor) DeleteWordsAtCursor(multiplier int) string {
+	e.buffer.Highlighted = false
 	deletedText := ""
 	for i := 0; i < multiplier; i++ {
 		if e.buffer.GetRowCount() == 0 {
@@ -408,6 +416,7 @@ func (e *Editor) DeleteWordsAtCursor(multiplier int) string {
 }
 
 func (e *Editor) DeleteCharactersAtCursor(multiplier int, undo bool, finallyDeleteRow bool) string {
+	e.buffer.Highlighted = false
 	deletedText := e.buffer.DeleteCharacters(e.cursor.Row, e.cursor.Col, multiplier, undo)
 	if e.cursor.Col > e.buffer.rows[e.cursor.Row].Length()-1 {
 		e.cursor.Col--
@@ -422,6 +431,7 @@ func (e *Editor) DeleteCharactersAtCursor(multiplier int, undo bool, finallyDele
 }
 
 func (e *Editor) ChangeWordAtCursor(multiplier int, text string) (string, int) {
+	e.buffer.Highlighted = false
 	// delete the next N words and enter insert mode.
 	deletedText := e.DeleteWordsAtCursor(multiplier)
 
@@ -443,6 +453,7 @@ func (e *Editor) ChangeWordAtCursor(multiplier int, text string) (string, int) {
 }
 
 func (e *Editor) InsertText(text string, position int) (gott.Point, int) {
+	e.buffer.Highlighted = false
 	if e.buffer.GetRowCount() == 0 {
 		e.AppendBlankRow()
 	}
@@ -493,7 +504,8 @@ func (e *Editor) ReverseCaseCharactersAtCursor(multiplier int) {
 	if e.buffer.GetRowCount() == 0 {
 		return
 	}
-	row := &e.buffer.rows[e.cursor.Row]
+	e.buffer.Highlighted = false
+	row := e.buffer.rows[e.cursor.Row]
 	for i := 0; i < multiplier; i++ {
 		c := row.Text[e.cursor.Col]
 		if unicode.IsUpper(c) {
