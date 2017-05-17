@@ -77,6 +77,8 @@ type Editor interface {
 	GetCursor() Point
 	SetCursor(cursor Point)
 	MoveCursor(direction int)
+	MoveCursorToNextWord()
+	MoveCursorToPreviousWord()
 	MoveCursorToStartOfLine()
 	MoveCursorToStartOfLineBelowCursor()
 	MoveToBeginningOfLine()

@@ -186,6 +186,68 @@ func (e *Editor) MoveCursor(direction int) {
 	}
 }
 
+func (e *Editor) MoveCursorForward() {
+	if e.cursor.Row < e.buffer.GetRowCount() {
+		rowLength := e.buffer.GetRowLength(e.cursor.Row)
+		if e.cursor.Col < rowLength-1 {
+			e.cursor.Col++
+		} else {
+			e.cursor.Col = 0
+			if e.cursor.Row+1 < e.buffer.GetRowCount() {
+				e.cursor.Row++
+			} else {
+				// beep
+			}
+		}
+	} else {
+		// beep
+	}
+}
+
+func (e *Editor) MoveCursorBackward() {
+	if e.cursor.Row < e.buffer.GetRowCount() {
+		if e.cursor.Col > 0 {
+			e.cursor.Col--
+		} else {
+			if e.cursor.Row > 0 {
+				e.cursor.Row--
+				rowLength := e.buffer.GetRowLength(e.cursor.Row)
+				e.cursor.Col = rowLength - 1
+			} else {
+				// beep
+			}
+		}
+	} else {
+		// beep
+	}
+}
+
+func (e *Editor) MoveCursorToNextWord() {
+	c := e.buffer.GetCharacterAtCursor(e.cursor)
+	for c == ' ' {
+		e.MoveCursorForward()
+		c = e.buffer.GetCharacterAtCursor(e.cursor)
+	}
+	if unicode.IsLetter(c) || unicode.IsDigit(c) {
+		// move past all letters/digits
+
+		// move past any spaces
+
+	} else {
+		// move past all nonletters/digits
+
+		// move past any spaces
+	}
+}
+
+func (e *Editor) MoveCursorToPreviousWord() {
+	c := e.buffer.GetCharacterAtCursor(e.cursor)
+	for c == ' ' {
+		e.MoveCursorBackward()
+		c = e.buffer.GetCharacterAtCursor(e.cursor)
+	}
+}
+
 // These editor primitives will make changes in insert mode and associate them with to the current operation.
 
 func (e *Editor) InsertChar(c rune) {
