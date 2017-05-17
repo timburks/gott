@@ -186,66 +186,124 @@ func (e *Editor) MoveCursor(direction int) {
 	}
 }
 
-func (e *Editor) MoveCursorForward() {
+func (e *Editor) MoveCursorForward() bool {
 	if e.cursor.Row < e.buffer.GetRowCount() {
 		rowLength := e.buffer.GetRowLength(e.cursor.Row)
 		if e.cursor.Col < rowLength-1 {
 			e.cursor.Col++
+			return true
 		} else {
 			e.cursor.Col = 0
 			if e.cursor.Row+1 < e.buffer.GetRowCount() {
 				e.cursor.Row++
+				return true
 			} else {
-				// beep
+				return false
 			}
 		}
 	} else {
-		// beep
+		return false
 	}
 }
 
-func (e *Editor) MoveCursorBackward() {
+func (e *Editor) MoveCursorBackward() bool {
 	if e.cursor.Row < e.buffer.GetRowCount() {
 		if e.cursor.Col > 0 {
 			e.cursor.Col--
+			return true
 		} else {
 			if e.cursor.Row > 0 {
 				e.cursor.Row--
 				rowLength := e.buffer.GetRowLength(e.cursor.Row)
 				e.cursor.Col = rowLength - 1
+				return true
 			} else {
-				// beep
+				return false
 			}
 		}
 	} else {
-		// beep
+		return false
 	}
 }
 
 func (e *Editor) MoveCursorToNextWord() {
 	c := e.buffer.GetCharacterAtCursor(e.cursor)
 	for c == ' ' {
-		e.MoveCursorForward()
+		if !e.MoveCursorForward() {
+			return
+		}
 		c = e.buffer.GetCharacterAtCursor(e.cursor)
 	}
 	if unicode.IsLetter(c) || unicode.IsDigit(c) {
 		// move past all letters/digits
-
+		for unicode.IsLetter(c) || unicode.IsDigit(c) {
+			if !e.MoveCursorForward() {
+				return
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
 		// move past any spaces
-
+		for c == ' ' {
+			if !e.MoveCursorForward() {
+				return
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
 	} else {
 		// move past all nonletters/digits
-
+		for !unicode.IsLetter(c) && !unicode.IsDigit(c) && c != ' ' {
+			if !e.MoveCursorForward() {
+				return
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
 		// move past any spaces
+		for c == ' ' {
+			if !e.MoveCursorForward() {
+				return
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
 	}
 }
 
 func (e *Editor) MoveCursorToPreviousWord() {
+	if !e.MoveCursorBackward() {
+		return
+	}
 	c := e.buffer.GetCharacterAtCursor(e.cursor)
 	for c == ' ' {
-		e.MoveCursorBackward()
+		if !e.MoveCursorBackward() {
+			return
+		}
 		c = e.buffer.GetCharacterAtCursor(e.cursor)
 	}
+	if unicode.IsLetter(c) || unicode.IsDigit(c) {
+		// move past all letters/digits
+		for unicode.IsLetter(c) || unicode.IsDigit(c) {
+			if !e.MoveCursorBackward() {
+				return
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
+		// move back one
+		if !e.MoveCursorForward() {
+			return
+		}
+	} else {
+		// move past all nonletters/digits
+		for !unicode.IsLetter(c) && !unicode.IsDigit(c) && c != ' ' {
+			if !e.MoveCursorBackward() {
+				return
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
+		// move back one
+		if !e.MoveCursorForward() {
+			return
+		}
+	}
+
 }
 
 // These editor primitives will make changes in insert mode and associate them with to the current operation.

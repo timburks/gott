@@ -87,7 +87,7 @@ func (b *Buffer) GetRowLength(i int) int {
 func (b *Buffer) GetCharacterAtCursor(cursor gott.Point) rune {
 	if cursor.Row < len(b.rows) {
 		row := b.rows[cursor.Row]
-		if cursor.Col < row.Length() {
+		if cursor.Col < row.Length() && cursor.Col >= 0 {
 			return row.Text[cursor.Col]
 		}
 	}
