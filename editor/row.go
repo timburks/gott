@@ -28,8 +28,16 @@ type Row struct {
 // We replace any tabs with spaces
 func NewRow(text string) *Row {
 	r := &Row{}
-	r.Text = []rune(strings.Replace(text, "\t", "        ", -1))
+	r.setText([]rune(strings.Replace(text, "\t", "        ", -1)))
 	return r
+}
+
+func (r *Row) setText(text []rune) {
+	r.Text = text
+	r.Colors = make([]termbox.Attribute, len(r.Text), len(r.Text))
+	for j, _ := range r.Colors {
+		r.Colors[j] = 0xff
+	}
 }
 
 func (r *Row) DisplayText() string {
@@ -51,7 +59,7 @@ func (r *Row) InsertChar(col int, c rune) {
 	if col < len(r.Text) {
 		line = append(line, r.Text[col:]...)
 	}
-	r.Text = line
+	r.setText(line)
 }
 
 // replace character at col and return the replaced character
@@ -73,7 +81,7 @@ func (r *Row) DeleteChar(col int) rune {
 		col = len(r.Text) - 1
 	}
 	c := rune(r.Text[col])
-	r.Text = append(r.Text[0:col], r.Text[col+1:]...)
+	r.setText(append(r.Text[0:col], r.Text[col+1:]...))
 	return c
 }
 
@@ -81,7 +89,7 @@ func (r *Row) DeleteChar(col int) rune {
 func (r *Row) Split(col int) *Row {
 	if col < len(r.Text) {
 		after := r.Text[col:]
-		r.Text = r.Text[0:col]
+		r.setText(r.Text[0:col])
 		return NewRow(string(after))
 	} else {
 		return NewRow("")
@@ -90,7 +98,7 @@ func (r *Row) Split(col int) *Row {
 
 // joins rows by appending the passed-in row to the current row
 func (r *Row) Join(other *Row) {
-	r.Text = append(r.Text, other.Text...)
+	r.setText(append(r.Text, other.Text...))
 }
 
 // returns the text after a specified column

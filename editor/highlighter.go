@@ -48,7 +48,6 @@ func (h *GoHighlighter) Highlight(b *Buffer) {
 
 	for _, r := range b.rows {
 
-		r.Colors = make([]termbox.Attribute, len(r.Text), len(r.Text))
 		for j, _ := range r.Colors {
 			r.Colors[j] = 0xff
 		}
