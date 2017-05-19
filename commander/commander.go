@@ -162,9 +162,9 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 		case 'l':
 			e.MoveCursor(gott.MoveRight)
 		case 'w':
-			e.MoveCursorToNextWord()
+			e.MoveCursorToNextWord(c.Multiplier())
 		case 'b':
-			e.MoveCursorToPreviousWord()
+			e.MoveCursorToPreviousWord(c.Multiplier())
 		//
 		// "performed" operations are saved for undo and repetition
 		//

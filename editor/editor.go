@@ -186,124 +186,179 @@ func (e *Editor) MoveCursor(direction int) {
 	}
 }
 
-func (e *Editor) MoveCursorForward() bool {
+func (e *Editor) MoveCursorForward() int {
 	if e.cursor.Row < e.buffer.GetRowCount() {
 		rowLength := e.buffer.GetRowLength(e.cursor.Row)
 		if e.cursor.Col < rowLength-1 {
 			e.cursor.Col++
-			return true
+			return gott.AtNextCharacter
 		} else {
 			e.cursor.Col = 0
 			if e.cursor.Row+1 < e.buffer.GetRowCount() {
 				e.cursor.Row++
-				return true
+				return gott.AtNextLine
 			} else {
-				return false
+				return gott.AtEndOfFile
 			}
 		}
 	} else {
-		return false
+		return gott.AtEndOfFile
 	}
 }
 
-func (e *Editor) MoveCursorBackward() bool {
+func (e *Editor) MoveCursorBackward() int {
 	if e.cursor.Row < e.buffer.GetRowCount() {
 		if e.cursor.Col > 0 {
 			e.cursor.Col--
-			return true
+			return gott.AtNextCharacter
 		} else {
 			if e.cursor.Row > 0 {
 				e.cursor.Row--
 				rowLength := e.buffer.GetRowLength(e.cursor.Row)
 				e.cursor.Col = rowLength - 1
-				return true
+				if e.cursor.Col < 0 {
+					e.cursor.Col = 0
+				}
+				return gott.AtNextLine
 			} else {
-				return false
+				return gott.AtEndOfFile
 			}
 		}
 	} else {
-		return false
+		return gott.AtEndOfFile
 	}
 }
 
-func (e *Editor) MoveCursorToNextWord() {
+func isSpace(c rune) bool {
+	return c == ' ' || c == rune(0)
+}
+
+func isAlphaNumeric(c rune) bool {
+	return unicode.IsLetter(c) || unicode.IsDigit(c)
+}
+
+func isNonAlphaNumeric(c rune) bool {
+	return !unicode.IsLetter(c) && !unicode.IsDigit(c) && c != ' ' && c != rune(0)
+}
+
+func (e *Editor) MoveCursorToNextWord(multiplier int) {
+	for i := 0; i < multiplier; i++ {
+		e.moveCursorToNextWord()
+	}
+}
+
+func (e *Editor) moveCursorToNextWord() {
 	c := e.buffer.GetCharacterAtCursor(e.cursor)
-	for c == ' ' {
-		if !e.MoveCursorForward() {
-			return
-		}
-		c = e.buffer.GetCharacterAtCursor(e.cursor)
-	}
-	if unicode.IsLetter(c) || unicode.IsDigit(c) {
-		// move past all letters/digits
-		for unicode.IsLetter(c) || unicode.IsDigit(c) {
-			if !e.MoveCursorForward() {
+	if isSpace(c) { // if we're on a space, move to first non-space
+		for isSpace(c) {
+			if e.MoveCursorForward() == gott.AtEndOfFile {
 				return
 			}
 			c = e.buffer.GetCharacterAtCursor(e.cursor)
 		}
-		// move past any spaces
-		for c == ' ' {
-			if !e.MoveCursorForward() {
-				return
-			}
-			c = e.buffer.GetCharacterAtCursor(e.cursor)
-		}
-	} else {
-		// move past all nonletters/digits
-		for !unicode.IsLetter(c) && !unicode.IsDigit(c) && c != ' ' {
-			if !e.MoveCursorForward() {
-				return
-			}
-			c = e.buffer.GetCharacterAtCursor(e.cursor)
-		}
-		// move past any spaces
-		for c == ' ' {
-			if !e.MoveCursorForward() {
-				return
-			}
-			c = e.buffer.GetCharacterAtCursor(e.cursor)
-		}
-	}
-}
-
-func (e *Editor) MoveCursorToPreviousWord() {
-	if !e.MoveCursorBackward() {
 		return
 	}
+	if isAlphaNumeric(c) {
+		// move past all letters/digits
+		for isAlphaNumeric(c) {
+			if e.MoveCursorForward() != gott.AtNextCharacter {
+				return // we reached a new line or EOF
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
+		// move past any spaces
+		for isSpace(c) {
+			if e.MoveCursorForward() != gott.AtNextCharacter {
+				return // we reached a new line or EOF
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
+	} else { // non-alphanumeric
+		// move past all nonletters/digits
+		for isNonAlphaNumeric(c) {
+			if e.MoveCursorForward() != gott.AtNextCharacter {
+				return // we reached a new line or EOF
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
+		// move past any spaces
+		for isSpace(c) {
+			if e.MoveCursorForward() != gott.AtNextCharacter {
+				return // we reached a new line or EOF
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
+	}
+}
+
+func (e *Editor) MoveCursorBackToFirstNonSpace() int {
+	// move back to first non-space (end of word)
 	c := e.buffer.GetCharacterAtCursor(e.cursor)
-	for c == ' ' {
-		if !e.MoveCursorBackward() {
-			return
+	for isSpace(c) {
+		p := e.MoveCursorBackward()
+		if p != gott.AtNextCharacter {
+			return p
 		}
 		c = e.buffer.GetCharacterAtCursor(e.cursor)
 	}
-	if unicode.IsLetter(c) || unicode.IsDigit(c) {
-		// move past all letters/digits
-		for unicode.IsLetter(c) || unicode.IsDigit(c) {
-			if !e.MoveCursorBackward() {
-				return
+	return gott.AtNextCharacter
+}
+
+func (e *Editor) MoveCursorBackBeforeCurrentWord() int {
+	c := e.buffer.GetCharacterAtCursor(e.cursor)
+	if isAlphaNumeric(c) {
+		for isAlphaNumeric(c) {
+			p := e.MoveCursorBackward()
+			if p != gott.AtNextCharacter {
+				return p
 			}
 			c = e.buffer.GetCharacterAtCursor(e.cursor)
 		}
-		// move back one
-		if !e.MoveCursorForward() {
-			return
-		}
-	} else {
-		// move past all nonletters/digits
-		for !unicode.IsLetter(c) && !unicode.IsDigit(c) && c != ' ' {
-			if !e.MoveCursorBackward() {
-				return
+	} else if isNonAlphaNumeric(c) {
+		for isNonAlphaNumeric(c) {
+			p := e.MoveCursorBackward()
+			if p != gott.AtNextCharacter {
+				return p
 			}
 			c = e.buffer.GetCharacterAtCursor(e.cursor)
-		}
-		// move back one
-		if !e.MoveCursorForward() {
-			return
 		}
 	}
+	return gott.AtNextCharacter
+}
 
+func (e *Editor) MoveCursorBackToStartOfCurrentWord() {
+	c := e.buffer.GetCharacterAtCursor(e.cursor)
+	if isSpace(c) {
+		return
+	}
+	p := e.MoveCursorBackBeforeCurrentWord()
+	if p != gott.AtEndOfFile {
+		e.MoveCursorForward()
+	}
+}
+
+func (e *Editor) MoveCursorToPreviousWord(multiplier int) {
+	for i := 0; i < multiplier; i++ {
+		e.moveCursorToPreviousWord()
+	}
+}
+
+func (e *Editor) moveCursorToPreviousWord() {
+	// get current character
+	c := e.buffer.GetCharacterAtCursor(e.cursor)
+	if isSpace(c) { // we started at a space
+		e.MoveCursorBackToFirstNonSpace()
+		e.MoveCursorBackToStartOfCurrentWord()
+	} else {
+		original := e.GetCursor()
+		e.MoveCursorBackToStartOfCurrentWord()
+		final := e.GetCursor()
+		if original == final { // cursor didn't move
+			e.MoveCursorBackBeforeCurrentWord()
+			e.MoveCursorBackToFirstNonSpace()
+			e.MoveCursorBackToStartOfCurrentWord()
+		}
+	}
 }
 
 // These editor primitives will make changes in insert mode and associate them with to the current operation.

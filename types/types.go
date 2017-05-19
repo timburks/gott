@@ -30,6 +30,13 @@ const (
 	MoveLeft  = 3
 )
 
+// Move result
+const (
+	AtNextCharacter = 0
+	AtNextLine      = 1
+	AtEndOfFile     = 2
+)
+
 // Insert positions
 const (
 	InsertAtCursor             = 0
@@ -77,8 +84,8 @@ type Editor interface {
 	GetCursor() Point
 	SetCursor(cursor Point)
 	MoveCursor(direction int)
-	MoveCursorToNextWord()
-	MoveCursorToPreviousWord()
+	MoveCursorToNextWord(multiplier int)
+	MoveCursorToPreviousWord(multiplier int)
 	MoveCursorToStartOfLine()
 	MoveCursorToStartOfLineBelowCursor()
 	MoveToBeginningOfLine()
