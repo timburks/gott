@@ -234,7 +234,7 @@ func isSpace(c rune) bool {
 }
 
 func isAlphaNumeric(c rune) bool {
-	return unicode.IsLetter(c) || unicode.IsDigit(c)
+	return unicode.IsLetter(c) || unicode.IsDigit(c) || c == '_'
 }
 
 func isNonAlphaNumeric(c rune) bool {
@@ -251,7 +251,8 @@ func (e *Editor) moveCursorToNextWord() {
 	c := e.buffer.GetCharacterAtCursor(e.cursor)
 	if isSpace(c) { // if we're on a space, move to first non-space
 		for isSpace(c) {
-			if e.MoveCursorForward() == gott.AtEndOfFile {
+			if e.MoveCursorForward() != gott.AtNextCharacter {
+				e.MoveForwardToFirstNonSpace()
 				return
 			}
 			c = e.buffer.GetCharacterAtCursor(e.cursor)
@@ -262,6 +263,7 @@ func (e *Editor) moveCursorToNextWord() {
 		// move past all letters/digits
 		for isAlphaNumeric(c) {
 			if e.MoveCursorForward() != gott.AtNextCharacter {
+				e.MoveForwardToFirstNonSpace()
 				return // we reached a new line or EOF
 			}
 			c = e.buffer.GetCharacterAtCursor(e.cursor)
@@ -277,6 +279,7 @@ func (e *Editor) moveCursorToNextWord() {
 		// move past all nonletters/digits
 		for isNonAlphaNumeric(c) {
 			if e.MoveCursorForward() != gott.AtNextCharacter {
+				e.MoveForwardToFirstNonSpace()
 				return // we reached a new line or EOF
 			}
 			c = e.buffer.GetCharacterAtCursor(e.cursor)
@@ -288,6 +291,19 @@ func (e *Editor) moveCursorToNextWord() {
 			}
 			c = e.buffer.GetCharacterAtCursor(e.cursor)
 		}
+	}
+}
+
+func (e *Editor) MoveForwardToFirstNonSpace() {
+	c := e.buffer.GetCharacterAtCursor(e.cursor)
+	if c == ' ' { // if we're on a space, move to first non-space
+		for c == ' ' {
+			if e.MoveCursorForward() != gott.AtNextCharacter {
+				return
+			}
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+		}
+		return
 	}
 }
 
@@ -355,6 +371,10 @@ func (e *Editor) moveCursorToPreviousWord() {
 		final := e.GetCursor()
 		if original == final { // cursor didn't move
 			e.MoveCursorBackBeforeCurrentWord()
+			c = e.buffer.GetCharacterAtCursor(e.cursor)
+			if c == rune(0) {
+				return
+			}
 			e.MoveCursorBackToFirstNonSpace()
 			e.MoveCursorBackToStartOfCurrentWord()
 		}

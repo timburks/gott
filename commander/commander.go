@@ -328,6 +328,7 @@ func (c *Commander) PerformCommand() {
 			}
 			cursor := e.GetCursor()
 			cursor.Row = newRow
+			cursor.Col = 0
 			e.SetCursor(cursor)
 		}
 		switch parts[0] {
@@ -378,6 +379,7 @@ func (c *Commander) PerformCommand() {
 			}
 			cursor := e.GetCursor()
 			cursor.Row = newRow
+			cursor.Col = 0
 			e.SetCursor(cursor)
 		default:
 			c.message = "nope"
