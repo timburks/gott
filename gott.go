@@ -65,7 +65,17 @@ func main() {
 	// Run the main event loop.
 	for c.GetMode() != gott.ModeQuit {
 		w.Render(e, c)
-		err = c.ProcessNextEvent()
+
+		event := termbox.PollEvent()
+		err = c.ProcessEvent(&commander.Event{
+			Type: int(event.Type),
+			Key:  event.Key,
+			Ch:   event.Ch,
+		})
+		if event.Type == termbox.EventResize {
+			termbox.Flush()
+		}
+
 		if err != nil {
 			log.Output(1, err.Error())
 		}

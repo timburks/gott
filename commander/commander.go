@@ -23,6 +23,17 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
+const (
+	EventKey = iota
+	EventResize
+)
+
+type Event struct {
+	Type int // enum
+	Key  termbox.Key
+	Ch   rune
+}
+
 // The Commander converts user input into commands for the Editor.
 type Commander struct {
 	editor     gott.Editor
@@ -47,27 +58,25 @@ func (c *Commander) SetMode(m int) {
 	c.mode = m
 }
 
-func (c *Commander) ProcessNextEvent() error {
-	event := termbox.PollEvent()
+func (c *Commander) ProcessEvent(event *Event) error {
 	if c.debug {
 		c.message = fmt.Sprintf("event=%+v", event)
 	}
 	switch event.Type {
-	case termbox.EventResize:
-		return c.ProcessResize(event)
-	case termbox.EventKey:
+	case EventKey:
 		return c.ProcessKey(event)
+	case EventResize:
+		return c.ProcessResize(event)
 	default:
 		return nil
 	}
 }
 
-func (c *Commander) ProcessResize(event termbox.Event) error {
-	termbox.Flush()
+func (c *Commander) ProcessResize(event *Event) error {
 	return nil
 }
 
-func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
+func (c *Commander) ProcessKeyEditMode(event *Event) error {
 	e := c.editor
 
 	key := event.Key
@@ -214,10 +223,11 @@ func (c *Commander) ProcessKeyEditMode(event termbox.Event) error {
 	return nil
 }
 
-func (c *Commander) ProcessKeyInsertMode(event termbox.Event) error {
+func (c *Commander) ProcessKeyInsertMode(event *Event) error {
 	e := c.editor
 
 	key := event.Key
+	ch := event.Ch
 	if key != 0 {
 		switch key {
 		case termbox.KeyEsc: // end an insert operation.
@@ -240,15 +250,15 @@ func (c *Commander) ProcessKeyInsertMode(event termbox.Event) error {
 			e.InsertChar(' ')
 		}
 	}
-	ch := event.Ch
 	if ch != 0 {
 		e.InsertChar(ch)
 	}
 	return nil
 }
 
-func (c *Commander) ProcessKeyCommandMode(event termbox.Event) error {
+func (c *Commander) ProcessKeyCommandMode(event *Event) error {
 	key := event.Key
+	ch := event.Ch
 	if key != 0 {
 		switch key {
 		case termbox.KeyEsc:
@@ -263,17 +273,17 @@ func (c *Commander) ProcessKeyCommandMode(event termbox.Event) error {
 			c.command += " "
 		}
 	}
-	ch := event.Ch
 	if ch != 0 {
 		c.command = c.command + string(ch)
 	}
 	return nil
 }
 
-func (c *Commander) ProcessKeySearchMode(event termbox.Event) error {
+func (c *Commander) ProcessKeySearchMode(event *Event) error {
 	e := c.editor
 
 	key := event.Key
+	ch := event.Ch
 	if key != 0 {
 		switch key {
 		case termbox.KeyEsc:
@@ -289,14 +299,13 @@ func (c *Commander) ProcessKeySearchMode(event termbox.Event) error {
 			c.searchText += " "
 		}
 	}
-	ch := event.Ch
 	if ch != 0 {
 		c.searchText = c.searchText + string(ch)
 	}
 	return nil
 }
 
-func (c *Commander) ProcessKey(event termbox.Event) error {
+func (c *Commander) ProcessKey(event *Event) error {
 	var err error
 	switch c.mode {
 	case gott.ModeEdit:
