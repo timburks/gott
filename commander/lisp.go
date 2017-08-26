@@ -38,8 +38,8 @@ func GoFactImpl(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp
 	return golisp.FloatWithValue(float32(f)), nil
 }
 
-func TestLisp() {
-	value, err := golisp.ParseAndEval("(go-fact (+ 1 (* 2 CONSTANT)))")
+func ParseEval(command string) {
+	value, err := golisp.ParseAndEval(command)
 	if err != nil {
 		log.Printf("ERR %+v", err)
 	} else {

@@ -311,77 +311,79 @@ func (c *Commander) ProcessKey(event *gott.Event) error {
 func (c *Commander) PerformCommand() {
 	e := c.editor
 
-	parts := strings.Split(c.command, " ")
-	if len(parts) > 0 {
+	if c.command[0] == '(' {
+		ParseEval(c.command)
+	} else {
+		parts := strings.Split(c.command, " ")
+		if len(parts) > 0 {
 
-		i, err := strconv.ParseInt(parts[0], 10, 64)
-		if err == nil {
-			newRow := int(i - 1)
-			if newRow > e.GetBuffer().GetRowCount()-1 {
-				newRow = e.GetBuffer().GetRowCount() - 1
-			}
-			if newRow < 0 {
-				newRow = 0
-			}
-			cursor := e.GetCursor()
-			cursor.Row = newRow
-			cursor.Col = 0
-			e.SetCursor(cursor)
-		}
-		switch parts[0] {
-		case "q":
-			c.mode = gott.ModeQuit
-			return
-		case "r":
-			if len(parts) == 2 {
-				filename := parts[1]
-				e.ReadFile(filename)
-			}
-		case "debug":
-			if len(parts) == 2 {
-				if parts[1] == "on" {
-					c.debug = true
-				} else if parts[1] == "off" {
-					c.debug = false
-					c.message = ""
-				}
-			}
-		case "w":
-			var filename string
-			if len(parts) == 2 {
-				filename = parts[1]
-			} else {
-				filename = e.GetBuffer().GetFileName()
-			}
-			e.WriteFile(filename)
-		case "wq":
-			var filename string
-			if len(parts) == 2 {
-				filename = parts[1]
-			} else {
-				filename = e.GetBuffer().GetFileName()
-			}
-			e.WriteFile(filename)
-			c.mode = gott.ModeQuit
-			return
-		case "fmt":
-			out, err := e.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
+			i, err := strconv.ParseInt(parts[0], 10, 64)
 			if err == nil {
-				e.GetBuffer().ReadBytes(out)
+				newRow := int(i - 1)
+				if newRow > e.GetBuffer().GetRowCount()-1 {
+					newRow = e.GetBuffer().GetRowCount() - 1
+				}
+				if newRow < 0 {
+					newRow = 0
+				}
+				cursor := e.GetCursor()
+				cursor.Row = newRow
+				cursor.Col = 0
+				e.SetCursor(cursor)
 			}
-		case "$":
-			newRow := e.GetBuffer().GetRowCount() - 1
-			if newRow < 0 {
-				newRow = 0
+			switch parts[0] {
+			case "q":
+				c.mode = gott.ModeQuit
+				return
+			case "r":
+				if len(parts) == 2 {
+					filename := parts[1]
+					e.ReadFile(filename)
+				}
+			case "debug":
+				if len(parts) == 2 {
+					if parts[1] == "on" {
+						c.debug = true
+					} else if parts[1] == "off" {
+						c.debug = false
+						c.message = ""
+					}
+				}
+			case "w":
+				var filename string
+				if len(parts) == 2 {
+					filename = parts[1]
+				} else {
+					filename = e.GetBuffer().GetFileName()
+				}
+				e.WriteFile(filename)
+			case "wq":
+				var filename string
+				if len(parts) == 2 {
+					filename = parts[1]
+				} else {
+					filename = e.GetBuffer().GetFileName()
+				}
+				e.WriteFile(filename)
+				c.mode = gott.ModeQuit
+				return
+			case "fmt":
+				out, err := e.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
+				if err == nil {
+					e.GetBuffer().ReadBytes(out)
+				}
+			case "$":
+				newRow := e.GetBuffer().GetRowCount() - 1
+				if newRow < 0 {
+					newRow = 0
+				}
+				cursor := e.GetCursor()
+				cursor.Row = newRow
+				cursor.Col = 0
+				e.SetCursor(cursor)
+			default:
+				c.message = "nope"
 			}
-			cursor := e.GetCursor()
-			cursor.Row = newRow
-			cursor.Col = 0
-			e.SetCursor(cursor)
-		case "lisp":
-			TestLisp()
-		default:
-			c.message = "nope"
 		}
 	}
 	c.command = ""
