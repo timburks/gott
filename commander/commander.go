@@ -378,6 +378,8 @@ func (c *Commander) PerformCommand() {
 			cursor.Row = newRow
 			cursor.Col = 0
 			e.SetCursor(cursor)
+		case "lisp":
+			TestLisp()
 		default:
 			c.message = "nope"
 		}
