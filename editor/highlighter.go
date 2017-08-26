@@ -17,7 +17,7 @@ import (
 	"encoding/hex"
 	"regexp"
 
-	"github.com/nsf/termbox-go"
+	gott "github.com/timburks/gott/types"
 )
 
 // The GoHighlighter highlights Go code.
@@ -91,7 +91,7 @@ func (h *GoHighlighter) Highlight(b *Buffer) {
 			for _, match := range matches {
 				for k := match[0]; k < match[1]; k++ {
 					x, _ := hex.DecodeString(line[match[0]+2 : match[1]])
-					r.Colors[k] = termbox.Attribute(x[0])
+					r.Colors[k] = gott.Color(x[0])
 				}
 			}
 		}

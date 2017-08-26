@@ -16,13 +16,13 @@ package editor
 import (
 	"strings"
 
-	"github.com/nsf/termbox-go"
+	gott "github.com/timburks/gott/types"
 )
 
 // A row of text in the editor
 type Row struct {
 	Text   []rune
-	Colors []termbox.Attribute
+	Colors []gott.Color
 }
 
 // We replace any tabs with spaces
@@ -34,7 +34,7 @@ func NewRow(text string) *Row {
 
 func (r *Row) setText(text []rune) {
 	r.Text = text
-	r.Colors = make([]termbox.Attribute, len(r.Text), len(r.Text))
+	r.Colors = make([]gott.Color, len(r.Text), len(r.Text))
 	for j, _ := range r.Colors {
 		r.Colors[j] = 0xff
 	}

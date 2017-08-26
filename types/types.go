@@ -143,7 +143,7 @@ type Buffer interface {
 	TextAfter(row, col int) string
 
 	// Draw the buffer contents.
-	Render(origin Point, size Size, offset Size)
+	Render(origin Point, size Size, offset Size, display Display)
 }
 
 type Highlighter interface {
@@ -170,4 +170,47 @@ type Commander interface {
 	GetSearchText() string
 	GetCommand() string
 	GetMessage() string
+}
+
+type Color uint16
+
+// Colors
+const (
+	ColorWhite = 8
+)
+
+type Display interface {
+	SetCell(j int, i int, c rune, color Color)
+}
+
+const (
+	EventKey = iota
+	EventResize
+)
+
+type Key int16
+
+const (
+	KeyUnsupported = iota
+	KeyArrowDown
+	KeyArrowLeft
+	KeyArrowRight
+	KeyArrowUp
+	KeyBackspace2
+	KeyCtrlA
+	KeyCtrlE
+	KeyEnd
+	KeyEnter
+	KeyEsc
+	KeyHome
+	KeyPgdn
+	KeyPgup
+	KeySpace
+	KeyTab
+)
+
+type Event struct {
+	Type int // enum
+	Key  Key
+	Ch   rune
 }

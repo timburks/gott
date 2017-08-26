@@ -17,12 +17,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/nsf/termbox-go"
-
 	"github.com/timburks/gott/commander"
 	"github.com/timburks/gott/editor"
+	"github.com/timburks/gott/screen"
 	gott "github.com/timburks/gott/types"
-	"github.com/timburks/gott/window"
 )
 
 func main() {
@@ -35,20 +33,12 @@ func main() {
 	log.SetOutput(f)
 	defer f.Close()
 
-	// Open the terminal.
-	err = termbox.Init()
-	if err != nil {
-		log.Output(1, err.Error())
-		return
-	}
-	defer termbox.Close()
-	termbox.SetOutputMode(termbox.Output256)
+	// Create a screen to manage display.
+	s := screen.NewScreen()
+	defer s.Close()
 
 	// The editor manages all text manipulation.
 	e := editor.NewEditor()
-
-	// The window manages display.
-	w := window.NewWindow()
 
 	// The commander converts user inputs into commands for the editor.
 	c := commander.NewCommander(e)
@@ -64,18 +54,9 @@ func main() {
 
 	// Run the main event loop.
 	for c.GetMode() != gott.ModeQuit {
-		w.Render(e, c)
-
-		event := termbox.PollEvent()
-		err = c.ProcessEvent(&commander.Event{
-			Type: int(event.Type),
-			Key:  event.Key,
-			Ch:   event.Ch,
-		})
-		if event.Type == termbox.EventResize {
-			termbox.Flush()
-		}
-
+		s.Render(e, c)
+		event := s.GetNextEvent()
+		err = c.ProcessEvent(event)
 		if err != nil {
 			log.Output(1, err.Error())
 		}

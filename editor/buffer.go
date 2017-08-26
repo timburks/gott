@@ -17,8 +17,6 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/nsf/termbox-go"
-
 	gott "github.com/timburks/gott/types"
 )
 
@@ -155,7 +153,7 @@ func checkalphanum(line string, start, end int) bool {
 }
 
 // draw text in an area defined by origin and size with a specified offset into the buffer
-func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
+func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size, display gott.Display) {
 
 	if !b.Highlighted {
 		switch b.mode {
@@ -168,7 +166,7 @@ func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
 
 	for i := origin.Row; i < origin.Row+size.Rows; i++ {
 		var line string
-		var colors []termbox.Attribute
+		var colors []gott.Color
 		if (i + offset.Rows) < len(b.rows) {
 
 			line = b.rows[i+offset.Rows].DisplayText()
@@ -182,8 +180,8 @@ func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
 			}
 		} else {
 			line = "~"
-			colors = make([]termbox.Attribute, 1, 1)
-			colors[0] = termbox.ColorWhite
+			colors = make([]gott.Color, 1, 1)
+			colors[0] = gott.ColorWhite
 		}
 		// truncate line to fit screen
 		if len(line) > size.Cols {
@@ -192,11 +190,11 @@ func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size) {
 		}
 
 		for j, c := range line {
-			var color = termbox.ColorWhite
+			var color gott.Color = gott.ColorWhite
 			if j < len(colors) {
 				color = colors[j]
 			}
-			termbox.SetCell(j+origin.Col, i, rune(c), color, 0x01)
+			display.SetCell(j+origin.Col, i, rune(c), color)
 		}
 	}
 }
