@@ -15,7 +15,7 @@ package commander
 
 import (
 	"errors"
-	"log"
+	"fmt"
 
 	"github.com/steelseries/golisp"
 )
@@ -38,14 +38,11 @@ func GoFactImpl(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp
 	return golisp.FloatWithValue(float32(f)), nil
 }
 
-func ParseEval(command string) {
+func ParseEval(command string) string {
 	value, err := golisp.ParseAndEval(command)
 	if err != nil {
-		log.Printf("ERR %+v", err)
+		return fmt.Sprintf("ERR %+v", err)
 	} else {
-		log.Printf("SEXPR %+v", value)
-		if golisp.FloatP(value) {
-			log.Printf("VALUE %+v", golisp.FloatValue(value))
-		}
+		return fmt.Sprintf("VALUE %+v", golisp.String(value))
 	}
 }

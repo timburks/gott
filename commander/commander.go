@@ -312,7 +312,7 @@ func (c *Commander) PerformCommand() {
 	e := c.editor
 
 	if c.command[0] == '(' {
-		ParseEval(c.command)
+		c.message = ParseEval(c.command)
 	} else {
 		parts := strings.Split(c.command, " ")
 		if len(parts) > 0 {
