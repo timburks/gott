@@ -370,7 +370,7 @@ func (c *Commander) PerformCommand() {
 			case "fmt":
 				out, err := e.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
 				if err == nil {
-					e.GetBuffer().ReadBytes(out)
+					e.GetBuffer().LoadBytes(out)
 				}
 			case "$":
 				newRow := e.GetBuffer().GetRowCount() - 1
@@ -381,6 +381,22 @@ func (c *Commander) PerformCommand() {
 				cursor.Row = newRow
 				cursor.Col = 0
 				e.SetCursor(cursor)
+			case "buffer":
+				if len(parts) > 1 {
+					number, err := strconv.Atoi(parts[1])
+					if err == nil {
+						err = e.SelectBuffer(number)
+						if err != nil {
+							c.message = err.Error()
+						} else {
+							c.message = ""
+						}
+					} else {
+						c.message = err.Error()
+					}
+				}
+			case "buffers":
+				e.ListBuffers()
 			default:
 				c.message = ""
 			}

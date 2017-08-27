@@ -80,6 +80,10 @@ type Editor interface {
 	WriteFile(path string) error
 	Bytes() []byte
 
+	// Buffer management
+	SelectBuffer(number int) error
+	ListBuffers()
+
 	// Manage the cursor location.
 	GetCursor() Point
 	SetCursor(cursor Point)
@@ -134,8 +138,8 @@ type Editor interface {
 }
 
 type Buffer interface {
-	// Read bytes into a buffer.
-	ReadBytes(bytes []byte)
+	// Load bytes into a buffer.
+	LoadBytes(bytes []byte)
 
 	// Buffer information.
 	GetFileName() string
