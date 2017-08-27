@@ -32,8 +32,7 @@ func init() {
 
 	golisp.MakePrimitiveFunction("move-down", "0|1",
 		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			n, err := optionalFirstArgumentCountValue(args, env)
-			if err == nil {
+			if n, err := optionalFirstArgumentCountValue(args, env); err == nil {
 				editor.MoveCursor(gott.MoveDown, n)
 			}
 			return nil, err
@@ -41,8 +40,7 @@ func init() {
 
 	golisp.MakePrimitiveFunction("move-up", "0|1",
 		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			n, err := optionalFirstArgumentCountValue(args, env)
-			if err == nil {
+			if n, err := optionalFirstArgumentCountValue(args, env); err == nil {
 				editor.MoveCursor(gott.MoveUp, n)
 			}
 			return nil, err
@@ -50,8 +48,7 @@ func init() {
 
 	golisp.MakePrimitiveFunction("move-left", "0|1",
 		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			n, err := optionalFirstArgumentCountValue(args, env)
-			if err == nil {
+			if n, err := optionalFirstArgumentCountValue(args, env); err == nil {
 				editor.MoveCursor(gott.MoveLeft, n)
 			}
 			return nil, err
@@ -59,8 +56,7 @@ func init() {
 
 	golisp.MakePrimitiveFunction("move-right", "0|1",
 		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			n, err := optionalFirstArgumentCountValue(args, env)
-			if err == nil {
+			if n, err := optionalFirstArgumentCountValue(args, env); err == nil {
 				editor.MoveCursor(gott.MoveRight, n)
 			}
 			return nil, err
