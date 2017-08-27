@@ -16,7 +16,9 @@ package editor
 import (
 	"io/ioutil"
 	"os"
+	"fmt"
 	"strings"
+	"errors"
 	"unicode"
 
 	gott "github.com/timburks/gott/types"
@@ -33,12 +35,45 @@ type Editor struct {
 	previous  gott.Operation       // last operation performed, available to repeat
 	undo      []gott.Operation     // stack of operations to undo
 	insert    gott.InsertOperation // when in insert mode, the current insert operation
+
+	buffers []*Buffer // all buffers being managed by the editor
 }
 
 func NewEditor() *Editor {
 	e := &Editor{}
-	e.buffer = NewBuffer()
+	e.CreateBuffer()
+	e.buffer.ReadOnly = true // buffer zero is for command output
+	e.buffer.Name = "*output*"
 	return e
+}
+
+func (e *Editor) CreateBuffer() *Buffer {
+	e.buffer = NewBuffer()
+	e.buffers = append(e.buffers, e.buffer)
+	return e.buffer
+}
+
+func (e *Editor) ListBuffers() {
+	var s string
+	for i, buffer := range e.buffers {
+		if i > 0 {
+			s += "\n"
+		}
+		s += fmt.Sprintf("%-3d\t%s", buffer.number, buffer.Name)
+	}
+	listing := []byte(s)
+	e.SelectBuffer(0)
+	e.buffer.LoadBytes(listing)
+}
+
+func (e *Editor) SelectBuffer(number int) error {
+	for _, buffer := range e.buffers {
+		if buffer.number == number {
+			e.buffer = buffer
+			return nil
+		}
+	}
+	return errors.New(fmt.Sprintf("No buffer exists for identifier %d", number))
 }
 
 func (e *Editor) ReadFile(path string) error {
@@ -46,7 +81,10 @@ func (e *Editor) ReadFile(path string) error {
 	if err != nil {
 		return err
 	}
-	e.buffer.ReadBytes(b)
+	// create a new buffer
+	e.CreateBuffer()
+	// read the specified file into the buffer
+	e.buffer.LoadBytes(b)
 	e.buffer.SetFileName(path)
 	return nil
 }
@@ -152,35 +190,37 @@ func (e *Editor) Scroll() {
 	}
 }
 
-func (e *Editor) MoveCursor(direction int) {
-	switch direction {
-	case gott.MoveLeft:
-		if e.cursor.Col > 0 {
-			e.cursor.Col--
-		}
-	case gott.MoveRight:
-		if e.cursor.Row < e.buffer.GetRowCount() {
-			rowLength := e.buffer.GetRowLength(e.cursor.Row)
-			if e.cursor.Col < rowLength-1 {
-				e.cursor.Col++
+func (e *Editor) MoveCursor(direction int, multiplier int) {
+	for i := 0; i < multiplier; i++ {
+		switch direction {
+		case gott.MoveLeft:
+			if e.cursor.Col > 0 {
+				e.cursor.Col--
+			}
+		case gott.MoveRight:
+			if e.cursor.Row < e.buffer.GetRowCount() {
+				rowLength := e.buffer.GetRowLength(e.cursor.Row)
+				if e.cursor.Col < rowLength-1 {
+					e.cursor.Col++
+				}
+			}
+		case gott.MoveUp:
+			if e.cursor.Row > 0 {
+				e.cursor.Row--
+			}
+		case gott.MoveDown:
+			if e.cursor.Row < e.buffer.GetRowCount()-1 {
+				e.cursor.Row++
 			}
 		}
-	case gott.MoveUp:
-		if e.cursor.Row > 0 {
-			e.cursor.Row--
-		}
-	case gott.MoveDown:
-		if e.cursor.Row < e.buffer.GetRowCount()-1 {
-			e.cursor.Row++
-		}
-	}
-	// don't go past the end of the current line
-	if e.cursor.Row < e.buffer.GetRowCount() {
-		rowLength := e.buffer.GetRowLength(e.cursor.Row)
-		if e.cursor.Col > rowLength-1 {
-			e.cursor.Col = rowLength - 1
-			if e.cursor.Col < 0 {
-				e.cursor.Col = 0
+		// don't go past the end of the current line
+		if e.cursor.Row < e.buffer.GetRowCount() {
+			rowLength := e.buffer.GetRowLength(e.cursor.Row)
+			if e.cursor.Col > rowLength-1 {
+				e.cursor.Col = rowLength - 1
+				if e.cursor.Col < 0 {
+					e.cursor.Col = 0
+				}
 			}
 		}
 	}
@@ -720,7 +760,7 @@ func (e *Editor) PageUp() {
 	e.cursor.Row = e.offset.Rows
 	// move up by a page
 	for i := 0; i < e.size.Rows; i++ {
-		e.MoveCursor(gott.MoveUp)
+		e.MoveCursor(gott.MoveUp, 1)
 	}
 }
 
@@ -729,7 +769,7 @@ func (e *Editor) PageDown() {
 	e.cursor.Row = e.offset.Rows + e.size.Rows - 1
 	// move down by a page
 	for i := 0; i < e.size.Rows; i++ {
-		e.MoveCursor(gott.MoveDown)
+		e.MoveCursor(gott.MoveDown, 1)
 	}
 }
 

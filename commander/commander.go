@@ -117,13 +117,13 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		case gott.KeyCtrlE, gott.KeyEnd:
 			e.MoveToEndOfLine()
 		case gott.KeyArrowUp:
-			e.MoveCursor(gott.MoveUp)
+			e.MoveCursor(gott.MoveUp, c.Multiplier())
 		case gott.KeyArrowDown:
-			e.MoveCursor(gott.MoveDown)
+			e.MoveCursor(gott.MoveDown, c.Multiplier())
 		case gott.KeyArrowLeft:
-			e.MoveCursor(gott.MoveLeft)
+			e.MoveCursor(gott.MoveLeft, c.Multiplier())
 		case gott.KeyArrowRight:
-			e.MoveCursor(gott.MoveRight)
+			e.MoveCursor(gott.MoveRight, c.Multiplier())
 		}
 	}
 	if ch != 0 {
@@ -151,13 +151,13 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// cursor movement isn't logged
 		//
 		case 'h':
-			e.MoveCursor(gott.MoveLeft)
+			e.MoveCursor(gott.MoveLeft, c.Multiplier())
 		case 'j':
-			e.MoveCursor(gott.MoveDown)
+			e.MoveCursor(gott.MoveDown, c.Multiplier())
 		case 'k':
-			e.MoveCursor(gott.MoveUp)
+			e.MoveCursor(gott.MoveUp, c.Multiplier())
 		case 'l':
-			e.MoveCursor(gott.MoveRight)
+			e.MoveCursor(gott.MoveRight, c.Multiplier())
 		case 'w':
 			e.MoveCursorToNextWord(c.Multiplier())
 		case 'b':
@@ -311,75 +311,95 @@ func (c *Commander) ProcessKey(event *gott.Event) error {
 func (c *Commander) PerformCommand() {
 	e := c.editor
 
-	parts := strings.Split(c.command, " ")
-	if len(parts) > 0 {
+	if c.command[0] == '(' {
+		c.message = c.ParseEval(c.command)
+	} else {
+		parts := strings.Split(c.command, " ")
+		if len(parts) > 0 {
 
-		i, err := strconv.ParseInt(parts[0], 10, 64)
-		if err == nil {
-			newRow := int(i - 1)
-			if newRow > e.GetBuffer().GetRowCount()-1 {
-				newRow = e.GetBuffer().GetRowCount() - 1
-			}
-			if newRow < 0 {
-				newRow = 0
-			}
-			cursor := e.GetCursor()
-			cursor.Row = newRow
-			cursor.Col = 0
-			e.SetCursor(cursor)
-		}
-		switch parts[0] {
-		case "q":
-			c.mode = gott.ModeQuit
-			return
-		case "r":
-			if len(parts) == 2 {
-				filename := parts[1]
-				e.ReadFile(filename)
-			}
-		case "debug":
-			if len(parts) == 2 {
-				if parts[1] == "on" {
-					c.debug = true
-				} else if parts[1] == "off" {
-					c.debug = false
-					c.message = ""
-				}
-			}
-		case "w":
-			var filename string
-			if len(parts) == 2 {
-				filename = parts[1]
-			} else {
-				filename = e.GetBuffer().GetFileName()
-			}
-			e.WriteFile(filename)
-		case "wq":
-			var filename string
-			if len(parts) == 2 {
-				filename = parts[1]
-			} else {
-				filename = e.GetBuffer().GetFileName()
-			}
-			e.WriteFile(filename)
-			c.mode = gott.ModeQuit
-			return
-		case "fmt":
-			out, err := e.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
+			i, err := strconv.ParseInt(parts[0], 10, 64)
 			if err == nil {
-				e.GetBuffer().ReadBytes(out)
+				newRow := int(i - 1)
+				if newRow > e.GetBuffer().GetRowCount()-1 {
+					newRow = e.GetBuffer().GetRowCount() - 1
+				}
+				if newRow < 0 {
+					newRow = 0
+				}
+				cursor := e.GetCursor()
+				cursor.Row = newRow
+				cursor.Col = 0
+				e.SetCursor(cursor)
 			}
-		case "$":
-			newRow := e.GetBuffer().GetRowCount() - 1
-			if newRow < 0 {
-				newRow = 0
+			switch parts[0] {
+			case "q":
+				c.mode = gott.ModeQuit
+				return
+			case "r":
+				if len(parts) == 2 {
+					filename := parts[1]
+					e.ReadFile(filename)
+				}
+			case "debug":
+				if len(parts) == 2 {
+					if parts[1] == "on" {
+						c.debug = true
+					} else if parts[1] == "off" {
+						c.debug = false
+						c.message = ""
+					}
+				}
+			case "w":
+				var filename string
+				if len(parts) == 2 {
+					filename = parts[1]
+				} else {
+					filename = e.GetBuffer().GetFileName()
+				}
+				e.WriteFile(filename)
+			case "wq":
+				var filename string
+				if len(parts) == 2 {
+					filename = parts[1]
+				} else {
+					filename = e.GetBuffer().GetFileName()
+				}
+				e.WriteFile(filename)
+				c.mode = gott.ModeQuit
+				return
+			case "fmt":
+				out, err := e.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
+				if err == nil {
+					e.GetBuffer().LoadBytes(out)
+				}
+			case "$":
+				newRow := e.GetBuffer().GetRowCount() - 1
+				if newRow < 0 {
+					newRow = 0
+				}
+				cursor := e.GetCursor()
+				cursor.Row = newRow
+				cursor.Col = 0
+				e.SetCursor(cursor)
+			case "buffer":
+				if len(parts) > 1 {
+					number, err := strconv.Atoi(parts[1])
+					if err == nil {
+						err = e.SelectBuffer(number)
+						if err != nil {
+							c.message = err.Error()
+						} else {
+							c.message = ""
+						}
+					} else {
+						c.message = err.Error()
+					}
+				}
+			case "buffers":
+				e.ListBuffers()
+			default:
+				c.message = ""
 			}
-			cursor := e.GetCursor()
-			cursor.Row = newRow
-			cursor.Col = 0
-			e.SetCursor(cursor)
-		default:
-			c.message = "nope"
 		}
 	}
 	c.command = ""

@@ -20,17 +20,24 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
+var lastBufferNumber = -1
+
 // A Buffer represents a file being edited
 
 type Buffer struct {
+	number      int
+	Name 		string
 	rows        []*Row
 	fileName    string
-	Highlighted bool
 	mode        string
+	Highlighted bool
+	ReadOnly    bool
 }
 
 func NewBuffer() *Buffer {
+	lastBufferNumber++
 	b := &Buffer{}
+	b.number = lastBufferNumber
 	b.rows = make([]*Row, 0)
 	b.Highlighted = false
 	return b
@@ -47,9 +54,10 @@ func (b *Buffer) SetFileName(name string) {
 	} else {
 		b.mode = "txt"
 	}
+	b.Name = name
 }
 
-func (b *Buffer) ReadBytes(bytes []byte) {
+func (b *Buffer) LoadBytes(bytes []byte) {
 	s := string(bytes)
 	lines := strings.Split(s, "\n")
 	b.rows = make([]*Row, 0)

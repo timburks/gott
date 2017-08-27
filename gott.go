@@ -43,12 +43,28 @@ func main() {
 	// The commander converts user inputs into commands for the editor.
 	c := commander.NewCommander(e)
 
-	// If a file was specified on the command line, read it.
-	if len(os.Args) > 1 {
-		filename := os.Args[1]
-		err = e.ReadFile(filename)
-		if err != nil {
-			log.Output(1, err.Error())
+	filenames := make([]string, 0)
+
+	for i := 1; i < len(os.Args); i++ {
+		argi := os.Args[i]
+		switch argi {
+		case "--eval":
+
+		default:
+			// If a file was specified on the command line, read it.
+			filenames = append(filenames, os.Args[i])
+		}
+	}
+
+	if len(filenames) == 0 {
+		// create an empty buffer
+
+	} else {
+		for _, filename := range filenames {
+			err = e.ReadFile(filename)
+			if err != nil {
+				log.Output(1, err.Error())
+			}
 		}
 	}
 
