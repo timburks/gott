@@ -18,27 +18,68 @@ import (
 	"fmt"
 
 	"github.com/steelseries/golisp"
+	gott "github.com/timburks/gott/types"
 )
+
+// file-global pointers to editor objects
+var commander *Commander
+var editor gott.Editor
 
 func init() {
 	golisp.Global.BindTo(golisp.SymbolWithName("CONSTANT"), golisp.FloatWithValue(float32(2.0)))
-	golisp.MakePrimitiveFunction("go-fact", "1", GoFactImpl)
+	golisp.MakePrimitiveFunction("move-down", "0|1", moveDownImp)
+	golisp.MakePrimitiveFunction("move-up", "0|1", moveUpImp)
+	golisp.MakePrimitiveFunction("move-left", "0|1", moveLeftImp)
+	golisp.MakePrimitiveFunction("move-right", "0|1", moveRightImp)
 }
 
-func GoFactImpl(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+func optionalFirstArgumentCountValue(args *golisp.Data, env *golisp.SymbolTableFrame) (int, error) {
+	n := 1
 	val := golisp.Car(args)
-	if !golisp.FloatP(val) {
-		return nil, errors.New("go-fact requires a float argument")
+	if val != nil {
+		if !golisp.IntegerP(val) {
+			return 0, errors.New("move-down requires an integer argument")
+		}
+		n = int(golisp.IntegerValue(val))
 	}
-	n := int(golisp.FloatValue(val))
-	f := 1
-	for i := 1; i <= n; i++ {
-		f *= i
-	}
-	return golisp.FloatWithValue(float32(f)), nil
+	return n, nil
 }
 
-func ParseEval(command string) string {
+func moveDownImp(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+	n, err := optionalFirstArgumentCountValue(args, env)
+	if err == nil {
+		editor.MoveCursor(gott.MoveDown, n)
+	}
+	return nil, err
+}
+
+func moveUpImp(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+	n, err := optionalFirstArgumentCountValue(args, env)
+	if err == nil {
+		editor.MoveCursor(gott.MoveUp, n)
+	}
+	return nil, err
+}
+
+func moveLeftImp(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+	n, err := optionalFirstArgumentCountValue(args, env)
+	if err == nil {
+		editor.MoveCursor(gott.MoveLeft, n)
+	}
+	return nil, err
+}
+
+func moveRightImp(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+	n, err := optionalFirstArgumentCountValue(args, env)
+	if err == nil {
+		editor.MoveCursor(gott.MoveRight, n)
+	}
+	return nil, err
+}
+
+func (c *Commander) ParseEval(command string) string {
+	commander = c
+	editor = c.editor
 	value, err := golisp.ParseAndEval(command)
 	if err != nil {
 		return fmt.Sprintf("ERR %+v", err)
