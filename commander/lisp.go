@@ -26,11 +26,45 @@ var commander *Commander
 var editor gott.Editor
 
 func init() {
-	golisp.Global.BindTo(golisp.SymbolWithName("CONSTANT"), golisp.FloatWithValue(float32(2.0)))
-	golisp.MakePrimitiveFunction("move-down", "0|1", moveDownImp)
-	golisp.MakePrimitiveFunction("move-up", "0|1", moveUpImp)
-	golisp.MakePrimitiveFunction("move-left", "0|1", moveLeftImp)
-	golisp.MakePrimitiveFunction("move-right", "0|1", moveRightImp)
+	golisp.Global.BindTo(
+		golisp.SymbolWithName("TWO"),
+		golisp.IntegerWithValue(2))
+
+	golisp.MakePrimitiveFunction("move-down", "0|1",
+		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+			n, err := optionalFirstArgumentCountValue(args, env)
+			if err == nil {
+				editor.MoveCursor(gott.MoveDown, n)
+			}
+			return nil, err
+		})
+
+	golisp.MakePrimitiveFunction("move-up", "0|1",
+		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+			n, err := optionalFirstArgumentCountValue(args, env)
+			if err == nil {
+				editor.MoveCursor(gott.MoveUp, n)
+			}
+			return nil, err
+		})
+
+	golisp.MakePrimitiveFunction("move-left", "0|1",
+		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+			n, err := optionalFirstArgumentCountValue(args, env)
+			if err == nil {
+				editor.MoveCursor(gott.MoveLeft, n)
+			}
+			return nil, err
+		})
+
+	golisp.MakePrimitiveFunction("move-right", "0|1",
+		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+			n, err := optionalFirstArgumentCountValue(args, env)
+			if err == nil {
+				editor.MoveCursor(gott.MoveRight, n)
+			}
+			return nil, err
+		})
 }
 
 func optionalFirstArgumentCountValue(args *golisp.Data, env *golisp.SymbolTableFrame) (int, error) {
@@ -43,38 +77,6 @@ func optionalFirstArgumentCountValue(args *golisp.Data, env *golisp.SymbolTableF
 		n = int(golisp.IntegerValue(val))
 	}
 	return n, nil
-}
-
-func moveDownImp(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-	n, err := optionalFirstArgumentCountValue(args, env)
-	if err == nil {
-		editor.MoveCursor(gott.MoveDown, n)
-	}
-	return nil, err
-}
-
-func moveUpImp(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-	n, err := optionalFirstArgumentCountValue(args, env)
-	if err == nil {
-		editor.MoveCursor(gott.MoveUp, n)
-	}
-	return nil, err
-}
-
-func moveLeftImp(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-	n, err := optionalFirstArgumentCountValue(args, env)
-	if err == nil {
-		editor.MoveCursor(gott.MoveLeft, n)
-	}
-	return nil, err
-}
-
-func moveRightImp(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-	n, err := optionalFirstArgumentCountValue(args, env)
-	if err == nil {
-		editor.MoveCursor(gott.MoveRight, n)
-	}
-	return nil, err
 }
 
 func (c *Commander) ParseEval(command string) string {
