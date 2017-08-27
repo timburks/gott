@@ -2,21 +2,26 @@
 
 # gott
 
-**gott** is a little text editor that was created as a hobby project. It was inspired by 
-[antirez's kilo](http://antirez.com/news/108) 
-and Jeremy Ruten's 
-[Build Your Own Text Editor](http://viewsourcecode.org/snaptoken/kilo/) 
-tutorial. 
-**gott** means "good" in Swedish, which is a presumptuous thing to 
-call a tiny console text editor. Naming things is hard.
+**gott** is a little text editor that was created as a hobby project.
+It was inspired by [antirez's kilo](http://antirez.com/news/108)
+and Jeremy Ruten's
+[Build Your Own Text Editor](http://viewsourcecode.org/snaptoken/kilo/).
+**gott** means "good" in Swedish, perhaps a presumptuous thing to
+call a little console-based text editor.
 
-## Implementation
+## Implementation and Goals
 
-**gott** is written in Go and uses [nsf/termbox-go](https://github.com/nsf/termbox-go).
+**gott** is written in Go and uses
+[nsf/termbox-go](https://github.com/nsf/termbox-go) for screen display.
+All the termbox dependencies are isolated in the screen package
+in the hope that the rest of **gott** can be used on other platforms via
+[gomobile](https://godoc.org/golang.org/x/mobile/cmd/gomobile).
 
-## Goals
+**gott** integrates [golisp](https://github.com/SteelSeries/golisp)
+for scripting. I guess it's clear where I'd like to go with that.
 
-I hope to integrate many of the Go-specific features that are often added as 
+Along those lines, I hope to integrate many of the Go-specific features
+that are often added as 
 [emacs extensions](http://tleyden.github.io/blog/2014/05/22/configure-emacs-as-a-go-editor-from-scratch/).
 
 ## Legal
