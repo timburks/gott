@@ -117,13 +117,13 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		case gott.KeyCtrlE, gott.KeyEnd:
 			e.MoveToEndOfLine()
 		case gott.KeyArrowUp:
-			e.MoveCursor(gott.MoveUp)
+			e.MoveCursor(gott.MoveUp, c.Multiplier())
 		case gott.KeyArrowDown:
-			e.MoveCursor(gott.MoveDown)
+			e.MoveCursor(gott.MoveDown, c.Multiplier())
 		case gott.KeyArrowLeft:
-			e.MoveCursor(gott.MoveLeft)
+			e.MoveCursor(gott.MoveLeft, c.Multiplier())
 		case gott.KeyArrowRight:
-			e.MoveCursor(gott.MoveRight)
+			e.MoveCursor(gott.MoveRight, c.Multiplier())
 		}
 	}
 	if ch != 0 {
@@ -151,13 +151,13 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// cursor movement isn't logged
 		//
 		case 'h':
-			e.MoveCursor(gott.MoveLeft)
+			e.MoveCursor(gott.MoveLeft, c.Multiplier())
 		case 'j':
-			e.MoveCursor(gott.MoveDown)
+			e.MoveCursor(gott.MoveDown, c.Multiplier())
 		case 'k':
-			e.MoveCursor(gott.MoveUp)
+			e.MoveCursor(gott.MoveUp, c.Multiplier())
 		case 'l':
-			e.MoveCursor(gott.MoveRight)
+			e.MoveCursor(gott.MoveRight, c.Multiplier())
 		case 'w':
 			e.MoveCursorToNextWord(c.Multiplier())
 		case 'b':
@@ -382,7 +382,7 @@ func (c *Commander) PerformCommand() {
 				cursor.Col = 0
 				e.SetCursor(cursor)
 			default:
-				c.message = "nope"
+				c.message = ""
 			}
 		}
 	}

@@ -83,7 +83,7 @@ type Editor interface {
 	// Manage the cursor location.
 	GetCursor() Point
 	SetCursor(cursor Point)
-	MoveCursor(direction int)
+	MoveCursor(direction int, multiplier int)
 	MoveCursorToNextWord(multiplier int)
 	MoveCursorToPreviousWord(multiplier int)
 	MoveCursorToStartOfLine()
