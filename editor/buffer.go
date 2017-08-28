@@ -26,7 +26,7 @@ var lastBufferNumber = -1
 
 type Buffer struct {
 	number      int
-	Name 		string
+	Name        string
 	rows        []*Row
 	fileName    string
 	mode        string
@@ -41,6 +41,14 @@ func NewBuffer() *Buffer {
 	b.rows = make([]*Row, 0)
 	b.Highlighted = false
 	return b
+}
+
+func (b *Buffer) GetIndex() int {
+	return b.number
+}
+
+func (b *Buffer) GetName() string {
+	return b.Name
 }
 
 func (b *Buffer) GetFileName() string {

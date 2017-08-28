@@ -145,6 +145,8 @@ type Buffer interface {
 	LoadBytes(bytes []byte)
 
 	// Buffer information.
+	GetIndex() int
+	GetName() string
 	GetFileName() string
 	GetRowCount() int
 	TextAfter(row, col int) string

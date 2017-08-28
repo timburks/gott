@@ -67,7 +67,7 @@ func (s *Screen) SetCell(j int, i int, c rune, color gott.Color) {
 
 func (s *Screen) RenderInfoBar(e gott.Editor, c gott.Commander) {
 	finalText := fmt.Sprintf(" %d/%d ", e.GetCursor().Row, e.GetBuffer().GetRowCount())
-	text := " the gott editor - " + e.GetBuffer().GetFileName() + " "
+	text := fmt.Sprintf(" [%d] %s ", e.GetBuffer().GetIndex(), e.GetBuffer().GetName())
 	for len(text) < s.size.Cols-len(finalText)-1 {
 		text = text + " "
 	}

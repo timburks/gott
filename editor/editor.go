@@ -59,7 +59,7 @@ func (e *Editor) ListBuffers() {
 		if i > 0 {
 			s += "\n"
 		}
-		s += fmt.Sprintf("%-3d\t%s", buffer.number, buffer.Name)
+		s += fmt.Sprintf(" [%d] %s", buffer.number, buffer.Name)
 	}
 	listing := []byte(s)
 	e.SelectBuffer(0)
