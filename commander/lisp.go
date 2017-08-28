@@ -32,7 +32,7 @@ func init() {
 
 	golisp.MakePrimitiveFunction("move-down", "0|1",
 		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			if n, err := optionalFirstArgumentCountValue(args, env); err == nil {
+			if n, err := argumentCountValue("move-down", args, env); err == nil {
 				editor.MoveCursor(gott.MoveDown, n)
 			}
 			return nil, err
@@ -40,7 +40,7 @@ func init() {
 
 	golisp.MakePrimitiveFunction("move-up", "0|1",
 		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			if n, err := optionalFirstArgumentCountValue(args, env); err == nil {
+			if n, err := argumentCountValue("move-up", args, env); err == nil {
 				editor.MoveCursor(gott.MoveUp, n)
 			}
 			return nil, err
@@ -48,7 +48,7 @@ func init() {
 
 	golisp.MakePrimitiveFunction("move-left", "0|1",
 		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			if n, err := optionalFirstArgumentCountValue(args, env); err == nil {
+			if n, err := argumentCountValue("move-left", args, env); err == nil {
 				editor.MoveCursor(gott.MoveLeft, n)
 			}
 			return nil, err
@@ -56,19 +56,19 @@ func init() {
 
 	golisp.MakePrimitiveFunction("move-right", "0|1",
 		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			if n, err := optionalFirstArgumentCountValue(args, env); err == nil {
+			if n, err := argumentCountValue("move-right", args, env); err == nil {
 				editor.MoveCursor(gott.MoveRight, n)
 			}
 			return nil, err
 		})
 }
 
-func optionalFirstArgumentCountValue(args *golisp.Data, env *golisp.SymbolTableFrame) (int, error) {
+func argumentCountValue(name string, args *golisp.Data, env *golisp.SymbolTableFrame) (int, error) {
 	n := 1
 	val := golisp.Car(args)
 	if val != nil {
 		if !golisp.IntegerP(val) {
-			return 0, errors.New("move-down requires an integer argument")
+			return 0, errors.New(fmt.Sprintf("%s requires an integer argument", name))
 		}
 		n = int(golisp.IntegerValue(val))
 	}
@@ -82,6 +82,6 @@ func (c *Commander) ParseEval(command string) string {
 	if err != nil {
 		return fmt.Sprintf("ERR %+v", err)
 	} else {
-		return fmt.Sprintf("VALUE %+v", golisp.String(value))
+		return golisp.String(value)
 	}
 }

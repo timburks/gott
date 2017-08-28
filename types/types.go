@@ -19,6 +19,7 @@ const (
 	ModeInsert  = 1
 	ModeCommand = 2
 	ModeSearch  = 3
+	ModeLisp    = 4
 	ModeQuit    = 9999
 )
 
@@ -174,6 +175,7 @@ type Commander interface {
 	SetMode(int)
 	GetMode() int
 	GetSearchText() string
+	GetLispText() string
 	GetCommand() string
 	GetMessage() string
 }

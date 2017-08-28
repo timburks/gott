@@ -86,6 +86,8 @@ func (s *Screen) RenderMessageBar(e gott.Editor, c gott.Commander) {
 		line += ":" + c.GetCommand()
 	case gott.ModeSearch:
 		line += "/" + c.GetSearchText()
+	case gott.ModeLisp:
+		line += c.GetLispText()
 	default:
 		line += c.GetMessage()
 	}
@@ -93,7 +95,7 @@ func (s *Screen) RenderMessageBar(e gott.Editor, c gott.Commander) {
 		line = line[0:s.size.Cols]
 	}
 	for x, ch := range line {
-		termbox.SetCell(x, s.size.Rows-1, rune(ch), termbox.ColorBlack, termbox.ColorWhite)
+		termbox.SetCell(x, s.size.Rows-1, rune(ch), termbox.ColorWhite, termbox.ColorBlack)
 	}
 }
 

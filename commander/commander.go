@@ -30,6 +30,7 @@ type Commander struct {
 	editKeys   string // edit key sequences in progress
 	command    string // command as it is being typed on the command line
 	searchText string // text for searches as it is being typed
+	lispText   string // lisp command as it is being typed
 	message    string // status message
 	multiplier string // multiplier string as it is being entered
 }
@@ -151,6 +152,12 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 			c.searchText = ""
 		case 'n': // repeat the last search
 			e.PerformSearch(c.searchText)
+		//
+		// lisp commands go to the message bar
+		//
+		case '(':
+			c.mode = gott.ModeLisp
+			c.lispText = "("
 		//
 		// cursor movement isn't logged
 		//
@@ -297,6 +304,31 @@ func (c *Commander) ProcessKeySearchMode(event *gott.Event) error {
 	return nil
 }
 
+func (c *Commander) ProcessKeyLispMode(event *gott.Event) error {
+	key := event.Key
+	ch := event.Ch
+	if key != 0 {
+		switch key {
+		case gott.KeyEsc:
+			c.mode = gott.ModeEdit
+		case gott.KeyEnter:
+			c.message = c.ParseEval(c.lispText)
+			c.mode = gott.ModeEdit
+		case gott.KeyBackspace2:
+			if len(c.lispText) > 0 {
+				c.lispText = c.lispText[0 : len(c.lispText)-1]
+			}
+		case gott.KeySpace:
+			c.lispText += " "
+		}
+	}
+	if ch != 0 {
+		c.lispText = c.lispText + string(ch)
+	}
+
+	return nil
+}
+
 func (c *Commander) ProcessKey(event *gott.Event) error {
 	var err error
 	switch c.mode {
@@ -308,102 +340,101 @@ func (c *Commander) ProcessKey(event *gott.Event) error {
 		err = c.ProcessKeyCommandMode(event)
 	case gott.ModeSearch:
 		err = c.ProcessKeySearchMode(event)
+	case gott.ModeLisp:
+		err = c.ProcessKeyLispMode(event)
 	}
 	return err
 }
 
 func (c *Commander) PerformCommand() {
+
 	e := c.editor
 
-	if c.command[0] == '(' {
-		c.message = c.ParseEval(c.command)
-	} else {
-		parts := strings.Split(c.command, " ")
-		if len(parts) > 0 {
+	parts := strings.Split(c.command, " ")
+	if len(parts) > 0 {
 
-			i, err := strconv.ParseInt(parts[0], 10, 64)
-			if err == nil {
-				newRow := int(i - 1)
-				if newRow > e.GetBuffer().GetRowCount()-1 {
-					newRow = e.GetBuffer().GetRowCount() - 1
-				}
-				if newRow < 0 {
-					newRow = 0
-				}
-				cursor := e.GetCursor()
-				cursor.Row = newRow
-				cursor.Col = 0
-				e.SetCursor(cursor)
+		i, err := strconv.ParseInt(parts[0], 10, 64)
+		if err == nil {
+			newRow := int(i - 1)
+			if newRow > e.GetBuffer().GetRowCount()-1 {
+				newRow = e.GetBuffer().GetRowCount() - 1
 			}
-			switch parts[0] {
-			case "q":
-				c.mode = gott.ModeQuit
-				return
-			case "r":
-				if len(parts) == 2 {
-					filename := parts[1]
-					e.ReadFile(filename)
+			if newRow < 0 {
+				newRow = 0
+			}
+			cursor := e.GetCursor()
+			cursor.Row = newRow
+			cursor.Col = 0
+			e.SetCursor(cursor)
+		}
+		switch parts[0] {
+		case "q":
+			c.mode = gott.ModeQuit
+			return
+		case "r":
+			if len(parts) == 2 {
+				filename := parts[1]
+				e.ReadFile(filename)
+			}
+		case "debug":
+			if len(parts) == 2 {
+				if parts[1] == "on" {
+					c.debug = true
+				} else if parts[1] == "off" {
+					c.debug = false
+					c.message = ""
 				}
-			case "debug":
-				if len(parts) == 2 {
-					if parts[1] == "on" {
-						c.debug = true
-					} else if parts[1] == "off" {
-						c.debug = false
+			}
+		case "w":
+			var filename string
+			if len(parts) == 2 {
+				filename = parts[1]
+			} else {
+				filename = e.GetBuffer().GetFileName()
+			}
+			e.WriteFile(filename)
+		case "wq":
+			var filename string
+			if len(parts) == 2 {
+				filename = parts[1]
+			} else {
+				filename = e.GetBuffer().GetFileName()
+			}
+			e.WriteFile(filename)
+			c.mode = gott.ModeQuit
+			return
+		case "fmt":
+			out, err := e.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
+			if err == nil {
+				e.GetBuffer().LoadBytes(out)
+			}
+		case "$":
+			newRow := e.GetBuffer().GetRowCount() - 1
+			if newRow < 0 {
+				newRow = 0
+			}
+			cursor := e.GetCursor()
+			cursor.Row = newRow
+			cursor.Col = 0
+			e.SetCursor(cursor)
+		case "buffer":
+			if len(parts) > 1 {
+				number, err := strconv.Atoi(parts[1])
+				if err == nil {
+					err = e.SelectBuffer(number)
+					if err != nil {
+						c.message = err.Error()
+					} else {
 						c.message = ""
 					}
-				}
-			case "w":
-				var filename string
-				if len(parts) == 2 {
-					filename = parts[1]
 				} else {
-					filename = e.GetBuffer().GetFileName()
+					c.message = err.Error()
 				}
-				e.WriteFile(filename)
-			case "wq":
-				var filename string
-				if len(parts) == 2 {
-					filename = parts[1]
-				} else {
-					filename = e.GetBuffer().GetFileName()
-				}
-				e.WriteFile(filename)
-				c.mode = gott.ModeQuit
-				return
-			case "fmt":
-				out, err := e.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
-				if err == nil {
-					e.GetBuffer().LoadBytes(out)
-				}
-			case "$":
-				newRow := e.GetBuffer().GetRowCount() - 1
-				if newRow < 0 {
-					newRow = 0
-				}
-				cursor := e.GetCursor()
-				cursor.Row = newRow
-				cursor.Col = 0
-				e.SetCursor(cursor)
-			case "buffer":
-				if len(parts) > 1 {
-					number, err := strconv.Atoi(parts[1])
-					if err == nil {
-						err = e.SelectBuffer(number)
-						if err != nil {
-							c.message = err.Error()
-						} else {
-							c.message = ""
-						}
-					} else {
-						c.message = err.Error()
-					}
-				}
-			case "buffers":
-				e.ListBuffers()
-			default:
-				c.message = ""
 			}
+		case "buffers":
+			e.ListBuffers()
+		default:
+			c.message = ""
 		}
 	}
 	c.command = ""
@@ -425,6 +456,10 @@ func (c *Commander) Multiplier() int {
 
 func (c *Commander) GetSearchText() string {
 	return c.searchText
+}
+
+func (c *Commander) GetLispText() string {
+	return c.lispText
 }
 
 func (c *Commander) GetCommand() string {
