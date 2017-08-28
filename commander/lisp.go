@@ -25,42 +25,52 @@ import (
 var commander *Commander
 var editor gott.Editor
 
+func makePrimitiveFunctionWithMultiplier(name string, action func(multiplier int)) {
+	golisp.MakePrimitiveFunction(name, "0|1",
+		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+			if n, err := argumentCountValue(name, args, env); err == nil {
+				action(n)
+			}
+			return nil, err
+		})
+}
+
 func init() {
 	golisp.Global.BindTo(
 		golisp.SymbolWithName("TWO"),
 		golisp.IntegerWithValue(2))
 
-	golisp.MakePrimitiveFunction("move-down", "0|1",
-		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			if n, err := argumentCountValue("move-down", args, env); err == nil {
-				editor.MoveCursor(gott.MoveDown, n)
-			}
-			return nil, err
-		})
+	makePrimitiveFunctionWithMultiplier("move-down", func(m int) {
+		editor.MoveCursor(gott.MoveDown, m)
+	})
 
-	golisp.MakePrimitiveFunction("move-up", "0|1",
-		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			if n, err := argumentCountValue("move-up", args, env); err == nil {
-				editor.MoveCursor(gott.MoveUp, n)
-			}
-			return nil, err
-		})
+	makePrimitiveFunctionWithMultiplier("move-up", func(m int) {
+		editor.MoveCursor(gott.MoveUp, m)
+	})
 
-	golisp.MakePrimitiveFunction("move-left", "0|1",
-		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			if n, err := argumentCountValue("move-left", args, env); err == nil {
-				editor.MoveCursor(gott.MoveLeft, n)
-			}
-			return nil, err
-		})
+	makePrimitiveFunctionWithMultiplier("move-left", func(m int) {
+		editor.MoveCursor(gott.MoveLeft, m)
+	})
 
-	golisp.MakePrimitiveFunction("move-right", "0|1",
-		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
-			if n, err := argumentCountValue("move-right", args, env); err == nil {
-				editor.MoveCursor(gott.MoveRight, n)
-			}
-			return nil, err
-		})
+	makePrimitiveFunctionWithMultiplier("move-right", func(m int) {
+		editor.MoveCursor(gott.MoveRight, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("page-down", func(m int) {
+		editor.PageDown(m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("page-up", func(m int) {
+		editor.PageUp(m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("half-page-down", func(m int) {
+		editor.HalfPageDown(m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("half-page-up", func(m int) {
+		editor.HalfPageUp(m)
+	})
 }
 
 func argumentCountValue(name string, args *golisp.Data, env *golisp.SymbolTableFrame) (int, error) {
@@ -78,7 +88,7 @@ func argumentCountValue(name string, args *golisp.Data, env *golisp.SymbolTableF
 func (c *Commander) ParseEval(command string) string {
 	commander = c
 	editor = c.editor
-	value, err := golisp.ParseAndEval(command)
+	value, err := golisp.ParseAndEvalAll(command)
 	if err != nil {
 		return fmt.Sprintf("ERR %+v", err)
 	} else {

@@ -110,13 +110,13 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		case gott.KeyEsc:
 			break
 		case gott.KeyCtrlB, gott.KeyPgup:
-			e.PageUp()
+			e.PageUp(c.Multiplier())
 		case gott.KeyCtrlF, gott.KeyPgdn:
-			e.PageDown()
+			e.PageDown(c.Multiplier())
 		case gott.KeyCtrlD:
-			e.HalfPageDown()
+			e.HalfPageDown(c.Multiplier())
 		case gott.KeyCtrlU:
-			e.HalfPageUp()
+			e.HalfPageUp(c.Multiplier())
 		case gott.KeyCtrlA, gott.KeyHome:
 			e.MoveToBeginningOfLine()
 		case gott.KeyCtrlE, gott.KeyEnd:
@@ -433,6 +433,10 @@ func (c *Commander) PerformCommand() {
 			}
 		case "buffers":
 			e.ListBuffers()
+		case "eval":
+			output := c.ParseEval(string(e.Bytes()))
+			e.SelectBuffer(0)
+			e.GetBuffer().LoadBytes([]byte(output))
 		default:
 			c.message = ""
 		}

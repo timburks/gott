@@ -755,39 +755,39 @@ func (e *Editor) ReverseCaseCharactersAtCursor(multiplier int) {
 	}
 }
 
-func (e *Editor) PageUp() {
+func (e *Editor) PageUp(multiplier int) {
 	// move to the top of the screen
 	e.cursor.Row = e.offset.Rows
-	// move up by a page
-	for i := 0; i < e.size.Rows; i++ {
-		e.MoveCursor(gott.MoveUp, 1)
+	for m := 0; m < multiplier; m++ {
+		// move up by a page
+		e.MoveCursor(gott.MoveUp, e.size.Rows)
 	}
 }
 
-func (e *Editor) PageDown() {
+func (e *Editor) PageDown(multiplier int) {
 	// move to the bottom of the screen
 	e.cursor.Row = e.offset.Rows + e.size.Rows - 1
-	// move down by a page
-	for i := 0; i < e.size.Rows; i++ {
-		e.MoveCursor(gott.MoveDown, 1)
+	for m := 0; m < multiplier; m++ {
+		// move down by a page
+		e.MoveCursor(gott.MoveDown, e.size.Rows)
 	}
 }
 
-func (e *Editor) HalfPageUp() {
+func (e *Editor) HalfPageUp(multiplier int) {
 	// move to the top of the screen
 	e.cursor.Row = e.offset.Rows
-	// move up by a half page
-	for i := 0; i < e.size.Rows/2; i++ {
-		e.MoveCursor(gott.MoveUp, 1)
+	for m := 0; m < multiplier; m++ {
+		// move up by a half page
+		e.MoveCursor(gott.MoveUp, e.size.Rows/2)
 	}
 }
 
-func (e *Editor) HalfPageDown() {
+func (e *Editor) HalfPageDown(multiplier int) {
 	// move to the bottom of the screen
 	e.cursor.Row = e.offset.Rows + e.size.Rows - 1
-	// move down by a half page
-	for i := 0; i < e.size.Rows/2; i++ {
-		e.MoveCursor(gott.MoveDown, 1)
+	for m := 0; m < multiplier; m++ {
+		// move down by a half page
+		e.MoveCursor(gott.MoveDown, e.size.Rows/2)
 	}
 }
 

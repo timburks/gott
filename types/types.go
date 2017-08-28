@@ -96,10 +96,10 @@ type Editor interface {
 	MoveToBeginningOfLine()
 	MoveToEndOfLine()
 	KeepCursorInRow()
-	PageUp()
-	PageDown()
-	HalfPageUp()
-	HalfPageDown()
+	PageUp(multiplier int)
+	PageDown(multiplier int)
+	HalfPageUp(multiplier int)
+	HalfPageDown(multiplier int)
 
 	// Recompute the display offset to keep the cursor onscreen.
 	Scroll()
