@@ -14,11 +14,11 @@
 package editor
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
-	"fmt"
 	"strings"
-	"errors"
 	"unicode"
 
 	gott "github.com/timburks/gott/types"
@@ -769,6 +769,24 @@ func (e *Editor) PageDown() {
 	e.cursor.Row = e.offset.Rows + e.size.Rows - 1
 	// move down by a page
 	for i := 0; i < e.size.Rows; i++ {
+		e.MoveCursor(gott.MoveDown, 1)
+	}
+}
+
+func (e *Editor) HalfPageUp() {
+	// move to the top of the screen
+	e.cursor.Row = e.offset.Rows
+	// move up by a half page
+	for i := 0; i < e.size.Rows/2; i++ {
+		e.MoveCursor(gott.MoveUp, 1)
+	}
+}
+
+func (e *Editor) HalfPageDown() {
+	// move to the bottom of the screen
+	e.cursor.Row = e.offset.Rows + e.size.Rows - 1
+	// move down by a half page
+	for i := 0; i < e.size.Rows/2; i++ {
 		e.MoveCursor(gott.MoveDown, 1)
 	}
 }

@@ -123,8 +123,56 @@ func key(k termbox.Key) gott.Key {
 		return gott.KeyBackspace2
 	case termbox.KeyCtrlA:
 		return gott.KeyCtrlA
+	case termbox.KeyCtrlB:
+		return gott.KeyCtrlB
+	case termbox.KeyCtrlC:
+		return gott.KeyCtrlC
+	case termbox.KeyCtrlD:
+		return gott.KeyCtrlD
 	case termbox.KeyCtrlE:
 		return gott.KeyCtrlE
+	case termbox.KeyCtrlF:
+		return gott.KeyCtrlF
+	case termbox.KeyCtrlG:
+		return gott.KeyCtrlG
+	case termbox.KeyCtrlH:
+		return gott.KeyCtrlH
+	//case termbox.KeyCtrlI:
+	//	return gott.KeyCtrlI
+	case termbox.KeyCtrlJ:
+		return gott.KeyCtrlJ
+	case termbox.KeyCtrlK:
+		return gott.KeyCtrlK
+	case termbox.KeyCtrlL:
+		return gott.KeyCtrlL
+	//case termbox.KeyCtrlM:
+	//	return gott.KeyCtrlM
+	case termbox.KeyCtrlN:
+		return gott.KeyCtrlN
+	case termbox.KeyCtrlO:
+		return gott.KeyCtrlO
+	case termbox.KeyCtrlP:
+		return gott.KeyCtrlP
+	case termbox.KeyCtrlQ:
+		return gott.KeyCtrlQ
+	case termbox.KeyCtrlR:
+		return gott.KeyCtrlR
+	case termbox.KeyCtrlS:
+		return gott.KeyCtrlS
+	case termbox.KeyCtrlT:
+		return gott.KeyCtrlT
+	case termbox.KeyCtrlU:
+		return gott.KeyCtrlU
+	case termbox.KeyCtrlV:
+		return gott.KeyCtrlV
+	case termbox.KeyCtrlW:
+		return gott.KeyCtrlW
+	case termbox.KeyCtrlX:
+		return gott.KeyCtrlX
+	case termbox.KeyCtrlY:
+		return gott.KeyCtrlY
+	case termbox.KeyCtrlZ:
+		return gott.KeyCtrlZ
 	case termbox.KeyEnd:
 		return gott.KeyEnd
 	case termbox.KeyEnter:

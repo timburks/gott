@@ -108,10 +108,14 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		switch key {
 		case gott.KeyEsc:
 			break
-		case gott.KeyPgup:
+		case gott.KeyCtrlB, gott.KeyPgup:
 			e.PageUp()
-		case gott.KeyPgdn:
+		case gott.KeyCtrlF, gott.KeyPgdn:
 			e.PageDown()
+		case gott.KeyCtrlD:
+			e.HalfPageDown()
+		case gott.KeyCtrlU:
+			e.HalfPageUp()
 		case gott.KeyCtrlA, gott.KeyHome:
 			e.MoveToBeginningOfLine()
 		case gott.KeyCtrlE, gott.KeyEnd:

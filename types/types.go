@@ -97,6 +97,8 @@ type Editor interface {
 	KeepCursorInRow()
 	PageUp()
 	PageDown()
+	HalfPageUp()
+	HalfPageDown()
 
 	// Recompute the display offset to keep the cursor onscreen.
 	Scroll()
@@ -202,7 +204,31 @@ const (
 	KeyArrowUp
 	KeyBackspace2
 	KeyCtrlA
+	KeyCtrlB
+	KeyCtrlC
+	KeyCtrlD
 	KeyCtrlE
+	KeyCtrlF
+	KeyCtrlG
+	KeyCtrlH
+	KeyCtrlI
+	KeyCtrlJ
+	KeyCtrlK
+	KeyCtrlL
+	KeyCtrlM
+	KeyCtrlN
+	KeyCtrlO
+	KeyCtrlP
+	KeyCtrlQ
+	KeyCtrlR
+	KeyCtrlS
+	KeyCtrlT
+	KeyCtrlU
+	KeyCtrlV
+	KeyCtrlW
+	KeyCtrlX
+	KeyCtrlY
+	KeyCtrlZ
 	KeyEnd
 	KeyEnter
 	KeyEsc
