@@ -81,6 +81,14 @@ func (b *Buffer) LoadBytes(bytes []byte) []byte {
 	return previous
 }
 
+func (b *Buffer) AppendBytes(bytes []byte) {
+	s := string(bytes)
+	lines := strings.Split(s, "\n")
+	for _, line := range lines {
+		b.rows = append(b.rows, NewRow(line))
+	}
+}
+
 func (b *Buffer) Bytes() []byte {
 	var s string
 	for i, row := range b.rows {

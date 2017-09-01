@@ -144,6 +144,9 @@ type Buffer interface {
 	// Load bytes into a buffer returning the previous buffer contents.
 	LoadBytes(bytes []byte) []byte
 
+	// Append bytes to the end of a buffer.
+	AppendBytes(bytes []byte)
+
 	// Buffer information.
 	GetIndex() int
 	GetName() string

@@ -109,10 +109,14 @@ func init() {
 	})
 
 	makePrimitiveFunctionWithString("print", func(s string) {
-		// if we are running in batch (eval) mode, write to output
-		os.Stdout.Write([]byte(s + "\n"))
-		// if we are running in the editor, write to buffer 0
-
+		if commander.batch {
+			// if we are running in batch (eval) mode, write to output
+			os.Stdout.Write([]byte(s + "\n"))
+		} else {
+			// if we are running in the editor, write to buffer 0
+			editor.SelectBuffer(0)
+			editor.GetBuffer().AppendBytes([]byte(s))
+		}
 	})
 }
 
@@ -131,6 +135,7 @@ func (c *Commander) ParseEvalFile(filename string) string {
 	bytes, err := ioutil.ReadFile(filename)
 	if err == nil {
 		contents := string(bytes)
+		c.batch = true
 		return c.ParseEval(contents)
 	} else {
 		return err.Error()

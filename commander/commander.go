@@ -25,6 +25,7 @@ import (
 // The Commander converts user input into commands for the Editor.
 type Commander struct {
 	editor     gott.Editor
+	batch      bool   // true if commander is running a lisp script
 	mode       int    // editor mode
 	debug      bool   // debug mode displays information about events (key codes, etc)
 	editKeys   string // edit key sequences in progress
@@ -438,7 +439,7 @@ func (c *Commander) PerformCommand() {
 		case "eval":
 			output := c.ParseEval(string(e.Bytes()))
 			e.SelectBuffer(0)
-			e.GetBuffer().LoadBytes([]byte(output))
+			e.GetBuffer().AppendBytes([]byte(output))
 		default:
 			c.message = ""
 		}
