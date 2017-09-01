@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/steelseries/golisp"
 	gott "github.com/timburks/gott/types"
@@ -108,7 +109,7 @@ func init() {
 	})
 
 	makePrimitiveFunctionWithString("print", func(s string) {
-		fmt.Printf("%s\n", s)
+		os.Stdout.Write([]byte(s + "\n"))
 	})
 }
 
