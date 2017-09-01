@@ -114,6 +114,10 @@ func (e *Editor) WriteFile(path string) error {
 }
 
 func (e *Editor) Perform(op gott.Operation, multiplier int) {
+	// if the current buffer is read only, don't perform any operations.
+	if e.buffer.GetReadOnly() {
+		return
+	}
 	// perform the operation
 	inverse := op.Perform(e, multiplier)
 	// save the operation for repeats

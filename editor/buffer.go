@@ -55,6 +55,10 @@ func (b *Buffer) GetFileName() string {
 	return b.fileName
 }
 
+func (b *Buffer) GetReadOnly() bool {
+	return b.ReadOnly
+}
+
 func (b *Buffer) SetFileName(name string) {
 	b.fileName = name
 	if strings.HasSuffix(name, ".go") {

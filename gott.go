@@ -14,64 +14,79 @@
 package main
 
 import (
-        "log"
-        "os"
+	"log"
+	"os"
 
-        "github.com/timburks/gott/commander"
-        "github.com/timburks/gott/editor"
-        "github.com/timburks/gott/screen"
-        gott "github.com/timburks/gott/types"
+	"github.com/timburks/gott/commander"
+	"github.com/timburks/gott/editor"
+	"github.com/timburks/gott/screen"
+	gott "github.com/timburks/gott/types"
 )
 
 func main() {
-        // Open a log file.
-        f, err := os.OpenFile(os.Getenv("HOME")+"/.gottlog", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
-        if err != nil {
-                log.Output(1, err.Error())
-                return
-        }
-        log.SetOutput(f)
-        defer f.Close()
+	var err error
 
-        // Create a screen to manage display.
-        s := screen.NewScreen()
-        defer s.Close()
+	filenames := make([]string, 0)
+	var script string
 
-        // The editor manages all text manipulation.
-        e := editor.NewEditor()
+	for i := 1; i < len(os.Args); i++ {
+		argi := os.Args[i]
+		switch argi {
+		case "--eval": // eval program
+			i++
+			if i < len(os.Args) {
+				script = os.Args[i]
+			} else {
+				log.Output(1, "No file specified for --eval option")
+				return
+			}
+		default:
+			// If a file was specified on the command line, read it.
+			filenames = append(filenames, os.Args[i])
+		}
+	}
 
-        // The commander converts user inputs into commands for the editor.
-        c := commander.NewCommander(e)
+	// The editor manages all text manipulation.
+	e := editor.NewEditor()
 
-        filenames := make([]string, 0)
+	// The commander converts user inputs into commands for the editor.
+	c := commander.NewCommander(e)
 
-        for i := 1; i < len(os.Args); i++ {
-                argi := os.Args[i]
-                switch argi {
-                default:
-                        // If a file was specified on the command line, read it.
-                        filenames = append(filenames, os.Args[i])
-                }
-        }
+	if len(filenames) == 0 {
+		// todo: create an empty buffer
+	} else {
+		for _, filename := range filenames {
+			err = e.ReadFile(filename)
+			if err != nil {
+				log.Output(1, err.Error())
+			}
+		}
+	}
 
-        if len(filenames) == 0 {
-                // todo: create an empty buffer
-        } else {
-                for _, filename := range filenames {
-                        err = e.ReadFile(filename)
-                        if err != nil {
-                                log.Output(1, err.Error())
-                        }
-                }
-        }
+	if script != "" {
+		c.ParseEvalFile(script)
+	} else {
+		// Create a screen to manage display.
+		s := screen.NewScreen()
+		defer s.Close()
 
-        // Run the main event loop.
-        for c.GetMode() != gott.ModeQuit {
-                s.Render(e, c)
-                event := s.GetNextEvent()
-                err = c.ProcessEvent(event)
-                if err != nil {
-                        log.Output(1, err.Error())
-                }
-        }
+		// Open a log file.
+		f, err := os.OpenFile(os.Getenv("HOME")+"/.gottlog", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		if err != nil {
+			log.Output(1, err.Error())
+			return
+		}
+		log.SetOutput(f)
+		defer f.Close()
+
+		// Run the main event loop.
+		for c.GetMode() != gott.ModeQuit {
+			s.Render(e, c)
+			event := s.GetNextEvent()
+			err = c.ProcessEvent(event)
+			if err != nil {
+				log.Output(1, err.Error())
+			}
+		}
+	}
 }

@@ -147,6 +147,7 @@ type Buffer interface {
 	// Buffer information.
 	GetIndex() int
 	GetName() string
+	GetReadOnly() bool
 	GetFileName() string
 	GetRowCount() int
 	TextAfter(row, col int) string

@@ -16,6 +16,7 @@ package commander
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/steelseries/golisp"
 	gott "github.com/timburks/gott/types"
@@ -25,10 +26,44 @@ import (
 var commander *Commander
 var editor gott.Editor
 
+func argumentCountValue(name string, args *golisp.Data, env *golisp.SymbolTableFrame) (int, error) {
+	n := 1
+	val := golisp.Car(args)
+	if val != nil {
+		if !golisp.IntegerP(val) {
+			return 0, errors.New(fmt.Sprintf("%s requires an integer argument", name))
+		}
+		n = int(golisp.IntegerValue(val))
+	}
+	return n, nil
+}
+
 func makePrimitiveFunctionWithMultiplier(name string, action func(multiplier int)) {
 	golisp.MakePrimitiveFunction(name, "0|1",
 		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
 			if n, err := argumentCountValue(name, args, env); err == nil {
+				action(n)
+			}
+			return nil, err
+		})
+}
+
+func argumentStringValue(name string, args *golisp.Data, env *golisp.SymbolTableFrame) (string, error) {
+	n := ""
+	val := golisp.Car(args)
+	if val != nil {
+		if !golisp.StringP(val) {
+			return "", errors.New(fmt.Sprintf("%s requires a string argument", name))
+		}
+		n = golisp.StringValue(val)
+	}
+	return n, nil
+}
+
+func makePrimitiveFunctionWithString(name string, action func(s string)) {
+	golisp.MakePrimitiveFunction(name, "1",
+		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+			if n, err := argumentStringValue(name, args, env); err == nil {
 				action(n)
 			}
 			return nil, err
@@ -71,18 +106,10 @@ func init() {
 	makePrimitiveFunctionWithMultiplier("half-page-up", func(m int) {
 		editor.HalfPageUp(m)
 	})
-}
 
-func argumentCountValue(name string, args *golisp.Data, env *golisp.SymbolTableFrame) (int, error) {
-	n := 1
-	val := golisp.Car(args)
-	if val != nil {
-		if !golisp.IntegerP(val) {
-			return 0, errors.New(fmt.Sprintf("%s requires an integer argument", name))
-		}
-		n = int(golisp.IntegerValue(val))
-	}
-	return n, nil
+	makePrimitiveFunctionWithString("print", func(s string) {
+		fmt.Printf("%s\n", s)
+	})
 }
 
 func (c *Commander) ParseEval(command string) string {
@@ -93,5 +120,15 @@ func (c *Commander) ParseEval(command string) string {
 		return fmt.Sprintf("ERR %+v", err)
 	} else {
 		return golisp.String(value)
+	}
+}
+
+func (c *Commander) ParseEvalFile(filename string) string {
+	bytes, err := ioutil.ReadFile(filename)
+	if err == nil {
+		contents := string(bytes)
+		return c.ParseEval(contents)
+	} else {
+		return err.Error()
 	}
 }
