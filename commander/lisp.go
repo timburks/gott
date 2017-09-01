@@ -109,7 +109,10 @@ func init() {
 	})
 
 	makePrimitiveFunctionWithString("print", func(s string) {
+		// if we are running in batch (eval) mode, write to output
 		os.Stdout.Write([]byte(s + "\n"))
+		// if we are running in the editor, write to buffer 0
+
 	})
 }
 

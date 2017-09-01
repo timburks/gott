@@ -1,7 +1,7 @@
 ;;
 ;; prints a list of symbols defined in the top-level namespace.
 ;;
-(write-line
+(print
   (string-join
     (sort
       (map (lambda (x) (str x))

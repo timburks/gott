@@ -433,6 +433,8 @@ func (c *Commander) PerformCommand() {
 			}
 		case "buffers":
 			e.ListBuffers()
+		case "clear":
+			e.GetBuffer().LoadBytes([]byte{})
 		case "eval":
 			output := c.ParseEval(string(e.Bytes()))
 			e.SelectBuffer(0)

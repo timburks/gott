@@ -141,8 +141,8 @@ type Editor interface {
 }
 
 type Buffer interface {
-	// Load bytes into a buffer.
-	LoadBytes(bytes []byte)
+	// Load bytes into a buffer returning the previous buffer contents.
+	LoadBytes(bytes []byte) []byte
 
 	// Buffer information.
 	GetIndex() int

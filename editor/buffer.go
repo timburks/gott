@@ -69,7 +69,8 @@ func (b *Buffer) SetFileName(name string) {
 	b.Name = name
 }
 
-func (b *Buffer) LoadBytes(bytes []byte) {
+func (b *Buffer) LoadBytes(bytes []byte) []byte {
+	previous := b.Bytes()
 	s := string(bytes)
 	lines := strings.Split(s, "\n")
 	b.rows = make([]*Row, 0)
@@ -77,6 +78,7 @@ func (b *Buffer) LoadBytes(bytes []byte) {
 		b.rows = append(b.rows, NewRow(line))
 	}
 	b.Highlighted = false
+	return previous
 }
 
 func (b *Buffer) Bytes() []byte {
