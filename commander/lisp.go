@@ -35,6 +35,8 @@ func argumentCountValue(name string, args *golisp.Data, env *golisp.SymbolTableF
 			return 0, errors.New(fmt.Sprintf("%s requires an integer argument", name))
 		}
 		n = int(golisp.IntegerValue(val))
+	} else {
+		n = commander.Multiplier()
 	}
 	return n, nil
 }
@@ -76,19 +78,19 @@ func init() {
 		golisp.SymbolWithName("TWO"),
 		golisp.IntegerWithValue(2))
 
-	makePrimitiveFunctionWithMultiplier("move-down", func(m int) {
+	makePrimitiveFunctionWithMultiplier("down", func(m int) {
 		editor.MoveCursor(gott.MoveDown, m)
 	})
 
-	makePrimitiveFunctionWithMultiplier("move-up", func(m int) {
+	makePrimitiveFunctionWithMultiplier("up", func(m int) {
 		editor.MoveCursor(gott.MoveUp, m)
 	})
 
-	makePrimitiveFunctionWithMultiplier("move-left", func(m int) {
+	makePrimitiveFunctionWithMultiplier("left", func(m int) {
 		editor.MoveCursor(gott.MoveLeft, m)
 	})
 
-	makePrimitiveFunctionWithMultiplier("move-right", func(m int) {
+	makePrimitiveFunctionWithMultiplier("right", func(m int) {
 		editor.MoveCursor(gott.MoveRight, m)
 	})
 
@@ -106,6 +108,14 @@ func init() {
 
 	makePrimitiveFunctionWithMultiplier("half-page-up", func(m int) {
 		editor.HalfPageUp(m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("beginning-of-line", func(m int) {
+		editor.MoveToBeginningOfLine()
+	})
+
+	makePrimitiveFunctionWithMultiplier("end-of-line", func(m int) {
+		editor.MoveToEndOfLine()
 	})
 
 	makePrimitiveFunctionWithString("print", func(s string) {

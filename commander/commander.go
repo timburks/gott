@@ -111,25 +111,25 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		case gott.KeyEsc:
 			break
 		case gott.KeyCtrlB, gott.KeyPgup:
-			e.PageUp(c.Multiplier())
+			c.ParseEval("(page-up)")
 		case gott.KeyCtrlF, gott.KeyPgdn:
-			e.PageDown(c.Multiplier())
+			c.ParseEval("(page-down)")
 		case gott.KeyCtrlD:
-			e.HalfPageDown(c.Multiplier())
+			c.ParseEval("(half-page-down)")
 		case gott.KeyCtrlU:
-			e.HalfPageUp(c.Multiplier())
+			c.ParseEval("(half-page-up)")
 		case gott.KeyCtrlA, gott.KeyHome:
-			e.MoveToBeginningOfLine()
+			c.ParseEval("(beginning-of-line)")
 		case gott.KeyCtrlE, gott.KeyEnd:
-			e.MoveToEndOfLine()
+			c.ParseEval("(end-of-line)")
 		case gott.KeyArrowUp:
-			e.MoveCursor(gott.MoveUp, c.Multiplier())
+			c.ParseEval("(up)")
 		case gott.KeyArrowDown:
-			e.MoveCursor(gott.MoveDown, c.Multiplier())
+			c.ParseEval("(down)")
 		case gott.KeyArrowLeft:
-			e.MoveCursor(gott.MoveLeft, c.Multiplier())
+			c.ParseEval("(left)")
 		case gott.KeyArrowRight:
-			e.MoveCursor(gott.MoveRight, c.Multiplier())
+			c.ParseEval("(right)")
 		}
 	}
 	if ch != 0 {
@@ -163,13 +163,13 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// cursor movement isn't logged
 		//
 		case 'h':
-			e.MoveCursor(gott.MoveLeft, c.Multiplier())
+			c.ParseEval("(left)")
 		case 'j':
-			e.MoveCursor(gott.MoveDown, c.Multiplier())
+			c.ParseEval("(down)")
 		case 'k':
-			e.MoveCursor(gott.MoveUp, c.Multiplier())
+			c.ParseEval("(up)")
 		case 'l':
-			e.MoveCursor(gott.MoveRight, c.Multiplier())
+			c.ParseEval("(right)")
 		case 'w':
 			e.MoveCursorToNextWord(c.Multiplier())
 		case 'b':
