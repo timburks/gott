@@ -118,6 +118,14 @@ func init() {
 		editor.MoveToEndOfLine()
 	})
 
+	makePrimitiveFunctionWithMultiplier("next-word", func(m int) {
+		editor.MoveCursorToNextWord(m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("previous-word", func(m int) {
+		editor.MoveCursorToPreviousWord(m)
+	})
+
 	makePrimitiveFunctionWithString("print", func(s string) {
 		if commander.batch {
 			// if we are running in batch (eval) mode, write to output

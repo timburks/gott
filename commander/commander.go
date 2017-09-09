@@ -171,9 +171,9 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		case 'l':
 			c.ParseEval("(right)")
 		case 'w':
-			e.MoveCursorToNextWord(c.Multiplier())
+			c.ParseEval("(next-word)")
 		case 'b':
-			e.MoveCursorToPreviousWord(c.Multiplier())
+			c.ParseEval("(previous-word)")
 		//
 		// "performed" operations are saved for undo and repetition
 		//
