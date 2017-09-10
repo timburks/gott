@@ -333,7 +333,10 @@ func (c *Commander) ProcessKeyLispMode(event *gott.Event) error {
 			c.mode = gott.ModeEdit
 		case gott.KeyEnter:
 			c.message = c.ParseEval(c.lispText)
-			c.mode = gott.ModeEdit
+			// if evaluation didn't change the mode, set it back to edit
+			if c.mode == gott.ModeLisp {
+				c.mode = gott.ModeEdit
+			}
 		case gott.KeyBackspace2:
 			if len(c.lispText) > 0 {
 				c.lispText = c.lispText[0 : len(c.lispText)-1]
