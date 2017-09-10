@@ -86,7 +86,7 @@ func (s *Screen) RenderMessageBar(e gott.Editor, c gott.Commander) {
 	var line string
 	switch c.GetMode() {
 	case gott.ModeCommand:
-		line += ":" + c.GetCommand()
+		line += ":" + c.GetCommandText()
 	case gott.ModeSearch:
 		line += "/" + c.GetSearchText()
 	case gott.ModeLisp:

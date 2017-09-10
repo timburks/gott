@@ -37,7 +37,7 @@ func argumentCountValue(name string, args *golisp.Data, env *golisp.SymbolTableF
 		}
 		n = int(golisp.IntegerValue(val))
 	} else {
-		n = commander.Multiplier()
+		n = commander.GetMultiplier()
 	}
 	return n, nil
 }
@@ -171,7 +171,7 @@ func init() {
 		editor.PerformUndo()
 	})
 
-	makePrimitiveFunctionWithMultiplier("repeat-last-command", func(m int) {
+	makePrimitiveFunctionWithMultiplier("repeat", func(m int) {
 		editor.Repeat()
 	})
 

@@ -24,16 +24,16 @@ import (
 
 // The Commander converts user input into commands for the Editor.
 type Commander struct {
-	editor     gott.Editor
-	batch      bool   // true if commander is running a lisp script
-	mode       int    // editor mode
-	debug      bool   // debug mode displays information about events (key codes, etc)
-	editKeys   string // edit key sequences in progress
-	command    string // command as it is being typed on the command line
-	searchText string // text for searches as it is being typed
-	lispText   string // lisp command as it is being typed
-	message    string // status message
-	multiplier string // multiplier string as it is being entered
+	editor         gott.Editor
+	batch          bool   // true if commander is running a lisp script
+	mode           int    // editor mode
+	debug          bool   // debug mode displays information about events (key codes, etc)
+	editKeys       string // edit key sequences in progress
+	commandText    string // command as it is being typed on the command line
+	searchText     string // text for searches as it is being typed
+	lispText       string // lisp command as it is being typed
+	multiplierText string // multiplier string as it is being entered
+	message        string // status message
 }
 
 func NewCommander(e gott.Editor) *Commander {
@@ -109,10 +109,10 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		case "r":
 			if key != 0 {
 				if key == gott.KeySpace {
-					e.Perform(&operations.ReplaceCharacter{Character: rune(' ')}, c.Multiplier())
+					e.Perform(&operations.ReplaceCharacter{Character: rune(' ')}, c.GetMultiplier())
 				}
 			} else if ch != 0 {
-				e.Perform(&operations.ReplaceCharacter{Character: rune(event.Ch)}, c.Multiplier())
+				e.Perform(&operations.ReplaceCharacter{Character: rune(event.Ch)}, c.GetMultiplier())
 			}
 		case "y":
 			switch ch {
@@ -157,13 +157,13 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// command multipliers are saved when operations are created
 		//
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			c.multiplier += string(ch)
+			c.multiplierText += string(ch)
 		//
 		// commands go to the message bar
 		//
 		case ':':
 			c.mode = gott.ModeCommand
-			c.command = ""
+			c.commandText = ""
 		//
 		// search queries go to the message bar
 		//
@@ -236,7 +236,7 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// repeat
 		//
 		case '.':
-			c.ParseEval("(repeat-last-command)")
+			c.ParseEval("(repeat)")
 		}
 	}
 	return nil
@@ -285,15 +285,15 @@ func (c *Commander) ProcessKeyCommandMode(event *gott.Event) error {
 		case gott.KeyEnter:
 			c.PerformCommand()
 		case gott.KeyBackspace2:
-			if len(c.command) > 0 {
-				c.command = c.command[0 : len(c.command)-1]
+			if len(c.commandText) > 0 {
+				c.commandText = c.commandText[0 : len(c.commandText)-1]
 			}
 		case gott.KeySpace:
-			c.command += " "
+			c.commandText += " "
 		}
 	}
 	if ch != 0 {
-		c.command = c.command + string(ch)
+		c.commandText = c.commandText + string(ch)
 	}
 	return nil
 }
@@ -373,7 +373,7 @@ func (c *Commander) PerformCommand() {
 
 	e := c.editor
 
-	parts := strings.Split(c.command, " ")
+	parts := strings.Split(c.commandText, " ")
 	if len(parts) > 0 {
 
 		i, err := strconv.ParseInt(parts[0], 10, 64)
@@ -466,20 +466,20 @@ func (c *Commander) PerformCommand() {
 			c.message = ""
 		}
 	}
-	c.command = ""
+	c.commandText = ""
 	c.mode = gott.ModeEdit
 }
 
-func (c *Commander) Multiplier() int {
-	if c.multiplier == "" {
+func (c *Commander) GetMultiplier() int {
+	if c.multiplierText == "" {
 		return 1
 	}
-	i, err := strconv.ParseInt(c.multiplier, 10, 64)
+	i, err := strconv.ParseInt(c.multiplierText, 10, 64)
 	if err != nil {
-		c.multiplier = ""
+		c.multiplierText = ""
 		return 1
 	}
-	c.multiplier = ""
+	c.multiplierText = ""
 	return int(i)
 }
 
@@ -491,8 +491,8 @@ func (c *Commander) GetLispText() string {
 	return c.lispText
 }
 
-func (c *Commander) GetCommand() string {
-	return c.command
+func (c *Commander) GetCommandText() string {
+	return c.commandText
 }
 
 func (c *Commander) GetMessage() string {

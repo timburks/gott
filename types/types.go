@@ -183,7 +183,7 @@ type Commander interface {
 	GetModeName() string
 	GetSearchText() string
 	GetLispText() string
-	GetCommand() string
+	GetCommandText() string
 	GetMessage() string
 }
 
