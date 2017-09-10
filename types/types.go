@@ -180,6 +180,7 @@ type InsertOperation interface {
 type Commander interface {
 	SetMode(int)
 	GetMode() int
+	GetModeName() string
 	GetSearchText() string
 	GetLispText() string
 	GetCommand() string

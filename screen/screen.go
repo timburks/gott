@@ -67,7 +67,7 @@ func (s *Screen) SetCell(j int, i int, c rune, color gott.Color) {
 
 func (s *Screen) RenderInfoBar(e gott.Editor, c gott.Commander) {
 	finalText := fmt.Sprintf(" %d/%d ", e.GetCursor().Row, e.GetBuffer().GetRowCount())
-	text := fmt.Sprintf(" [%d] %s ", e.GetBuffer().GetIndex(), e.GetBuffer().GetName())
+	text := fmt.Sprintf(" [%d] %s *%s* ", e.GetBuffer().GetIndex(), e.GetBuffer().GetName(), c.GetModeName())
 	if e.GetBuffer().GetReadOnly() {
 		text = text + "(read-only)"
 	}

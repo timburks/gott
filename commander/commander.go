@@ -48,6 +48,25 @@ func (c *Commander) SetMode(m int) {
 	c.mode = m
 }
 
+func (c *Commander) GetModeName() string {
+	switch c.mode {
+	case gott.ModeEdit:
+		return "edit"
+	case gott.ModeInsert:
+		return "insert"
+	case gott.ModeCommand:
+		return "command"
+	case gott.ModeSearch:
+		return "search"
+	case gott.ModeLisp:
+		return "lisp"
+	case gott.ModeQuit:
+		return "quit"
+	default:
+		return "unknown"
+	}
+}
+
 func (c *Commander) ProcessEvent(event *gott.Event) error {
 	if c.debug {
 		c.message = fmt.Sprintf("event=%+v", event)
@@ -212,7 +231,7 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// undo
 		//
 		case 'u':
-			c.ParseEval("(perform-undo)")
+			c.ParseEval("(undo)")
 		//
 		// repeat
 		//

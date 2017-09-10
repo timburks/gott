@@ -167,7 +167,7 @@ func init() {
 		editor.Perform(&operations.ReverseCaseCharacter{}, m)
 	})
 
-	makePrimitiveFunctionWithMultiplier("perform-undo", func(m int) {
+	makePrimitiveFunctionWithMultiplier("undo", func(m int) {
 		editor.PerformUndo()
 	})
 
