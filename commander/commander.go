@@ -78,14 +78,14 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		case "c":
 			switch ch {
 			case 'w':
-				e.Perform(&operations.ChangeWord{Commander: c}, c.Multiplier())
+				c.ParseEval("(change-word)")
 			}
 		case "d":
 			switch ch {
 			case 'd':
-				e.Perform(&operations.DeleteRow{}, c.Multiplier())
+				c.ParseEval("(delete-row)")
 			case 'w':
-				e.Perform(&operations.DeleteWord{}, c.Multiplier())
+				c.ParseEval("(delete-word)")
 			}
 		case "r":
 			if key != 0 {
@@ -98,7 +98,7 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		case "y":
 			switch ch {
 			case 'y': // YankRow
-				e.YankRow(c.Multiplier())
+				c.ParseEval("(yank-row)")
 			default:
 				break
 			}
@@ -178,25 +178,25 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// "performed" operations are saved for undo and repetition
 		//
 		case 'i':
-			e.Perform(&operations.Insert{Position: gott.InsertAtCursor, Commander: c}, c.Multiplier())
+			c.ParseEval("(insert-at-cursor)")
 		case 'a':
-			e.Perform(&operations.Insert{Position: gott.InsertAfterCursor, Commander: c}, c.Multiplier())
+			c.ParseEval("(insert-after-cursor)")
 		case 'I':
-			e.Perform(&operations.Insert{Position: gott.InsertAtStartOfLine, Commander: c}, c.Multiplier())
+			c.ParseEval("(insert-at-start-of-line)")
 		case 'A':
-			e.Perform(&operations.Insert{Position: gott.InsertAfterEndOfLine, Commander: c}, c.Multiplier())
+			c.ParseEval("(insert-after-end-of-line)")
 		case 'o':
-			e.Perform(&operations.Insert{Position: gott.InsertAtNewLineBelowCursor, Commander: c}, c.Multiplier())
+			c.ParseEval("(insert-at-new-line-below-cursor)")
 		case 'O':
-			e.Perform(&operations.Insert{Position: gott.InsertAtNewLineAboveCursor, Commander: c}, c.Multiplier())
+			c.ParseEval("(insert-at-new-line-above-cursor)")
 		case 'x':
-			e.Perform(&operations.DeleteCharacter{}, c.Multiplier())
+			c.ParseEval("(delete-character)")
 		case 'J':
-			e.Perform(&operations.JoinLine{}, c.Multiplier())
-		case 'p': // PasteText
-			e.Perform(&operations.Paste{}, c.Multiplier())
-		case '~': // reverse case
-			e.Perform(&operations.ReverseCaseCharacter{}, c.Multiplier())
+			c.ParseEval("(join-line)")
+		case 'p':
+			c.ParseEval("(paste)")
+		case '~':
+			c.ParseEval("(reverse-case-character)")
 		//
 		// a few keys open multi-key commands
 		//
@@ -212,12 +212,12 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// undo
 		//
 		case 'u':
-			e.PerformUndo()
+			c.ParseEval("(perform-undo)")
 		//
 		// repeat
 		//
 		case '.':
-			e.Repeat()
+			c.ParseEval("(repeat-last-command)")
 		}
 	}
 	return nil

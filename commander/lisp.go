@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/steelseries/golisp"
+	"github.com/timburks/gott/operations"
 	gott "github.com/timburks/gott/types"
 )
 
@@ -124,6 +125,70 @@ func init() {
 
 	makePrimitiveFunctionWithMultiplier("previous-word", func(m int) {
 		editor.MoveCursorToPreviousWord(m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("insert-at-cursor", func(m int) {
+		editor.Perform(&operations.Insert{Position: gott.InsertAtCursor, Commander: commander}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("insert-after-cursor", func(m int) {
+		editor.Perform(&operations.Insert{Position: gott.InsertAfterCursor, Commander: commander}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("insert-at-start-of-line", func(m int) {
+		editor.Perform(&operations.Insert{Position: gott.InsertAtStartOfLine, Commander: commander}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("insert-after-end-of-line", func(m int) {
+		editor.Perform(&operations.Insert{Position: gott.InsertAfterEndOfLine, Commander: commander}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("insert-at-new-line-below-cursor", func(m int) {
+		editor.Perform(&operations.Insert{Position: gott.InsertAtNewLineBelowCursor, Commander: commander}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("insert-at-new-line-above-cursor", func(m int) {
+		editor.Perform(&operations.Insert{Position: gott.InsertAtNewLineAboveCursor, Commander: commander}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("delete-character", func(m int) {
+		editor.Perform(&operations.DeleteCharacter{}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("join-line", func(m int) {
+		editor.Perform(&operations.JoinLine{}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("paste", func(m int) {
+		editor.Perform(&operations.Paste{}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("reverse-case-character", func(m int) {
+		editor.Perform(&operations.ReverseCaseCharacter{}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("perform-undo", func(m int) {
+		editor.PerformUndo()
+	})
+
+	makePrimitiveFunctionWithMultiplier("repeat-last-command", func(m int) {
+		editor.Repeat()
+	})
+
+	makePrimitiveFunctionWithMultiplier("change-word", func(m int) {
+		editor.Perform(&operations.ChangeWord{Commander: commander}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("delete-row", func(m int) {
+		editor.Perform(&operations.DeleteRow{}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("delete-word", func(m int) {
+		editor.Perform(&operations.DeleteWord{}, m)
+	})
+
+	makePrimitiveFunctionWithMultiplier("yank-row", func(m int) {
+		editor.YankRow(m)
 	})
 
 	makePrimitiveFunctionWithString("print", func(s string) {
