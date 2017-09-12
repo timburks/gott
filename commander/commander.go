@@ -18,26 +18,35 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/timburks/gott/operations"
 	gott "github.com/timburks/gott/types"
 )
 
 // The Commander converts user input into commands for the Editor.
 type Commander struct {
 	editor         gott.Editor
-	batch          bool   // true if commander is running a lisp script
-	mode           int    // editor mode
-	debug          bool   // debug mode displays information about events (key codes, etc)
-	editKeys       string // edit key sequences in progress
-	commandText    string // command as it is being typed on the command line
-	searchText     string // text for searches as it is being typed
-	lispText       string // lisp command as it is being typed
-	multiplierText string // multiplier string as it is being entered
-	message        string // status message
+	batch          bool     // true if commander is running a lisp script
+	mode           int      // editor mode
+	debug          bool     // debug mode displays information about events (key codes, etc)
+	editKeys       string   // edit key sequences in progress
+	commandText    string   // command as it is being typed on the command line
+	searchText     string   // text for searches as it is being typed
+	lispText       string   // lisp command as it is being typed
+	multiplierText string   // multiplier string as it is being entered
+	message        string   // status message
+	lastKey        gott.Key // last key pressed
+	lastCh         rune     // last character pressed (if key == 0)
 }
 
 func NewCommander(e gott.Editor) *Commander {
 	return &Commander{editor: e, mode: gott.ModeEdit}
+}
+
+func (c *Commander) GetLastKey() gott.Key {
+	return c.lastKey
+}
+
+func (c *Commander) GetLastCh() rune {
+	return c.lastCh
 }
 
 func (c *Commander) GetMode() int {
@@ -56,7 +65,7 @@ func (c *Commander) GetModeName() string {
 		return "insert"
 	case gott.ModeCommand:
 		return "command"
-	case gott.ModeSearch:
+	case gott.ModeSearchForward:
 		return "search"
 	case gott.ModeLisp:
 		return "lisp"
@@ -86,10 +95,11 @@ func (c *Commander) ProcessResize(event *gott.Event) error {
 }
 
 func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
-	e := c.editor
-
 	key := event.Key
 	ch := event.Ch
+
+	c.lastKey = event.Key
+	c.lastCh = event.Ch
 
 	// multikey commands have highest precedence
 	if len(c.editKeys) > 0 {
@@ -107,12 +117,8 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 				c.ParseEval("(delete-word)")
 			}
 		case "r":
-			if key != 0 {
-				if key == gott.KeySpace {
-					e.Perform(&operations.ReplaceCharacter{Character: rune(' ')}, c.GetMultiplier())
-				}
-			} else if ch != 0 {
-				e.Perform(&operations.ReplaceCharacter{Character: rune(event.Ch)}, c.GetMultiplier())
+			if (key != 0 && key == gott.KeySpace) || (ch != 0) {
+				c.ParseEval("(replace-character)")
 			}
 		case "y":
 			switch ch {
@@ -162,22 +168,22 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// commands go to the message bar
 		//
 		case ':':
-			c.mode = gott.ModeCommand
-			c.commandText = ""
-		//
-		// search queries go to the message bar
-		//
-		case '/':
-			c.mode = gott.ModeSearch
-			c.searchText = ""
-		case 'n': // repeat the last search
-			e.PerformSearch(c.searchText)
+			c.ParseEval("(command-mode)")
 		//
 		// lisp commands go to the message bar
 		//
 		case '(':
-			c.mode = gott.ModeLisp
-			c.lispText = "("
+			c.ParseEval("(lisp-mode)")
+		//
+		// search queries go to the message bar
+		//
+		case '/':
+			c.ParseEval("(search-mode)")
+		//
+		// repeat the last search
+		//
+		case 'n':
+			c.ParseEval("(repeat-search)")
 		//
 		// cursor movement isn't logged
 		//
@@ -361,7 +367,7 @@ func (c *Commander) ProcessKey(event *gott.Event) error {
 		err = c.ProcessKeyInsertMode(event)
 	case gott.ModeCommand:
 		err = c.ProcessKeyCommandMode(event)
-	case gott.ModeSearch:
+	case gott.ModeSearchForward:
 		err = c.ProcessKeySearchMode(event)
 	case gott.ModeLisp:
 		err = c.ProcessKeyLispMode(event)

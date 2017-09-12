@@ -15,12 +15,13 @@ package types
 
 // Editor modes
 const (
-	ModeEdit    = 0
-	ModeInsert  = 1
-	ModeCommand = 2
-	ModeSearch  = 3
-	ModeLisp    = 4
-	ModeQuit    = 9999
+	ModeEdit           = 0
+	ModeInsert         = 1
+	ModeCommand        = 2
+	ModeLisp           = 3
+	ModeSearchForward  = 4
+	ModeSearchBackward = 5
+	ModeQuit           = 9999
 )
 
 // Move directions

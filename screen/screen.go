@@ -87,8 +87,10 @@ func (s *Screen) RenderMessageBar(e gott.Editor, c gott.Commander) {
 	switch c.GetMode() {
 	case gott.ModeCommand:
 		line += ":" + c.GetCommandText()
-	case gott.ModeSearch:
+	case gott.ModeSearchForward:
 		line += "/" + c.GetSearchText()
+	case gott.ModeSearchBackward:
+		line += "?" + c.GetSearchText()
 	case gott.ModeLisp:
 		line += c.GetLispText()
 	default:

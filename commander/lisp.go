@@ -28,6 +28,14 @@ import (
 var commander *Commander
 var editor gott.Editor
 
+func makePrimitiveFunction(name string, action func()) {
+	golisp.MakePrimitiveFunction(name, "0",
+		func(args *golisp.Data, env *golisp.SymbolTableFrame) (result *golisp.Data, err error) {
+			action()
+			return nil, err
+		})
+}
+
 func argumentCountValue(name string, args *golisp.Data, env *golisp.SymbolTableFrame) (int, error) {
 	n := 1
 	val := golisp.Car(args)
@@ -189,6 +197,33 @@ func init() {
 
 	makePrimitiveFunctionWithMultiplier("yank-row", func(m int) {
 		editor.YankRow(m)
+	})
+
+	makePrimitiveFunction("command-mode", func() {
+		commander.mode = gott.ModeCommand
+		commander.commandText = ""
+	})
+
+	makePrimitiveFunction("lisp-mode", func() {
+		commander.mode = gott.ModeLisp
+		commander.lispText = "("
+	})
+
+	makePrimitiveFunction("search-mode", func() {
+		commander.mode = gott.ModeSearchForward
+		commander.searchText = ""
+	})
+
+	makePrimitiveFunction("repeat-search", func() {
+		editor.PerformSearch(commander.searchText)
+	})
+
+	makePrimitiveFunctionWithMultiplier("replace-character", func(m int) {
+		if commander.GetLastKey() == gott.KeySpace {
+			editor.Perform(&operations.ReplaceCharacter{Character: rune(' ')}, m)
+		} else {
+			editor.Perform(&operations.ReplaceCharacter{Character: rune(commander.GetLastCh())}, m)
+		}
 	})
 
 	makePrimitiveFunctionWithString("print", func(s string) {
