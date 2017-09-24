@@ -79,12 +79,12 @@ type Editor interface {
 	WriteFile(path string) error
 	Bytes() []byte
 
-	// Text being edited is stored in buffers.
-	GetActiveBuffer() Buffer
-	SelectBuffer(number int) error
-	SelectBufferNext() error
-	SelectBufferPrevious() error
-	ListBuffers()
+	// Text being edited is displayed in windows.
+	GetActiveWindow() Window
+	SelectWindow(number int) error
+	SelectWindowNext() error
+	SelectWindowPrevious() error
+	ListWindows()
 
 	// Manage the cursor location.
 	GetCursor() Point
@@ -140,6 +140,13 @@ type Editor interface {
 	RenderEditWindows(d Display)
 }
 
+type Window interface {
+	GetBuffer() Buffer
+
+	// Set the cursor position
+	SetCursor(d Display)
+}
+
 type Buffer interface {
 	// Load bytes into a buffer returning the previous buffer contents.
 	LoadBytes(bytes []byte) []byte
@@ -148,15 +155,11 @@ type Buffer interface {
 	AppendBytes(bytes []byte)
 
 	// Buffer information.
-	GetIndex() int
 	GetName() string
 	GetReadOnly() bool
 	GetFileName() string
 	GetRowCount() int
 	TextAfter(row, col int) string
-
-	// Set the cursor position
-	SetCursor(d Display)
 }
 
 type Highlighter interface {

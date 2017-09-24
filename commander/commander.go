@@ -389,8 +389,8 @@ func (c *Commander) PerformCommand() {
 		i, err := strconv.ParseInt(parts[0], 10, 64)
 		if err == nil {
 			newRow := int(i - 1)
-			if newRow > e.GetActiveBuffer().GetRowCount()-1 {
-				newRow = e.GetActiveBuffer().GetRowCount() - 1
+			if newRow > e.GetActiveWindow().GetBuffer().GetRowCount()-1 {
+				newRow = e.GetActiveWindow().GetBuffer().GetRowCount() - 1
 			}
 			if newRow < 0 {
 				newRow = 0
@@ -423,7 +423,7 @@ func (c *Commander) PerformCommand() {
 			if len(parts) == 2 {
 				filename = parts[1]
 			} else {
-				filename = e.GetActiveBuffer().GetFileName()
+				filename = e.GetActiveWindow().GetBuffer().GetFileName()
 			}
 			e.WriteFile(filename)
 		case "wq":
@@ -431,18 +431,18 @@ func (c *Commander) PerformCommand() {
 			if len(parts) == 2 {
 				filename = parts[1]
 			} else {
-				filename = e.GetActiveBuffer().GetFileName()
+				filename = e.GetActiveWindow().GetBuffer().GetFileName()
 			}
 			e.WriteFile(filename)
 			c.mode = gott.ModeQuit
 			return
 		case "fmt":
-			out, err := e.Gofmt(e.GetActiveBuffer().GetFileName(), e.Bytes())
+			out, err := e.Gofmt(e.GetActiveWindow().GetBuffer().GetFileName(), e.Bytes())
 			if err == nil {
-				e.GetActiveBuffer().LoadBytes(out)
+				e.GetActiveWindow().GetBuffer().LoadBytes(out)
 			}
 		case "$":
-			newRow := e.GetActiveBuffer().GetRowCount() - 1
+			newRow := e.GetActiveWindow().GetBuffer().GetRowCount() - 1
 			if newRow < 0 {
 				newRow = 0
 			}
@@ -450,11 +450,11 @@ func (c *Commander) PerformCommand() {
 			cursor.Row = newRow
 			cursor.Col = 0
 			e.SetCursor(cursor)
-		case "buffer":
+		case "window":
 			if len(parts) > 1 {
 				number, err := strconv.Atoi(parts[1])
 				if err == nil {
-					err = e.SelectBuffer(number)
+					err = e.SelectWindow(number)
 					if err != nil {
 						c.message = err.Error()
 					} else {
@@ -465,17 +465,17 @@ func (c *Commander) PerformCommand() {
 				}
 			}
 		case "next": // switch to next buffer
-			e.SelectBufferNext()
+			e.SelectWindowNext()
 		case "prev": // switch to previous buffer
-			e.SelectBufferPrevious()
-		case "buffers":
-			e.ListBuffers()
+			e.SelectWindowPrevious()
+		case "windows":
+			e.ListWindows()
 		case "clear":
-			e.GetActiveBuffer().LoadBytes([]byte{})
+			e.GetActiveWindow().GetBuffer().LoadBytes([]byte{})
 		case "eval":
 			output := c.ParseEval(string(e.Bytes()))
-			e.SelectBuffer(0)
-			e.GetActiveBuffer().AppendBytes([]byte(output))
+			e.SelectWindow(0)
+			e.GetActiveWindow().GetBuffer().AppendBytes([]byte(output))
 		case "split":
 			c.message = "unable to split yet"
 		default:

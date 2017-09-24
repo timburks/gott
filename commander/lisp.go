@@ -232,8 +232,8 @@ func init() {
 			os.Stdout.Write([]byte(s + "\n"))
 		} else {
 			// if we are running in the editor, write to buffer 0
-			editor.SelectBuffer(0)
-			editor.GetActiveBuffer().AppendBytes([]byte(s))
+			editor.SelectWindow(0)
+			editor.GetActiveWindow().GetBuffer().AppendBytes([]byte(s))
 		}
 	})
 }
