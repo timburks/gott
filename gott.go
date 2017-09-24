@@ -20,11 +20,9 @@ import (
 	"github.com/timburks/gott/commander"
 	"github.com/timburks/gott/editor"
 	"github.com/timburks/gott/screen"
-	gott "github.com/timburks/gott/types"
 )
 
 func main() {
-	var err error
 
 	filenames := make([]string, 0)
 	var script string
@@ -56,6 +54,22 @@ func main() {
 		// todo: create an empty buffer
 	} else {
 		for _, filename := range filenames {
+
+			fileinfo, err := os.Stat(filename)
+			if err != nil {
+				// try to create a file that doesn't exist
+				file, err := os.Create(filename)
+				if err != nil {
+					log.Printf("%+v", err)
+				} else {
+					file.Close()
+				}
+			} else {
+				log.Printf("%+v", fileinfo)
+				// check fileinfo for various problems...
+
+			}
+
 			err = e.ReadFile(filename)
 			if err != nil {
 				log.Output(1, err.Error())
@@ -64,6 +78,7 @@ func main() {
 	}
 
 	if script != "" {
+		// Run a gott script and exit
 		c.ParseEvalFile(script)
 	} else {
 		// Create a screen to manage display.
@@ -80,10 +95,9 @@ func main() {
 		defer f.Close()
 
 		// Run the main event loop.
-		for c.GetMode() != gott.ModeQuit {
+		for c.IsRunning() {
 			s.Render(e, c)
-			event := s.GetNextEvent()
-			err = c.ProcessEvent(event)
+			err = c.ProcessEvent(s.GetNextEvent())
 			if err != nil {
 				log.Output(1, err.Error())
 			}

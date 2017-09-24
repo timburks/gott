@@ -14,6 +14,7 @@
 package editor
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
 
@@ -23,15 +24,28 @@ import (
 var lastBufferNumber = -1
 
 // A Buffer represents a file being edited
-
 type Buffer struct {
-	number      int
-	Name        string
-	rows        []*Row
-	fileName    string
-	mode        string
-	Highlighted bool
-	ReadOnly    bool
+	origin       gott.Point
+	size         gott.Size
+	number       int
+	Name         string
+	rows         []*Row
+	fileName     string
+	languageMode string
+	Highlighted  bool
+	ReadOnly     bool
+	cursor       gott.Point // cursor position
+	offset       gott.Size  // display offset
+}
+
+// A Window is a view of a buffer.
+type Window struct {
+	buffer *Buffer
+	origin gott.Point
+	size   gott.Size
+	number int
+	cursor gott.Point // cursor position
+	offset gott.Size  // display offset
 }
 
 func NewBuffer() *Buffer {
@@ -62,9 +76,9 @@ func (b *Buffer) GetReadOnly() bool {
 func (b *Buffer) SetFileName(name string) {
 	b.fileName = name
 	if strings.HasSuffix(name, ".go") {
-		b.mode = "go"
+		b.languageMode = "go"
 	} else {
-		b.mode = "txt"
+		b.languageMode = "txt"
 	}
 	b.Name = name
 }
@@ -183,10 +197,12 @@ func checkalphanum(line string, start, end int) bool {
 }
 
 // draw text in an area defined by origin and size with a specified offset into the buffer
-func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size, display gott.Display) {
+func (b *Buffer) Render(display gott.Display) {
+
+	b.adjustDisplayOffsetForScrolling()
 
 	if !b.Highlighted {
-		switch b.mode {
+		switch b.languageMode {
 		case "go":
 			h := NewGoHighlighter()
 			h.Highlight(b)
@@ -194,17 +210,15 @@ func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size, dis
 		b.Highlighted = true
 	}
 
-	for i := origin.Row; i < origin.Row+size.Rows; i++ {
+	for i := b.origin.Row; i < b.origin.Row+b.size.Rows-1; i++ {
 		var line string
 		var colors []gott.Color
-		if (i + offset.Rows) < len(b.rows) {
-
-			line = b.rows[i+offset.Rows].DisplayText()
-			colors = b.rows[i+offset.Rows].Colors
-
-			if offset.Cols < len(line) {
-				line = line[offset.Cols:]
-				colors = colors[offset.Cols:]
+		if (i + b.offset.Rows) < len(b.rows) {
+			line = b.rows[i+b.offset.Rows].DisplayText()
+			colors = b.rows[i+b.offset.Rows].Colors
+			if b.offset.Cols < len(line) {
+				line = line[b.offset.Cols:]
+				colors = colors[b.offset.Cols:]
 			} else {
 				line = ""
 			}
@@ -214,17 +228,60 @@ func (b *Buffer) Render(origin gott.Point, size gott.Size, offset gott.Size, dis
 			colors[0] = gott.ColorWhite
 		}
 		// truncate line to fit screen
-		if len(line) > size.Cols {
-			line = line[0:size.Cols]
-			colors = colors[0:size.Cols]
+		if len(line) > b.size.Cols {
+			line = line[0:b.size.Cols]
+			colors = colors[0:b.size.Cols]
 		}
-
 		for j, c := range line {
 			var color gott.Color = gott.ColorWhite
 			if j < len(colors) {
 				color = colors[j]
 			}
-			display.SetCell(j+origin.Col, i, rune(c), color)
+			display.SetCell(j+b.origin.Col, i, rune(c), color)
 		}
 	}
+
+	// Draw the info bar as a single line at the bottom of the buffer window.
+	infoText := b.getInfoBarText(b.size.Cols)
+	infoRow := b.origin.Row + b.size.Rows - 1
+	for x, ch := range infoText {
+		display.SetCellReversed(x, infoRow, rune(ch), gott.ColorBlack)
+	}
+}
+
+func (b *Buffer) getInfoBarText(length int) string {
+	finalText := fmt.Sprintf(" %d/%d ", b.cursor.Row, b.GetRowCount())
+	text := fmt.Sprintf(" [%d] %s", b.GetIndex(), b.GetName())
+	if b.GetReadOnly() {
+		text = text + "(read-only)"
+	}
+	for len(text) < length-len(finalText)-1 {
+		text = text + " "
+	}
+	text += finalText
+	return text
+}
+
+// Recompute the display offset to keep the cursor onscreen.
+func (b *Buffer) adjustDisplayOffsetForScrolling() {
+	if b.cursor.Row < b.offset.Rows {
+		b.offset.Rows = b.cursor.Row
+	}
+	textRows := b.size.Rows - 1 // save the last row for the info bar
+	if b.cursor.Row-b.offset.Rows >= textRows {
+		b.offset.Rows = b.cursor.Row - textRows + 1
+	}
+	if b.cursor.Col < b.offset.Cols {
+		b.offset.Cols = b.cursor.Col
+	}
+	if b.cursor.Col-b.offset.Cols >= b.size.Cols {
+		b.offset.Cols = b.cursor.Col - b.size.Cols + 1
+	}
+}
+
+func (b *Buffer) SetCursor(d gott.Display) {
+	d.SetCursor(gott.Point{
+		Col: b.cursor.Col - b.offset.Cols,
+		Row: b.cursor.Row - b.offset.Rows,
+	})
 }

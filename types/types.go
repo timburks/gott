@@ -74,16 +74,16 @@ type Editor interface {
 	// Set the size of the screen.
 	SetSize(size Size)
 
-	// Text being edited is stored in buffers.
-	GetBuffer() Buffer
-
 	// File operations.
 	ReadFile(path string) error
 	WriteFile(path string) error
 	Bytes() []byte
 
-	// Buffer management
+	// Text being edited is stored in buffers.
+	GetActiveBuffer() Buffer
 	SelectBuffer(number int) error
+	SelectBufferNext() error
+	SelectBufferPrevious() error
 	ListBuffers()
 
 	// Manage the cursor location.
@@ -101,10 +101,6 @@ type Editor interface {
 	PageDown(multiplier int)
 	HalfPageUp(multiplier int)
 	HalfPageDown(multiplier int)
-
-	// Recompute the display offset to keep the cursor onscreen.
-	Scroll()
-	GetOffset() Size
 
 	// Low-level editing functions.
 	ReplaceCharacterAtCursor(cursor Point, c rune) rune
@@ -139,6 +135,9 @@ type Editor interface {
 
 	// Additional features.
 	Gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error)
+
+	// Display
+	RenderEditWindows(d Display)
 }
 
 type Buffer interface {
@@ -156,8 +155,8 @@ type Buffer interface {
 	GetRowCount() int
 	TextAfter(row, col int) string
 
-	// Draw the buffer contents.
-	Render(origin Point, size Size, offset Size, display Display)
+	// Set the cursor position
+	SetCursor(d Display)
 }
 
 type Highlighter interface {
@@ -180,23 +179,21 @@ type InsertOperation interface {
 
 type Commander interface {
 	SetMode(int)
-	GetMode() int
-	GetModeName() string
-	GetSearchText() string
-	GetLispText() string
-	GetCommandText() string
-	GetMessage() string
+	GetMessageBarText(length int) string
 }
 
 type Color uint16
 
 // Colors
 const (
-	ColorWhite = 8
+	ColorWhite = 0x08
+	ColorBlack = 0x01
 )
 
 type Display interface {
 	SetCell(j int, i int, c rune, color Color)
+	SetCellReversed(j int, i int, c rune, color Color)
+	SetCursor(position Point)
 }
 
 const (

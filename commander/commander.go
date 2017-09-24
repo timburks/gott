@@ -76,6 +76,10 @@ func (c *Commander) GetModeName() string {
 	}
 }
 
+func (c *Commander) IsRunning() bool {
+	return c.mode != gott.ModeQuit
+}
+
 func (c *Commander) ProcessEvent(event *gott.Event) error {
 	if c.debug {
 		c.message = fmt.Sprintf("event=%+v", event)
@@ -385,8 +389,8 @@ func (c *Commander) PerformCommand() {
 		i, err := strconv.ParseInt(parts[0], 10, 64)
 		if err == nil {
 			newRow := int(i - 1)
-			if newRow > e.GetBuffer().GetRowCount()-1 {
-				newRow = e.GetBuffer().GetRowCount() - 1
+			if newRow > e.GetActiveBuffer().GetRowCount()-1 {
+				newRow = e.GetActiveBuffer().GetRowCount() - 1
 			}
 			if newRow < 0 {
 				newRow = 0
@@ -419,7 +423,7 @@ func (c *Commander) PerformCommand() {
 			if len(parts) == 2 {
 				filename = parts[1]
 			} else {
-				filename = e.GetBuffer().GetFileName()
+				filename = e.GetActiveBuffer().GetFileName()
 			}
 			e.WriteFile(filename)
 		case "wq":
@@ -427,18 +431,18 @@ func (c *Commander) PerformCommand() {
 			if len(parts) == 2 {
 				filename = parts[1]
 			} else {
-				filename = e.GetBuffer().GetFileName()
+				filename = e.GetActiveBuffer().GetFileName()
 			}
 			e.WriteFile(filename)
 			c.mode = gott.ModeQuit
 			return
 		case "fmt":
-			out, err := e.Gofmt(e.GetBuffer().GetFileName(), e.Bytes())
+			out, err := e.Gofmt(e.GetActiveBuffer().GetFileName(), e.Bytes())
 			if err == nil {
-				e.GetBuffer().LoadBytes(out)
+				e.GetActiveBuffer().LoadBytes(out)
 			}
 		case "$":
-			newRow := e.GetBuffer().GetRowCount() - 1
+			newRow := e.GetActiveBuffer().GetRowCount() - 1
 			if newRow < 0 {
 				newRow = 0
 			}
@@ -460,14 +464,20 @@ func (c *Commander) PerformCommand() {
 					c.message = err.Error()
 				}
 			}
+		case "next": // switch to next buffer
+			e.SelectBufferNext()
+		case "prev": // switch to previous buffer
+			e.SelectBufferPrevious()
 		case "buffers":
 			e.ListBuffers()
 		case "clear":
-			e.GetBuffer().LoadBytes([]byte{})
+			e.GetActiveBuffer().LoadBytes([]byte{})
 		case "eval":
 			output := c.ParseEval(string(e.Bytes()))
 			e.SelectBuffer(0)
-			e.GetBuffer().AppendBytes([]byte(output))
+			e.GetActiveBuffer().AppendBytes([]byte(output))
+		case "split":
+			c.message = "unable to split yet"
 		default:
 			c.message = ""
 		}
@@ -503,4 +513,24 @@ func (c *Commander) GetCommandText() string {
 
 func (c *Commander) GetMessage() string {
 	return c.message
+}
+
+func (c *Commander) GetMessageBarText(length int) string {
+	var line string
+	switch c.GetMode() {
+	case gott.ModeCommand:
+		line += ":" + c.GetCommandText()
+	case gott.ModeSearchForward:
+		line += "/" + c.GetSearchText()
+	case gott.ModeSearchBackward:
+		line += "?" + c.GetSearchText()
+	case gott.ModeLisp:
+		line += c.GetLispText()
+	default:
+		line += c.GetMessage()
+	}
+	if len(line) > length {
+		line = line[0:length]
+	}
+	return line
 }

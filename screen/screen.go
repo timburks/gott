@@ -14,7 +14,6 @@
 package screen
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/nsf/termbox-go"
@@ -43,21 +42,19 @@ func (s *Screen) Close() {
 
 func (s *Screen) Render(e gott.Editor, c gott.Commander) {
 	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
+
 	var screenSize gott.Size
 	screenSize.Cols, screenSize.Rows = termbox.Size()
 	s.size = screenSize
 
 	editSize := screenSize
-	editSize.Rows -= 2
+	editSize.Rows -= 1
 	e.SetSize(editSize)
 
-	e.Scroll()
-	s.RenderInfoBar(e, c)
-	s.RenderMessageBar(e, c)
-	bufferOrigin := gott.Point{Row: 0, Col: 0}
-	bufferSize := gott.Size{Rows: s.size.Rows - 2, Cols: s.size.Cols}
-	e.GetBuffer().Render(bufferOrigin, bufferSize, e.GetOffset(), s)
-	termbox.SetCursor(e.GetCursor().Col-e.GetOffset().Cols, e.GetCursor().Row-e.GetOffset().Rows)
+	e.RenderEditWindows(s)
+
+	s.RenderMessageBar(c)
+
 	termbox.Flush()
 }
 
@@ -65,42 +62,22 @@ func (s *Screen) SetCell(j int, i int, c rune, color gott.Color) {
 	termbox.SetCell(j, i, c, termbox.Attribute(color), 0x01)
 }
 
-func (s *Screen) RenderInfoBar(e gott.Editor, c gott.Commander) {
-	finalText := fmt.Sprintf(" %d/%d ", e.GetCursor().Row, e.GetBuffer().GetRowCount())
-	text := fmt.Sprintf(" [%d] %s *%s* ", e.GetBuffer().GetIndex(), e.GetBuffer().GetName(), c.GetModeName())
-	if e.GetBuffer().GetReadOnly() {
-		text = text + "(read-only)"
-	}
-	for len(text) < s.size.Cols-len(finalText)-1 {
-		text = text + " "
-	}
-	text += finalText
-	for x, ch := range text {
-		termbox.SetCell(x, s.size.Rows-2,
-			rune(ch),
-			termbox.ColorBlack, termbox.ColorWhite)
-	}
+func (s *Screen) SetCellReversed(j int, i int, c rune, color gott.Color) {
+	termbox.SetCell(j, i, c, termbox.Attribute(color), 0x08)
 }
 
-func (s *Screen) RenderMessageBar(e gott.Editor, c gott.Commander) {
-	var line string
-	switch c.GetMode() {
-	case gott.ModeCommand:
-		line += ":" + c.GetCommandText()
-	case gott.ModeSearchForward:
-		line += "/" + c.GetSearchText()
-	case gott.ModeSearchBackward:
-		line += "?" + c.GetSearchText()
-	case gott.ModeLisp:
-		line += c.GetLispText()
-	default:
-		line += c.GetMessage()
-	}
-	if len(line) > s.size.Cols {
-		line = line[0:s.size.Cols]
-	}
-	for x, ch := range line {
-		termbox.SetCell(x, s.size.Rows-1, rune(ch), termbox.ColorWhite, termbox.ColorBlack)
+func (s *Screen) SetCursor(position gott.Point) {
+	termbox.SetCursor(position.Col, position.Row)
+}
+
+// The message bar is a single line at the bottom of the screen.
+func (s *Screen) RenderMessageBar(c gott.Commander) {
+	text := c.GetMessageBarText(s.size.Cols)
+	for x, ch := range text {
+		termbox.SetCell(x, s.size.Rows-1,
+			rune(ch),
+			termbox.ColorWhite,
+			termbox.ColorBlack)
 	}
 }
 
