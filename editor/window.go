@@ -39,6 +39,12 @@ func NewWindow() *Window {
 	return w
 }
 
+func (w *Window) Copy() *Window {
+	newWindow := &Window{}
+	*newWindow = *w
+	return newWindow
+}
+
 func (w *Window) GetBuffer() gott.Buffer {
 	return w.buffer
 }

@@ -477,7 +477,7 @@ func (c *Commander) PerformCommand() {
 			e.SelectWindow(0)
 			e.GetActiveWindow().GetBuffer().AppendBytes([]byte(output))
 		case "split":
-			c.message = "unable to split yet"
+			e.SplitWindow()
 		default:
 			c.message = ""
 		}

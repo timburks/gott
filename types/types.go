@@ -137,7 +137,11 @@ type Editor interface {
 	Gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error)
 
 	// Display
-	RenderEditWindows(d Display)
+	LayoutWindows()
+	RenderWindows(d Display)
+
+	// Window Operations
+	SplitWindow()
 }
 
 type Window interface {

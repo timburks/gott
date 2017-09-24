@@ -22,10 +22,11 @@ import (
 
 // The Screen draws the state of an Editor.
 type Screen struct {
-	size gott.Size // screen size
+	size   gott.Size // screen size
+	editor gott.Editor
 }
 
-func NewScreen() *Screen {
+func NewScreen(e gott.Editor) *Screen {
 	// Open the terminal.
 	err := termbox.Init()
 	if err != nil {
@@ -33,28 +34,29 @@ func NewScreen() *Screen {
 		return nil
 	}
 	termbox.SetOutputMode(termbox.Output256)
-	return &Screen{}
+	s := &Screen{editor: e}
+	s.Resize()
+	return s
 }
 
 func (s *Screen) Close() {
 	termbox.Close()
 }
 
-func (s *Screen) Render(e gott.Editor, c gott.Commander) {
-	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
-
+func (s *Screen) Resize() {
 	var screenSize gott.Size
 	screenSize.Cols, screenSize.Rows = termbox.Size()
 	s.size = screenSize
-
 	editSize := screenSize
 	editSize.Rows -= 1
-	e.SetSize(editSize)
+	s.editor.SetSize(editSize)
+	s.editor.LayoutWindows()
+}
 
-	e.RenderEditWindows(s)
-
+func (s *Screen) Render(e gott.Editor, c gott.Commander) {
+	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
+	e.RenderWindows(s)
 	s.RenderMessageBar(c)
-
 	termbox.Flush()
 }
 
@@ -84,6 +86,7 @@ func (s *Screen) RenderMessageBar(c gott.Commander) {
 func (s *Screen) GetNextEvent() *gott.Event {
 	event := termbox.PollEvent()
 	if event.Type == termbox.EventResize {
+		s.Resize()
 		termbox.Flush()
 	}
 	return &gott.Event{

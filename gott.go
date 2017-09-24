@@ -82,7 +82,7 @@ func main() {
 		c.ParseEvalFile(script)
 	} else {
 		// Create a screen to manage display.
-		s := screen.NewScreen()
+		s := screen.NewScreen(e)
 		defer s.Close()
 
 		// Open a log file.
