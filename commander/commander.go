@@ -477,7 +477,11 @@ func (c *Commander) PerformCommand() {
 			e.SelectWindow(0)
 			e.GetActiveWindow().GetBuffer().AppendBytes([]byte(output))
 		case "split":
-			e.SplitWindow()
+			e.SplitWindowVertically()
+		case "vsplit":
+			e.SplitWindowVertically()
+		case "hsplit":
+			e.SplitWindowHorizontally()
 		default:
 			c.message = ""
 		}

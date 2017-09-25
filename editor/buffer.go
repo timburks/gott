@@ -23,11 +23,11 @@ import (
 // A Buffer represents a file being edited
 type Buffer struct {
 	Name         string
+	ReadOnly     bool
 	rows         []*Row
 	fileName     string
 	languageMode string
 	Highlighted  bool
-	ReadOnly     bool
 }
 
 func NewBuffer() *Buffer {
@@ -35,6 +35,11 @@ func NewBuffer() *Buffer {
 	b.rows = make([]*Row, 0)
 	b.Highlighted = false
 	return b
+}
+
+func (b *Buffer) SetNameAndReadOnly(name string, readOnly bool) {
+	b.Name = name
+	b.ReadOnly = readOnly
 }
 
 func (b *Buffer) GetName() string {
@@ -60,7 +65,7 @@ func (b *Buffer) SetFileName(name string) {
 }
 
 func (b *Buffer) LoadBytes(bytes []byte) []byte {
-	previous := b.Bytes()
+	previous := b.GetBytes()
 	s := string(bytes)
 	lines := strings.Split(s, "\n")
 	b.rows = make([]*Row, 0)
@@ -79,7 +84,7 @@ func (b *Buffer) AppendBytes(bytes []byte) {
 	}
 }
 
-func (b *Buffer) Bytes() []byte {
+func (b *Buffer) GetBytes() []byte {
 	var s string
 	for i, row := range b.rows {
 		if i > 0 {

@@ -128,6 +128,7 @@ type Editor interface {
 
 	// When the editor is in insert mode, the Insert operation collects changes.
 	SetInsertOperation(insert InsertOperation)
+	GetInsertOperation() InsertOperation
 	CloseInsert()
 
 	// Search.
@@ -141,14 +142,62 @@ type Editor interface {
 	RenderWindows(d Display)
 
 	// Window Operations
-	SplitWindow()
+	SplitWindowVertically()
+	SplitWindowHorizontally()
 }
 
 type Window interface {
+	GetNumber() int
+	GetName() string
 	GetBuffer() Buffer
 
-	// Set the cursor position
-	SetCursor(d Display)
+	GetCursor() Point
+	SetCursor(cursor Point)
+
+	SetCursorForDisplay(d Display)
+	PerformSearch(text string)
+	MoveCursor(direction int, multiplier int)
+	MoveCursorForward() int
+	MoveCursorBackward() int
+	MoveToBeginningOfLine()
+	MoveToEndOfLine()
+	MoveCursorToNextWord(multiplier int)
+	MoveForwardToFirstNonSpace()
+	MoveCursorBackToFirstNonSpace() int
+	MoveCursorBackBeforeCurrentWord() int
+	MoveCursorBackToStartOfCurrentWord()
+	MoveCursorToPreviousWord(multiplier int)
+	KeepCursorInRow()
+	MoveCursorToStartOfLine()
+	MoveCursorToStartOfLineBelowCursor()
+
+	PageUp(multiplier int)
+	PageDown(multiplier int)
+	HalfPageUp(multiplier int)
+	HalfPageDown(multiplier int)
+
+	InsertChar(c rune)
+	InsertRow()
+	BackspaceChar() rune
+	JoinRow(multiplier int) []Point
+	YankRow(multiplier int)
+
+	InsertText(text string, position int) (Point, int)
+	ReverseCaseCharactersAtCursor(multiplier int)
+	ReplaceCharacterAtCursor(cursor Point, c rune) rune
+	DeleteRowsAtCursor(multiplier int) string
+
+	DeleteWordsAtCursor(multiplier int) string
+	DeleteCharactersAtCursor(multiplier int, undo bool, finallyDeleteRow bool) string
+	ChangeWordAtCursor(multiplier int, text string) (string, int)
+
+	// Display
+	Layout(r Rect)
+	Render(d Display)
+
+	// Window Operations
+	SplitVertically() (Window, Window)
+	SplitHorizontally() (Window, Window)
 }
 
 type Buffer interface {
@@ -163,7 +212,11 @@ type Buffer interface {
 	GetReadOnly() bool
 	GetFileName() string
 	GetRowCount() int
+	GetBytes() []byte
 	TextAfter(row, col int) string
+
+	SetNameAndReadOnly(string, bool)
+	SetFileName(string)
 }
 
 type Highlighter interface {
