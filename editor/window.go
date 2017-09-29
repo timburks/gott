@@ -238,7 +238,7 @@ func (w *Window) Render(display gott.Display) {
 				// Draw a vertical dividing bar
 				col := w.child2.origin.Col - 1
 				for row := w.origin.Row; row < w.origin.Row+w.size.Rows; row++ {
-					display.SetCell(col, row, rune('|'), gott.ColorWhite)
+					display.SetCell(col, row, rune('.'), gott.ColorWhite)
 				}
 			}
 		}
@@ -306,7 +306,7 @@ func (w *Window) computeInfoBarText(length int) string {
 		text = text + "(read-only) "
 	}
 	for len(text) <= length-len(finalText)-1 {
-		text = text + "_"
+		text = text + "."
 	}
 	text += finalText
 	return text
