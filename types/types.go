@@ -202,6 +202,7 @@ type Window interface {
 	Close() Window
 	GetWindowNext() Window
 	GetWindowPrevious() Window
+	FindWindow(int) Window
 }
 
 type Buffer interface {

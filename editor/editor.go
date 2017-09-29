@@ -66,15 +66,13 @@ func (e *Editor) ListWindows() {
 }
 
 func (e *Editor) SelectWindow(number int) error {
-	for _, window := range e.allWindows {
-		if window.GetNumber() == number {
-			e.focusedWindow = window
-			e.rootWindow = window
-			e.LayoutWindows()
-			return nil
-		}
+	w := e.rootWindow.FindWindow(number)
+	if w != nil {
+		e.focusedWindow = w
+		return nil
+	} else {
+		return errors.New(fmt.Sprintf("No window exists for identifier %d", number))
 	}
-	return errors.New(fmt.Sprintf("No window exists for identifier %d", number))
 }
 
 func (e *Editor) SelectWindowNext() error {

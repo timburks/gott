@@ -182,6 +182,25 @@ func (w *Window) Close() gott.Window {
 	return parent.GetChildNext()
 }
 
+func (w *Window) FindWindow(number int) gott.Window {
+	if w.number == number {
+		return w
+	}
+	if w.child1 != nil {
+		child := w.child1.FindWindow(number)
+		if child != nil {
+			return child
+		}
+	}
+	if w.child2 != nil {
+		child := w.child2.FindWindow(number)
+		if child != nil {
+			return child
+		}
+	}
+	return nil
+}
+
 func (w *Window) GetWindowNext() gott.Window {
 	parent := w.parent
 	if parent == nil {

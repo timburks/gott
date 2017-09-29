@@ -203,6 +203,8 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 			c.ParseEval("(next-word)")
 		case 'b':
 			c.ParseEval("(previous-word)")
+		case '>':
+			c.ParseEval("(change-window)")
 		//
 		// "performed" operations are saved for undo and repetition
 		//

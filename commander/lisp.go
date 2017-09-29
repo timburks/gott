@@ -135,6 +135,10 @@ func init() {
 		editor.MoveCursorToPreviousWord(m)
 	})
 
+	makePrimitiveFunctionWithMultiplier("change-window", func(m int) {
+		editor.SelectWindow(m)
+	})
+
 	makePrimitiveFunctionWithMultiplier("insert-at-cursor", func(m int) {
 		editor.Perform(&operations.Insert{Position: gott.InsertAtCursor, Commander: commander}, m)
 	})
