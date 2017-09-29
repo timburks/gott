@@ -32,6 +32,7 @@ type Window struct {
 	cursor     gott.Point // cursor position
 	offset     gott.Size  // display offset
 	buffer     *Buffer    // a window either contains a buffer or child windows, but not both
+	parent     *Window    // parent of window
 	child1     *Window    // left/top child
 	child2     *Window    // right/bottom child
 	horizontal bool       // true if split is horizontal
@@ -82,25 +83,22 @@ func (w *Window) Layout(r gott.Rect) {
 		return
 	}
 	// adjust window sizes
+	var r1, r2 gott.Rect
 	if !w.horizontal {
-		r := gott.Rect{Origin: w.origin, Size: w.size}
-		r1 := r
-		r2 := r
+		r1 = r
+		r2 = r
 		r1.Size.Rows = r.Size.Rows / 2
 		r2.Size.Rows = r.Size.Rows - r1.Size.Rows
 		r2.Origin.Row += r1.Size.Rows
-		w.child1.Layout(r1)
-		w.child2.Layout(r2)
 	} else {
-		r1 := r
-		r2 := r
+		r1 = r
+		r2 = r
 		r1.Size.Cols = r.Size.Cols / 2
 		r2.Size.Cols = r.Size.Cols - r1.Size.Cols
 		r2.Origin.Col += r1.Size.Cols
-		w.child1.Layout(r1)
-		w.child2.Layout(r2)
 	}
-
+	w.child1.Layout(r1)
+	w.child2.Layout(r2)
 }
 
 func (w *Window) SplitVertically() (gott.Window, gott.Window) {
@@ -109,11 +107,13 @@ func (w *Window) SplitVertically() (gott.Window, gott.Window) {
 	w1 := w.Copy()
 	w2 := w.Copy()
 
+	w1.parent = w
+	w2.parent = w
+
 	// nil out this buffer and set this window's contents
 	w.buffer = nil
 	w.child1 = w1
 	w.child2 = w2
-
 	w.horizontal = false
 
 	w.Layout(gott.Rect{Origin: w.origin, Size: w.size})
@@ -128,6 +128,9 @@ func (w *Window) SplitHorizontally() (gott.Window, gott.Window) {
 	w1 := w.Copy()
 	w2 := w.Copy()
 
+	w1.parent = w
+	w2.parent = w
+
 	// nil out this buffer and set this window's contents
 	w.buffer = nil
 	w.child1 = w1
@@ -138,6 +141,78 @@ func (w *Window) SplitHorizontally() (gott.Window, gott.Window) {
 
 	// return the new windows
 	return w1, w2
+}
+
+func (w *Window) Close() gott.Window {
+	parent := w.parent
+	if parent == nil {
+		return w
+	}
+	var replacement *Window
+	if w == parent.child1 {
+		replacement = parent.child2
+	}
+	if w == parent.child2 {
+		replacement = parent.child1
+	}
+	if replacement != nil {
+		parent.cursor = replacement.cursor
+		parent.offset = replacement.offset
+		parent.buffer = replacement.buffer
+		parent.child1 = replacement.child1
+		parent.child2 = replacement.child2
+		parent.horizontal = replacement.horizontal
+		if replacement.child1 != nil {
+			parent.child1.parent = parent
+		}
+		if replacement.child2 != nil {
+			parent.child2.parent = parent
+		}
+	}
+	parent.Layout(gott.Rect{Origin: parent.origin, Size: parent.size})
+	return parent.GetChildNext()
+}
+
+func (w *Window) GetWindowNext() gott.Window {
+	parent := w.parent
+	if parent == nil {
+		return w.GetChildNext()
+	}
+	if w == parent.child1 {
+		return parent.child2.GetChildNext()
+	} else if w == parent.child2 {
+		return parent.GetWindowNext()
+	} else {
+		return w.GetChildNext() // we should never get here
+	}
+}
+
+func (w *Window) GetChildNext() gott.Window {
+	if w.buffer != nil {
+		return w
+	}
+	return w.child1.GetChildNext()
+}
+
+func (w *Window) GetWindowPrevious() gott.Window {
+	parent := w.parent
+	if parent == nil {
+		return w.GetChildPrevious()
+	}
+	if w == parent.child2 {
+		return parent.child1.GetChildPrevious()
+	} else if w == parent.child1 {
+		return parent.GetWindowPrevious()
+	} else {
+		return w.GetChildPrevious() // we should never get here
+	}
+}
+
+func (w *Window) GetChildPrevious() gott.Window {
+	if w.buffer != nil {
+		return w
+	}
+	return w.child2.GetChildPrevious()
 }
 
 // draw text in an area defined by origin and size with a specified offset into the buffer
@@ -253,8 +328,8 @@ func (w *Window) SetCursor(cursor gott.Point) {
 
 func (w *Window) SetCursorForDisplay(d gott.Display) {
 	d.SetCursor(gott.Point{
-		Col: w.cursor.Col - w.offset.Cols,
-		Row: w.cursor.Row - w.offset.Rows,
+		Col: w.cursor.Col - w.offset.Cols + w.origin.Col,
+		Row: w.cursor.Row - w.offset.Rows + w.origin.Row,
 	})
 }
 

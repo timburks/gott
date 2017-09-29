@@ -404,6 +404,9 @@ func (c *Commander) PerformCommand() {
 		case "q":
 			c.mode = gott.ModeQuit
 			return
+		case "quit":
+			c.mode = gott.ModeQuit
+			return
 		case "r":
 			if len(parts) == 2 {
 				filename := parts[1]
@@ -464,9 +467,9 @@ func (c *Commander) PerformCommand() {
 					c.message = err.Error()
 				}
 			}
-		case "next": // switch to next buffer
+		case "next": // switch to next window
 			e.SelectWindowNext()
-		case "prev": // switch to previous buffer
+		case "prev": // switch to previous window
 			e.SelectWindowPrevious()
 		case "windows":
 			e.ListWindows()
@@ -482,6 +485,8 @@ func (c *Commander) PerformCommand() {
 			e.SplitWindowVertically()
 		case "hsplit":
 			e.SplitWindowHorizontally()
+		case "close":
+			e.CloseActiveWindow()
 		default:
 			c.message = ""
 		}

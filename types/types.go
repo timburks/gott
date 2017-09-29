@@ -144,6 +144,7 @@ type Editor interface {
 	// Window Operations
 	SplitWindowVertically()
 	SplitWindowHorizontally()
+	CloseActiveWindow()
 }
 
 type Window interface {
@@ -198,6 +199,9 @@ type Window interface {
 	// Window Operations
 	SplitVertically() (Window, Window)
 	SplitHorizontally() (Window, Window)
+	Close() Window
+	GetWindowNext() Window
+	GetWindowPrevious() Window
 }
 
 type Buffer interface {

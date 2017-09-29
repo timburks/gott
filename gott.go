@@ -67,7 +67,6 @@ func main() {
 			} else {
 				log.Printf("%+v", fileinfo)
 				// check fileinfo for various problems...
-
 			}
 
 			err = e.ReadFile(filename)

@@ -78,22 +78,14 @@ func (e *Editor) SelectWindow(number int) error {
 }
 
 func (e *Editor) SelectWindowNext() error {
-	next := e.focusedWindow.GetNumber() + 1
-	if next < len(e.allWindows) {
-		e.focusedWindow = e.allWindows[next]
-		e.rootWindow = e.focusedWindow
-		e.LayoutWindows()
-	}
+	e.focusedWindow = e.focusedWindow.GetWindowNext()
+	e.LayoutWindows()
 	return nil
 }
 
 func (e *Editor) SelectWindowPrevious() error {
-	prev := e.focusedWindow.GetNumber() - 1
-	if prev >= 0 {
-		e.focusedWindow = e.allWindows[prev]
-		e.rootWindow = e.focusedWindow
-		e.LayoutWindows()
-	}
+	e.focusedWindow = e.focusedWindow.GetWindowPrevious()
+	e.LayoutWindows()
 	return nil
 }
 
@@ -392,4 +384,8 @@ func (e *Editor) SplitWindowHorizontally() {
 	e.allWindows = append(e.allWindows, w1)
 	e.allWindows = append(e.allWindows, w2)
 	e.focusedWindow = w1
+}
+
+func (e *Editor) CloseActiveWindow() {
+	e.focusedWindow = e.focusedWindow.Close()
 }
