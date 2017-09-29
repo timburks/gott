@@ -22,8 +22,9 @@ import (
 
 // The Screen draws the state of an Editor.
 type Screen struct {
-	size   gott.Size // screen size
-	editor gott.Editor
+	size        gott.Size // screen size
+	editor      gott.Editor
+	needsLayout bool
 }
 
 func NewScreen(e gott.Editor) *Screen {
@@ -35,7 +36,7 @@ func NewScreen(e gott.Editor) *Screen {
 	}
 	termbox.SetOutputMode(termbox.Output256)
 	s := &Screen{editor: e}
-	s.Resize()
+	s.needsLayout = true
 	return s
 }
 
@@ -43,7 +44,7 @@ func (s *Screen) Close() {
 	termbox.Close()
 }
 
-func (s *Screen) Resize() {
+func (s *Screen) Layout() {
 	var screenSize gott.Size
 	screenSize.Cols, screenSize.Rows = termbox.Size()
 	s.size = screenSize
@@ -54,6 +55,10 @@ func (s *Screen) Resize() {
 }
 
 func (s *Screen) Render(e gott.Editor, c gott.Commander) {
+	if s.needsLayout {
+		s.Layout()
+		s.needsLayout = false
+	}
 	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
 	e.RenderWindows(s)
 	s.RenderMessageBar(c)
@@ -86,7 +91,7 @@ func (s *Screen) RenderMessageBar(c gott.Commander) {
 func (s *Screen) GetNextEvent() *gott.Event {
 	event := termbox.PollEvent()
 	if event.Type == termbox.EventResize {
-		s.Resize()
+		s.needsLayout = true
 		termbox.Flush()
 	}
 	return &gott.Event{

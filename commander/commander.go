@@ -487,6 +487,8 @@ func (c *Commander) PerformCommand() {
 			e.SplitWindowHorizontally()
 		case "close":
 			e.CloseActiveWindow()
+		case "layout":
+			e.LayoutWindows()
 		default:
 			c.message = ""
 		}

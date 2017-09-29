@@ -358,11 +358,10 @@ func (e *Editor) GetActiveWindow() gott.Window {
 
 func (e *Editor) LayoutWindows() {
 	// layout the visible windows
-	screenRect := gott.Rect{
+	e.rootWindow.Layout(gott.Rect{
 		Origin: e.origin,
 		Size:   e.size,
-	}
-	e.rootWindow.Layout(screenRect)
+	})
 }
 
 func (e *Editor) RenderWindows(d gott.Display) {
