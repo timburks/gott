@@ -50,8 +50,6 @@ func NewWindow(e gott.Editor) *Window {
 func (w *Window) Copy() *Window {
 	newWindow := &Window{}
 	*newWindow = *w
-	lastWindowNumber++
-	newWindow.number = lastWindowNumber
 	return newWindow
 }
 
@@ -91,11 +89,12 @@ func (w *Window) Layout(r gott.Rect) {
 		r2.Size.Rows = r.Size.Rows - r1.Size.Rows
 		r2.Origin.Row += r1.Size.Rows
 	} else {
+		borderWidth := 1
 		r1 = r
 		r2 = r
 		r1.Size.Cols = r.Size.Cols / 2
-		r2.Size.Cols = r.Size.Cols - r1.Size.Cols
-		r2.Origin.Col += r1.Size.Cols
+		r2.Size.Cols = r.Size.Cols - r1.Size.Cols - borderWidth
+		r2.Origin.Col += r1.Size.Cols + borderWidth
 	}
 	w.child1.Layout(r1)
 	w.child2.Layout(r2)
@@ -106,6 +105,11 @@ func (w *Window) SplitVertically() (gott.Window, gott.Window) {
 	// make two copies of this window
 	w1 := w.Copy()
 	w2 := w.Copy()
+
+	// update the window numbers
+	w.number = -1
+	lastWindowNumber++
+	w2.number = lastWindowNumber
 
 	w1.parent = w
 	w2.parent = w
@@ -123,10 +127,14 @@ func (w *Window) SplitVertically() (gott.Window, gott.Window) {
 }
 
 func (w *Window) SplitHorizontally() (gott.Window, gott.Window) {
-
 	// make two copies of this window
 	w1 := w.Copy()
 	w2 := w.Copy()
+
+	// update the window numbers
+	w.number = -1
+	lastWindowNumber++
+	w2.number = lastWindowNumber
 
 	w1.parent = w
 	w2.parent = w
@@ -156,6 +164,7 @@ func (w *Window) Close() gott.Window {
 		replacement = parent.child1
 	}
 	if replacement != nil {
+		parent.number = replacement.number
 		parent.cursor = replacement.cursor
 		parent.offset = replacement.offset
 		parent.buffer = replacement.buffer
@@ -225,6 +234,13 @@ func (w *Window) Render(display gott.Display) {
 		}
 		if w.child2 != nil {
 			w.child2.Render(display)
+			if w.horizontal {
+				// Draw a vertical dividing bar
+				col := w.child2.origin.Col - 1
+				for row := w.origin.Row; row < w.origin.Row+w.size.Rows; row++ {
+					display.SetCell(col, row, rune('|'), gott.ColorWhite)
+				}
+			}
 		}
 	}
 }
@@ -277,7 +293,7 @@ func (w *Window) RenderBuffer(display gott.Display) {
 	infoText := w.computeInfoBarText(w.size.Cols)
 	infoRow := w.origin.Row + w.size.Rows - 1
 	for x, ch := range infoText {
-		display.SetCellReversed(x+w.origin.Col, infoRow, rune(ch), gott.ColorBlack)
+		display.SetCell(x+w.origin.Col, infoRow, rune(ch), gott.ColorWhite)
 	}
 }
 
@@ -285,12 +301,12 @@ func (w *Window) RenderBuffer(display gott.Display) {
 func (w *Window) computeInfoBarText(length int) string {
 	b := w.buffer
 	finalText := fmt.Sprintf(" %d/%d ", w.cursor.Row, b.GetRowCount())
-	text := fmt.Sprintf(" [%d] %s", w.GetIndex(), b.GetName())
+	text := fmt.Sprintf("%d> %s ", w.GetIndex(), b.GetName())
 	if b.GetReadOnly() {
-		text = text + "(read-only)"
+		text = text + "(read-only) "
 	}
-	for len(text) < length-len(finalText)-1 {
-		text = text + " "
+	for len(text) <= length-len(finalText)-1 {
+		text = text + "_"
 	}
 	text += finalText
 	return text
