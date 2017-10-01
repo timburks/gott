@@ -17,7 +17,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -26,53 +28,106 @@ import (
 
 // The Editor manages the editing of text in a Buffer.
 type Editor struct {
-	origin        gott.Point           // origin of editing area
-	size          gott.Size            // size of editing area
-	focusedWindow gott.Window          // window with cursor focus
-	rootWindow    gott.Window          // root window for display
-	allWindows    []gott.Window        // all windows being managed by the editor
-	pasteText     string               // used to cut/copy and paste
-	pasteMode     int                  // how to paste the string on the pasteboard
-	previous      gott.Operation       // last operation performed, available to repeat
-	undo          []gott.Operation     // stack of operations to undo
-	insert        gott.InsertOperation // when in insert mode, the current insert operation
+	origin          gott.Point           // origin of editing area
+	size            gott.Size            // size of editing area
+	focusedWindow   gott.Window          // window with cursor focus
+	rootWindow      gott.Window          // root window for display
+	documentWindows map[int]gott.Window  // all windows that contain documents; some may be offscreen
+	pasteText       string               // used to cut/copy and paste
+	pasteMode       int                  // how to paste the string on the pasteboard
+	previous        gott.Operation       // last operation performed, available to repeat
+	undo            []gott.Operation     // stack of operations to undo
+	insert          gott.InsertOperation // when in insert mode, the current insert operation
 }
 
 func NewEditor() *Editor {
 	e := &Editor{}
+	e.documentWindows = make(map[int]gott.Window)
 	w := e.CreateWindow()
 	w.GetBuffer().SetNameAndReadOnly("*output*", true)
 	e.rootWindow = w
+	e.documentWindows[w.GetNumber()] = w
 	return e
 }
 
 func (e *Editor) CreateWindow() gott.Window {
 	e.focusedWindow = NewWindow(e)
-	e.allWindows = append(e.allWindows, e.focusedWindow)
+	e.documentWindows[e.focusedWindow.GetNumber()] = e.focusedWindow
 	return e.focusedWindow
 }
 
 func (e *Editor) ListWindows() {
+	e.SelectWindow(0)
 	var s string
-	for i, window := range e.allWindows {
-		if i > 0 {
-			s += "\n"
+
+	indices := make([]int, 0)
+	for _, w := range e.documentWindows {
+		indices = append(indices, w.GetNumber())
+	}
+	sort.Ints(indices)
+	log.Printf("indices %+v", indices)
+	for _, i := range indices {
+		window := e.documentWindows[i]
+		if window != nil {
+			if s != "" {
+				s += "\n"
+			}
+			s += fmt.Sprintf(" [%d] %s", i, window.GetName())
+		} else {
+			if s != "" {
+				s += "\n"
+			}
+			s += fmt.Sprintf(" [%d] nil", i)
 		}
-		s += fmt.Sprintf(" [%d] %s", window.GetNumber(), window.GetName())
 	}
 	listing := []byte(s)
-	e.SelectWindow(0)
 	e.focusedWindow.GetBuffer().LoadBytes(listing)
 }
 
 func (e *Editor) SelectWindow(number int) error {
+	// first look for an onscreen window
 	w := e.rootWindow.FindWindow(number)
 	if w != nil {
-		e.focusedWindow = w
+		// if we find an onscreen window, give it focus
+		e.focusedWindow = w.(*Window)
 		return nil
-	} else {
-		return errors.New(fmt.Sprintf("No window exists for identifier %d", number))
 	}
+	// next look for an offscreen window
+	w = e.documentWindows[number]
+	if w != nil {
+		// replace the focused window with this one.
+		removedWindow := e.focusedWindow
+		parent := e.focusedWindow.GetParent().(*Window)
+		if parent != nil {
+			if parent.child1 == e.focusedWindow {
+				parent.child1 = w.(*Window)
+				w.(*Window).parent = parent
+				e.focusedWindow = w.(*Window)
+				e.LayoutWindows()
+				e.PurgeIfOffscreenDuplicate(removedWindow.(*Window))
+				return nil
+			}
+			if parent.child2 == e.focusedWindow {
+				parent.child2 = w.(*Window)
+				w.(*Window).parent = parent
+				e.focusedWindow = w.(*Window)
+				e.LayoutWindows()
+				e.PurgeIfOffscreenDuplicate(removedWindow.(*Window))
+				return nil
+			}
+		} else if e.rootWindow == e.focusedWindow {
+			e.rootWindow = w.(*Window)
+			e.focusedWindow = e.rootWindow
+			e.focusedWindow.(*Window).parent = nil
+			e.LayoutWindows()
+			e.PurgeIfOffscreenDuplicate(removedWindow.(*Window))
+			return nil
+		} else {
+			log.Printf("internal error in SelectWindow()")
+		}
+	}
+	// if we get here, the window doesn't exist
+	return errors.New(fmt.Sprintf("No window exists for identifier %d", number))
 }
 
 func (e *Editor) SelectWindowNext() error {
@@ -371,18 +426,37 @@ func (e *Editor) RenderWindows(d gott.Display) {
 
 func (e *Editor) SplitWindowVertically() {
 	w1, w2 := e.focusedWindow.SplitVertically()
-	e.allWindows = append(e.allWindows, w1)
-	e.allWindows = append(e.allWindows, w2)
+	e.documentWindows[w1.GetNumber()] = w1
+	e.documentWindows[w2.GetNumber()] = w2
 	e.focusedWindow = w1
 }
 
 func (e *Editor) SplitWindowHorizontally() {
 	w1, w2 := e.focusedWindow.SplitHorizontally()
-	e.allWindows = append(e.allWindows, w1)
-	e.allWindows = append(e.allWindows, w2)
+	e.documentWindows[w1.GetNumber()] = w1
+	e.documentWindows[w2.GetNumber()] = w2
 	e.focusedWindow = w1
 }
 
 func (e *Editor) CloseActiveWindow() {
+	removedWindow := e.focusedWindow.(*Window)
 	e.focusedWindow = e.focusedWindow.Close()
+	e.PurgeIfOffscreenDuplicate(removedWindow)
+}
+
+func (e *Editor) PurgeIfOffscreenDuplicate(w *Window) {
+	// if the window is onscreen, return
+	if e.rootWindow.FindWindow(w.GetNumber()) != nil {
+		return
+	}
+	// is this window a duplicate?
+	count := 0
+	for _, w2 := range e.documentWindows {
+		if w2.(*Window).buffer == w.buffer {
+			count++
+		}
+	}
+	if (count > 1) && (w.GetNumber() != 0) {
+		delete(e.documentWindows, w.GetNumber())
+	}
 }

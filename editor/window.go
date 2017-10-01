@@ -73,6 +73,14 @@ func (w *Window) GetIndex() int {
 	return w.number
 }
 
+func (w *Window) GetParent() gott.Window {
+	return w.parent
+}
+
+func (w *Window) SetParent(p gott.Window) {
+	w.parent = p.(*Window)
+}
+
 func (w *Window) Layout(r gott.Rect) {
 	w.origin = r.Origin
 	w.size = r.Size

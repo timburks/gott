@@ -84,6 +84,9 @@ type Editor interface {
 	SelectWindow(number int) error
 	SelectWindowNext() error
 	SelectWindowPrevious() error
+
+	// Text being edited is stored in buffers.
+	// Buffers can be displayed in any number of windows (including zero).
 	ListWindows()
 
 	// Manage the cursor location.
@@ -151,6 +154,8 @@ type Window interface {
 	GetNumber() int
 	GetName() string
 	GetBuffer() Buffer
+	GetParent() Window
+	SetParent(w Window)
 
 	GetCursor() Point
 	SetCursor(cursor Point)
