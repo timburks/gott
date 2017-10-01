@@ -277,7 +277,7 @@ func (w *Window) RenderBuffer(display gott.Display) {
 		b.Highlighted = true
 	}
 
-	for i := w.origin.Row; i < w.origin.Row+w.size.Rows-1; i++ {
+	for i := 0; i < w.size.Rows-1; i++ {
 		var line string
 		var colors []gott.Color
 		if (i + w.offset.Rows) < len(b.rows) {
@@ -304,7 +304,7 @@ func (w *Window) RenderBuffer(display gott.Display) {
 			if j < len(colors) {
 				color = colors[j]
 			}
-			display.SetCell(j+w.origin.Col, i, rune(c), color)
+			display.SetCell(j+w.origin.Col, i+w.origin.Row, rune(c), color)
 		}
 	}
 
