@@ -653,7 +653,9 @@ func (w *Window) PageUp(multiplier int) {
 
 func (w *Window) PageDown(multiplier int) {
 	// move to the bottom of the screen
-	w.cursor.Row = w.offset.Rows + w.size.Rows - 1
+	w.cursor.Row = min(
+		w.offset.Rows+w.size.Rows-1,
+		w.buffer.GetRowCount()-1)
 	for m := 0; m < multiplier; m++ {
 		// move down by a page
 		w.MoveCursor(gott.MoveDown, w.size.Rows)
@@ -671,7 +673,9 @@ func (w *Window) HalfPageUp(multiplier int) {
 
 func (w *Window) HalfPageDown(multiplier int) {
 	// move to the bottom of the screen
-	w.cursor.Row = w.offset.Rows + w.size.Rows - 1
+	w.cursor.Row = min(
+		w.offset.Rows+w.size.Rows-1,
+		w.buffer.GetRowCount()-1)
 	for m := 0; m < multiplier; m++ {
 		// move down by a half page
 		w.MoveCursor(gott.MoveDown, w.size.Rows/2)
@@ -986,4 +990,11 @@ func (w *Window) InsertText(text string, position int) (gott.Point, int) {
 		mode = gott.ModeInsert
 	}
 	return w.cursor, mode
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
