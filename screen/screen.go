@@ -49,6 +49,7 @@ func (s *Screen) Layout() {
 	screenSize.Cols, screenSize.Rows = termbox.Size()
 	s.size = screenSize
 	editSize := screenSize
+	// Save the last row on the screen for the message bar.
 	editSize.Rows -= 1
 	s.editor.SetSize(editSize)
 	s.editor.LayoutWindows()
@@ -101,6 +102,7 @@ func (s *Screen) GetNextEvent() *gott.Event {
 	}
 }
 
+// This conversion seems silly, but it keeps termbox dependencies isolated here.
 func key(k termbox.Key) gott.Key {
 	switch k {
 	case termbox.KeyArrowDown:
@@ -129,16 +131,14 @@ func key(k termbox.Key) gott.Key {
 		return gott.KeyCtrlG
 	case termbox.KeyCtrlH:
 		return gott.KeyCtrlH
-	//case termbox.KeyCtrlI:
-	//	return gott.KeyCtrlI
+	// skip termbox.KeyCtrlI, it is handled as KeyTab
 	case termbox.KeyCtrlJ:
 		return gott.KeyCtrlJ
 	case termbox.KeyCtrlK:
 		return gott.KeyCtrlK
 	case termbox.KeyCtrlL:
 		return gott.KeyCtrlL
-	//case termbox.KeyCtrlM:
-	//	return gott.KeyCtrlM
+	// skip termbox.KeyCtrlM, it is handled as KeyEnter
 	case termbox.KeyCtrlN:
 		return gott.KeyCtrlN
 	case termbox.KeyCtrlO:

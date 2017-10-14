@@ -54,7 +54,6 @@ func main() {
 		// todo: create an empty buffer
 	} else {
 		for _, filename := range filenames {
-
 			fileinfo, err := os.Stat(filename)
 			if err != nil {
 				// try to create a file that doesn't exist
@@ -64,20 +63,20 @@ func main() {
 				} else {
 					file.Close()
 				}
-			} else {
-				log.Printf("%+v", fileinfo)
-				// check fileinfo for various problems...
 			}
-
-			err = e.ReadFile(filename)
-			if err != nil {
-				log.Output(1, err.Error())
+			if fileinfo != nil && fileinfo.IsDir() {
+				log.Printf("Directory! %+v", fileinfo)
+			} else {
+				err = e.ReadFile(filename)
+				if err != nil {
+					log.Output(1, err.Error())
+				}
 			}
 		}
 	}
 
 	if script != "" {
-		// Run a gott script and exit
+		// Run a gott script and exit.
 		c.ParseEvalFile(script)
 	} else {
 		// Create a screen to manage display.
