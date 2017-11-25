@@ -50,7 +50,19 @@ func TestReadWriteInvariance(t *testing.T) {
 	final(t, e)
 }
 
-func TestDeleteRow(t *testing.T) {
+func TestDelete3Rows(t *testing.T) {
+	e := setup(t)
+	originalRowCount := e.GetActiveWindow().GetBuffer().GetRowCount()
+	e.SetCursor(gott.Point{Row: 20, Col: 0})
+	e.Perform(&operations.DeleteRow{}, 3)
+	if rowCount := e.GetActiveWindow().GetBuffer().GetRowCount(); rowCount != originalRowCount-3 {
+		t.Errorf("Invalid row count after deletion: %d", rowCount)
+	}
+	e.PerformUndo()
+	final(t, e)
+}
+
+func TestDelete20Rows(t *testing.T) {
 	e := setup(t)
 	e.SetCursor(gott.Point{Row: 20, Col: 0})
 	e.Perform(&operations.DeleteRow{}, 20)

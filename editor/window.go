@@ -865,10 +865,10 @@ func (w *Window) DeleteRowsAtCursor(multiplier int) string {
 	for i := 0; i < multiplier; i++ {
 		row := w.cursor.Row
 		if row < w.buffer.GetRowCount() {
-			if i > 0 {
+			deletedText += string(w.buffer.rows[row].Text)
+			if row < w.buffer.GetRowCount()-1 {
 				deletedText += "\n"
 			}
-			deletedText += string(w.buffer.rows[row].Text)
 			w.buffer.rows = append(w.buffer.rows[0:row], w.buffer.rows[row+1:]...)
 		} else {
 			break
