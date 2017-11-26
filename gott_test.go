@@ -79,7 +79,7 @@ func TestDeleteWord(t *testing.T) {
 	e.Perform(&operations.DeleteWord{}, 5)
 	expected := "remaining before us--that from these"
 	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(19, 0); remainder != expected {
-		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
+		t.Errorf("Unexpected remainder after deletion: '%s' expected '%s'", remainder, expected)
 	}
 	e.PerformUndo()
 	final(t, e)
@@ -228,9 +228,9 @@ func TestChangeWord(t *testing.T) {
 	e := setup(t)
 	e.SetCursor(gott.Point{Row: 3, Col: 0})
 	// change four words
-	e.Perform(&operations.ChangeWord{Text: "47 "}, 4)
+	e.Perform(&operations.ChangeWord{Text: "87 "}, 4)
 	// sample the expected text
-	expected := "47 years ago our fathers brought forth on this"
+	expected := "87 years ago our fathers brought forth on this"
 	if sample := e.GetActiveWindow().GetBuffer().TextAfter(3, 0); sample != expected {
 		t.Errorf("Unexpected sample after paste: '%s'", sample)
 	}

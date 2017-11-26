@@ -878,6 +878,16 @@ func (w *Window) DeleteRowsAtCursor(multiplier int) string {
 	return deletedText
 }
 
+func kindOfWord(c rune) int {
+	if c == ' ' {
+		return gott.WordSpace
+	} else if isAlphaNumeric(c) {
+		return gott.WordAlphaNumeric
+	} else {
+		return gott.WordPunctuation
+	}
+}
+
 func (w *Window) DeleteWordsAtCursor(multiplier int) string {
 	w.buffer.Highlighted = false
 	deletedText := ""
@@ -902,7 +912,7 @@ func (w *Window) DeleteWordsAtCursor(multiplier int) string {
 				if w.cursor.Col > w.buffer.rows[w.cursor.Row].Length()-1 {
 					break
 				}
-				if c == ' ' {
+ 				if c == ' ' {
 					break
 				}
 				c = w.buffer.rows[w.cursor.Row].DeleteChar(w.cursor.Col)

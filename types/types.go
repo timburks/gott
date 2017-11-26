@@ -55,6 +55,13 @@ const (
 	PasteNewLine  = 1
 )
 
+// Word kinds
+const (
+	WordAlphaNumeric = 0
+	WordPunctuation = 1
+	WordSpace = 2
+)
+
 type Point struct {
 	Row int
 	Col int
