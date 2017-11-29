@@ -11,6 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 package editor
 
 import (
@@ -21,9 +22,10 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
+// This is the number of the last window created. Use it to uniquely number windows.
 var lastWindowNumber = -1
 
-// A Window is a view of a buffer.
+// A Window is a view of a buffer OR a container for two other windows.
 type Window struct {
 	editor     gott.Editor
 	number     int
@@ -702,8 +704,6 @@ func (w *Window) ReverseCaseCharactersAtCursor(multiplier int) {
 	}
 }
 
-//foo
-
 func (w *Window) InsertChar(c rune) {
 	insert := w.editor.GetInsertOperation()
 	if insert != nil {
@@ -760,8 +760,8 @@ func (w *Window) BackspaceChar() rune {
 		oldRowText := w.buffer.rows[w.cursor.Row].Text
 		var newCursor gott.Point
 		newCursor.Col = len(w.buffer.rows[w.cursor.Row-1].Text)
-		w.buffer.rows[w.cursor.Row-1].Text = append(w.buffer.rows[w.cursor.Row-1].Text, oldRowText...)
-		w.buffer.rows = append(w.buffer.rows[0:w.cursor.Row], w.buffer.rows[w.cursor.Row+1:]...)
+		w.buffer.rows[w.cursor.Row-1].SetText(append(w.buffer.rows[w.cursor.Row-1].Text, oldRowText...))
+		w.buffer.DeleteRow(w.cursor.Row)
 		w.cursor.Row--
 		w.cursor.Col = newCursor.Col
 		return rune('\n')
@@ -781,8 +781,9 @@ func (w *Window) JoinRow(multiplier int) []gott.Point {
 		oldRowText := w.buffer.rows[w.cursor.Row+1].Text
 		var newCursor gott.Point
 		newCursor.Col = len(w.buffer.rows[w.cursor.Row].Text)
-		w.buffer.rows[w.cursor.Row].Text = append(w.buffer.rows[w.cursor.Row].Text, oldRowText...)
+		w.buffer.rows[w.cursor.Row].SetText(append(w.buffer.rows[w.cursor.Row].Text, oldRowText...))
 		w.buffer.rows = append(w.buffer.rows[0:w.cursor.Row+1], w.buffer.rows[w.cursor.Row+2:]...)
+		//w.buffer.DeleteRow(w.cursor.Row+1)
 		w.cursor.Col = newCursor.Col
 		insertions = append(insertions, w.cursor)
 	}
@@ -895,17 +896,17 @@ func (w *Window) DeleteWordsAtCursor(multiplier int) string {
 		if w.buffer.GetRowCount() == 0 {
 			break
 		}
-		// if the row is empty, delete the row...
 		row := w.cursor.Row
 		col := w.cursor.Col
 		b := w.buffer
 		if col >= b.rows[row].Length() {
+			// if the row is empty, delete the row
 			position := w.cursor.Row
-			w.buffer.rows = append(w.buffer.rows[0:position], w.buffer.rows[position+1:]...)
+			w.buffer.DeleteRow(position)
 			deletedText += "\n"
 			w.KeepCursorInRow()
 		} else {
-			// else do this...
+			// otherwise delete the next word
 			c := w.buffer.rows[w.cursor.Row].DeleteChar(w.cursor.Col)
 			deletedText += string(c)
 			for {

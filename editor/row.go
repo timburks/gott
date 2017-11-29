@@ -11,6 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 package editor
 
 import (
@@ -30,6 +31,10 @@ func NewRow(text string) *Row {
 	r := &Row{}
 	r.setText([]rune(strings.Replace(text, "\t", "        ", -1)))
 	return r
+}
+
+func (r *Row) SetText(text []rune) {
+	r.setText(text)
 }
 
 func (r *Row) setText(text []rune) {
