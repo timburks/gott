@@ -91,7 +91,7 @@ func (b *Buffer) GetBytes() []byte {
 		if i > 0 {
 			s += "\n"
 		}
-		s += string(row.Text)
+		s += string(row.GetText())
 	}
 	return []byte(s)
 }
@@ -112,7 +112,7 @@ func (b *Buffer) GetCharacterAtCursor(cursor gott.Point) rune {
 	if cursor.Row < len(b.rows) {
 		row := b.rows[cursor.Row]
 		if cursor.Col < row.Length() && cursor.Col >= 0 {
-			return row.Text[cursor.Col]
+			return row.GetText()[cursor.Col]
 		}
 	}
 	return rune(0)

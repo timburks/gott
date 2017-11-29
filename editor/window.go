@@ -292,7 +292,7 @@ func (w *Window) RenderBuffer(display gott.Display) {
 		var colors []gott.Color
 		if (i + w.offset.Rows) < len(b.rows) {
 			line = b.rows[i+w.offset.Rows].DisplayText()
-			colors = b.rows[i+w.offset.Rows].Colors
+			colors = b.rows[i+w.offset.Rows].GetColors()
 			if w.offset.Cols < len(line) {
 				line = line[w.offset.Cols:]
 				colors = colors[w.offset.Cols:]
@@ -691,7 +691,7 @@ func (w *Window) ReverseCaseCharactersAtCursor(multiplier int) {
 	w.buffer.Highlighted = false
 	row := w.buffer.rows[w.cursor.Row]
 	for i := 0; i < multiplier; i++ {
-		c := row.Text[w.cursor.Col]
+		c := row.GetText()[w.cursor.Col]
 		if unicode.IsUpper(c) {
 			row.ReplaceChar(w.cursor.Col, unicode.ToLower(c))
 		}
@@ -757,10 +757,10 @@ func (w *Window) BackspaceChar() rune {
 		return c
 	} else if w.cursor.Row > 0 {
 		// remove the current row and join it with the previous one
-		oldRowText := w.buffer.rows[w.cursor.Row].Text
+		oldRowText := w.buffer.rows[w.cursor.Row].GetText()
 		var newCursor gott.Point
-		newCursor.Col = len(w.buffer.rows[w.cursor.Row-1].Text)
-		w.buffer.rows[w.cursor.Row-1].SetText(append(w.buffer.rows[w.cursor.Row-1].Text, oldRowText...))
+		newCursor.Col = len(w.buffer.rows[w.cursor.Row-1].GetText())
+		w.buffer.rows[w.cursor.Row-1].SetText(append(w.buffer.rows[w.cursor.Row-1].GetText(), oldRowText...))
 		w.buffer.DeleteRow(w.cursor.Row)
 		w.cursor.Row--
 		w.cursor.Col = newCursor.Col
@@ -778,10 +778,10 @@ func (w *Window) JoinRow(multiplier int) []gott.Point {
 	// remove the next row and join it with this one
 	insertions := make([]gott.Point, 0)
 	for i := 0; i < multiplier; i++ {
-		oldRowText := w.buffer.rows[w.cursor.Row+1].Text
+		oldRowText := w.buffer.rows[w.cursor.Row+1].GetText()
 		var newCursor gott.Point
-		newCursor.Col = len(w.buffer.rows[w.cursor.Row].Text)
-		w.buffer.rows[w.cursor.Row].SetText(append(w.buffer.rows[w.cursor.Row].Text, oldRowText...))
+		newCursor.Col = len(w.buffer.rows[w.cursor.Row].GetText())
+		w.buffer.rows[w.cursor.Row].SetText(append(w.buffer.rows[w.cursor.Row].GetText(), oldRowText...))
 		w.buffer.rows = append(w.buffer.rows[0:w.cursor.Row+1], w.buffer.rows[w.cursor.Row+2:]...)
 		//w.buffer.DeleteRow(w.cursor.Row+1)
 		w.cursor.Col = newCursor.Col
@@ -798,7 +798,7 @@ func (w *Window) YankRow(multiplier int) {
 	for i := 0; i < multiplier; i++ {
 		position := w.cursor.Row + i
 		if position < w.buffer.GetRowCount() {
-			pasteText += string(w.buffer.rows[position].Text) + "\n"
+			pasteText += string(w.buffer.rows[position].GetText()) + "\n"
 		}
 	}
 
@@ -866,7 +866,7 @@ func (w *Window) DeleteRowsAtCursor(multiplier int) string {
 	for i := 0; i < multiplier; i++ {
 		row := w.cursor.Row
 		if row < w.buffer.GetRowCount() {
-			deletedText += string(w.buffer.rows[row].Text)
+			deletedText += string(w.buffer.rows[row].GetText())
 			if row < w.buffer.GetRowCount()-1 {
 				deletedText += "\n"
 			}

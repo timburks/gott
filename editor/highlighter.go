@@ -49,18 +49,20 @@ func (h *GoHighlighter) Highlight(b *Buffer) {
 
 	for _, r := range b.rows {
 
-		for j, _ := range r.Colors {
-			r.Colors[j] = 0xff
+		colors := r.GetColors()
+
+		for j, _ := range colors {
+			colors[j] = 0xff
 		}
 
-		line := string(r.Text)
+		line := string(r.GetText())
 		matches := h.keywordPattern.FindAllSubmatchIndex([]byte(line), -1)
 		if matches != nil {
 			for _, match := range matches {
 				// if there's an alphanumeric character on either side, skip this
 				if !checkalphanum(line, match[0], match[1]) {
 					for k := match[0]; k < match[1]; k++ {
-						r.Colors[k] = 0x70
+						colors[k] = 0x70
 					}
 				}
 			}
@@ -72,7 +74,7 @@ func (h *GoHighlighter) Highlight(b *Buffer) {
 				// if there's an alphanumeric character on either side, skip this
 				if !checkalphanum(line, match[0], match[1]) {
 					for k := match[0]; k < match[1]; k++ {
-						r.Colors[k] = 0x83
+						colors[k] = 0x83
 					}
 				}
 			}
@@ -82,7 +84,7 @@ func (h *GoHighlighter) Highlight(b *Buffer) {
 		if matches != nil {
 			for _, match := range matches {
 				for k := match[0]; k < match[1]; k++ {
-					r.Colors[k] = 0x71
+					colors[k] = 0x71
 				}
 			}
 		}
@@ -92,7 +94,7 @@ func (h *GoHighlighter) Highlight(b *Buffer) {
 			for _, match := range matches {
 				for k := match[0]; k < match[1]; k++ {
 					x, _ := hex.DecodeString(line[match[0]+2 : match[1]])
-					r.Colors[k] = gott.Color(x[0])
+					colors[k] = gott.Color(x[0])
 				}
 			}
 		}
@@ -100,7 +102,7 @@ func (h *GoHighlighter) Highlight(b *Buffer) {
 		if matches != nil {
 			for _, match := range matches {
 				for k := match[0]; k < match[1]; k++ {
-					r.Colors[k] = 0xe0
+					colors[k] = 0xe0
 				}
 			}
 		}
@@ -108,7 +110,7 @@ func (h *GoHighlighter) Highlight(b *Buffer) {
 		if matches != nil {
 			for _, match := range matches {
 				for k := match[0]; k < match[1]; k++ {
-					r.Colors[k] = 0xf8
+					colors[k] = 0xf8
 				}
 			}
 		}
