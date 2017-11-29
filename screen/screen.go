@@ -11,6 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 package screen
 
 import (
@@ -20,13 +21,14 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// The Screen draws the state of an Editor.
+// Screen draws the state of an editor.
 type Screen struct {
 	size        gott.Size // screen size
 	editor      gott.Editor
 	needsLayout bool
 }
 
+// NewScreen creates a screen for use with a specified editor.
 func NewScreen(e gott.Editor) *Screen {
 	// Open the terminal.
 	err := termbox.Init()
@@ -40,6 +42,7 @@ func NewScreen(e gott.Editor) *Screen {
 	return s
 }
 
+// Close shuts down the display of a screen.
 func (s *Screen) Close() {
 	termbox.Close()
 }

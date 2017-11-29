@@ -25,7 +25,10 @@ import (
 // This is the number of the last window created. Use it to uniquely number windows.
 var lastWindowNumber = -1
 
-// A Window is a view of a buffer OR a container for two other windows.
+// A Window instance manages a rectangular area onscreen.
+// A window can be a view of a buffer or a container for two other windows.
+// When a window contains text, it also has an associated cursor position.
+// Many editing operations are implemented in Window to allow cursor management.
 type Window struct {
 	editor     gott.Editor
 	number     int
@@ -291,7 +294,7 @@ func (w *Window) RenderBuffer(display gott.Display) {
 		var line string
 		var colors []gott.Color
 		if (i + w.offset.Rows) < len(b.rows) {
-			line = b.rows[i+w.offset.Rows].DisplayText()
+			line = b.rows[i+w.offset.Rows].GetString()
 			colors = b.rows[i+w.offset.Rows].GetColors()
 			if w.offset.Cols < len(line) {
 				line = line[w.offset.Cols:]

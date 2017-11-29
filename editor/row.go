@@ -20,32 +20,27 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// A row of text in the editor
+// A Row manages a row of text in a buffer.
+// Rows contain color information to support syntax highlighting.
 type Row struct {
 	text   []rune
 	colors []gott.Color
 }
 
-// We replace any tabs with spaces
+// Upon creation, we replace any tabs with spaces
 func NewRow(text string) *Row {
 	r := &Row{}
-	r.setText([]rune(strings.Replace(text, "\t", "        ", -1)))
+	r.SetText([]rune(strings.Replace(text, "\t", "        ", -1)))
 	return r
 }
 
+// Characters in this slice can be modified but must not be appended or deleted.
 func (r *Row) GetText() []rune {
 	return r.text
 }
 
-func (r *Row) GetColors() []gott.Color {
-	return r.colors
-}
-
+// Setting the text ensure that a colors array exists with the appropriate length.
 func (r *Row) SetText(text []rune) {
-	r.setText(text)
-}
-
-func (r *Row) setText(text []rune) {
 	r.text = text
 	r.colors = make([]gott.Color, len(r.text), len(r.text))
 	for j, _ := range r.colors {
@@ -53,10 +48,17 @@ func (r *Row) setText(text []rune) {
 	}
 }
 
-func (r *Row) DisplayText() string {
+// Colors in this slice can be modified but most not be appended or deleted.
+func (r *Row) GetColors() []gott.Color {
+	return r.colors
+}
+
+// Get a string version of the row contents.
+func (r *Row) GetString() string {
 	return string(r.text)
 }
 
+// Get the row length.
 func (r *Row) Length() int {
 	return len(r.text)
 }
@@ -72,7 +74,7 @@ func (r *Row) InsertChar(col int, c rune) {
 	if col < len(r.text) {
 		line = append(line, r.text[col:]...)
 	}
-	r.setText(line)
+	r.SetText(line)
 }
 
 // replace character at col and return the replaced character
@@ -94,7 +96,7 @@ func (r *Row) DeleteChar(col int) rune {
 		col = len(r.text) - 1
 	}
 	c := rune(r.text[col])
-	r.setText(append(r.text[0:col], r.text[col+1:]...))
+	r.SetText(append(r.text[0:col], r.text[col+1:]...))
 	return c
 }
 
@@ -102,7 +104,7 @@ func (r *Row) DeleteChar(col int) rune {
 func (r *Row) Split(col int) *Row {
 	if col < len(r.text) {
 		after := r.text[col:]
-		r.setText(r.text[0:col])
+		r.SetText(r.text[0:col])
 		return NewRow(string(after))
 	} else {
 		return NewRow("")
@@ -111,7 +113,7 @@ func (r *Row) Split(col int) *Row {
 
 // joins rows by appending the passed-in row to the current row
 func (r *Row) Join(other *Row) {
-	r.setText(append(r.text, other.text...))
+	r.SetText(append(r.text, other.text...))
 }
 
 // returns the text after a specified column

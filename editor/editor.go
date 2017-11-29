@@ -27,7 +27,8 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// The Editor manages the editing of text in a Buffer.
+// The Editor manages text editing in associated buffers and windows.
+// There is typically only one editor in a gott instance.
 type Editor struct {
 	origin          gott.Point           // origin of editing area
 	size            gott.Size            // size of editing area

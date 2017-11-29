@@ -21,7 +21,8 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// A Buffer represents a file being edited
+// A Buffer represents a file being edited. 
+// Buffers are displayed in windows but also may be manipulated offscreen.
 type Buffer struct {
 	Name         string
 	ReadOnly     bool

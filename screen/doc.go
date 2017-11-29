@@ -12,27 +12,5 @@
 // limitations under the License.
 //
 
-package operations
-
-import (
-	gott "github.com/timburks/gott/types"
-)
-
-// Delete a row
-
-type DeleteRow struct {
-	operation
-}
-
-func (op *DeleteRow) Perform(e gott.Editor, multiplier int) gott.Operation {
-	e.MoveCursorToStartOfLine()
-	op.init(e, multiplier)
-	deletedText := e.DeleteRowsAtCursor(op.Multiplier)
-	e.SetPasteBoard(deletedText, gott.PasteNewLine)
-	inverse := &Insert{
-		Position: gott.InsertAtCursor,
-		Text:     deletedText,
-	}
-	inverse.copyForUndo(&op.operation)
-	return inverse
-}
+// Package screen encapsulates all gott interaction with the display and user input.
+package screen

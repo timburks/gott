@@ -11,6 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
+// Command gott is a little text editor that runs in the terminal.
 package main
 
 import (
@@ -84,7 +86,9 @@ func main() {
 		defer s.Close()
 
 		// Open a log file.
-		f, err := os.OpenFile(os.Getenv("HOME")+"/.gottlog", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		f, err := os.OpenFile(
+			os.Getenv("HOME")+"/.gottlog",
+			os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
 			log.Output(1, err.Error())
 			return
