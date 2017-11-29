@@ -283,6 +283,9 @@ const (
 
 // The Display interface supports text and cursor display.
 type Display interface {
+	Close() 
+	GetNextEvent() *Event
+	Render(Editor, Commander)
 	SetCell(j int, i int, c rune, color Color)
 	SetCellReversed(j int, i int, c rune, color Color)
 	SetCursor(position Point)

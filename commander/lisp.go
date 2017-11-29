@@ -46,7 +46,7 @@ func argumentCountValue(name string, args *golisp.Data, env *golisp.SymbolTableF
 		}
 		n = int(golisp.IntegerValue(val))
 	} else {
-		n = commander.GetMultiplier()
+		n = commander.getMultiplier()
 	}
 	return n, nil
 }
@@ -224,10 +224,10 @@ func init() {
 	})
 
 	makePrimitiveFunctionWithMultiplier("replace-character", func(m int) {
-		if commander.GetLastKey() == gott.KeySpace {
+		if commander.getLastKey() == gott.KeySpace {
 			editor.Perform(&operations.ReplaceCharacter{Character: rune(' ')}, m)
 		} else {
-			editor.Perform(&operations.ReplaceCharacter{Character: rune(commander.GetLastCh())}, m)
+			editor.Perform(&operations.ReplaceCharacter{Character: rune(commander.getLastCh())}, m)
 		}
 	})
 
@@ -243,7 +243,7 @@ func init() {
 	})
 }
 
-func (c *Commander) ParseEval(command string) string {
+func (c *Commander) parseEval(command string) string {
 	commander = c
 	editor = c.editor
 	value, err := golisp.ParseAndEvalAll(command)
@@ -259,7 +259,7 @@ func (c *Commander) ParseEvalFile(filename string) string {
 	if err == nil {
 		contents := string(bytes)
 		c.batch = true
-		return c.ParseEval(contents)
+		return c.parseEval(contents)
 	} else {
 		return err.Error()
 	}

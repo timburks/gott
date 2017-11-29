@@ -47,7 +47,7 @@ func (s *Screen) Close() {
 	termbox.Close()
 }
 
-func (s *Screen) Layout() {
+func (s *Screen) layout() {
 	var screenSize gott.Size
 	screenSize.Cols, screenSize.Rows = termbox.Size()
 	s.size = screenSize
@@ -60,12 +60,12 @@ func (s *Screen) Layout() {
 
 func (s *Screen) Render(e gott.Editor, c gott.Commander) {
 	if s.needsLayout {
-		s.Layout()
+		s.layout()
 		s.needsLayout = false
 	}
 	termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
 	e.RenderWindows(s)
-	s.RenderMessageBar(c)
+	s.renderMessageBar(c)
 	termbox.Flush()
 }
 
@@ -82,7 +82,7 @@ func (s *Screen) SetCursor(position gott.Point) {
 }
 
 // The message bar is a single line at the bottom of the screen.
-func (s *Screen) RenderMessageBar(c gott.Commander) {
+func (s *Screen) renderMessageBar(c gott.Commander) {
 	text := c.GetMessageBarText(s.size.Cols)
 	for x, ch := range text {
 		termbox.SetCell(x, s.size.Rows-1,

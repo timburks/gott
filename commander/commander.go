@@ -22,7 +22,7 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// The Commander converts user input into commands for the Editor.
+// The Commander converts user input into commands to the editor.
 type Commander struct {
 	editor         gott.Editor
 	batch          bool     // true if commander is running a lisp script
@@ -42,15 +42,15 @@ func NewCommander(e gott.Editor) *Commander {
 	return &Commander{editor: e, mode: gott.ModeEdit}
 }
 
-func (c *Commander) GetLastKey() gott.Key {
+func (c *Commander) getLastKey() gott.Key {
 	return c.lastKey
 }
 
-func (c *Commander) GetLastCh() rune {
+func (c *Commander) getLastCh() rune {
 	return c.lastCh
 }
 
-func (c *Commander) GetMode() int {
+func (c *Commander) getMode() int {
 	return c.mode
 }
 
@@ -58,7 +58,7 @@ func (c *Commander) SetMode(m int) {
 	c.mode = m
 }
 
-func (c *Commander) GetModeName() string {
+func (c *Commander) getModeName() string {
 	switch c.mode {
 	case gott.ModeEdit:
 		return "edit"
@@ -87,19 +87,19 @@ func (c *Commander) ProcessEvent(event *gott.Event) error {
 	}
 	switch event.Type {
 	case gott.EventKey:
-		return c.ProcessKey(event)
+		return c.processKey(event)
 	case gott.EventResize:
-		return c.ProcessResize(event)
+		return c.processResize(event)
 	default:
 		return nil
 	}
 }
 
-func (c *Commander) ProcessResize(event *gott.Event) error {
+func (c *Commander) processResize(event *gott.Event) error {
 	return nil
 }
 
-func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
+func (c *Commander) processKeyEditMode(event *gott.Event) error {
 	key := event.Key
 	ch := event.Ch
 
@@ -112,23 +112,23 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		case "c":
 			switch ch {
 			case 'w':
-				c.ParseEval("(change-word)")
+				c.parseEval("(change-word)")
 			}
 		case "d":
 			switch ch {
 			case 'd':
-				c.ParseEval("(delete-row)")
+				c.parseEval("(delete-row)")
 			case 'w':
-				c.ParseEval("(delete-word)")
+				c.parseEval("(delete-word)")
 			}
 		case "r":
 			if (key != 0 && key == gott.KeySpace) || (ch != 0) {
-				c.ParseEval("(replace-character)")
+				c.parseEval("(replace-character)")
 			}
 		case "y":
 			switch ch {
 			case 'y': // YankRow
-				c.ParseEval("(yank-row)")
+				c.parseEval("(yank-row)")
 			default:
 				break
 			}
@@ -141,25 +141,25 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		case gott.KeyEsc:
 			break
 		case gott.KeyCtrlB, gott.KeyPgup:
-			c.ParseEval("(page-up)")
+			c.parseEval("(page-up)")
 		case gott.KeyCtrlF, gott.KeyPgdn:
-			c.ParseEval("(page-down)")
+			c.parseEval("(page-down)")
 		case gott.KeyCtrlD:
-			c.ParseEval("(half-page-down)")
+			c.parseEval("(half-page-down)")
 		case gott.KeyCtrlU:
-			c.ParseEval("(half-page-up)")
+			c.parseEval("(half-page-up)")
 		case gott.KeyCtrlA, gott.KeyHome:
-			c.ParseEval("(beginning-of-line)")
+			c.parseEval("(beginning-of-line)")
 		case gott.KeyCtrlE, gott.KeyEnd:
-			c.ParseEval("(end-of-line)")
+			c.parseEval("(end-of-line)")
 		case gott.KeyArrowUp:
-			c.ParseEval("(up)")
+			c.parseEval("(up)")
 		case gott.KeyArrowDown:
-			c.ParseEval("(down)")
+			c.parseEval("(down)")
 		case gott.KeyArrowLeft:
-			c.ParseEval("(left)")
+			c.parseEval("(left)")
 		case gott.KeyArrowRight:
-			c.ParseEval("(right)")
+			c.parseEval("(right)")
 		}
 	}
 	if ch != 0 {
@@ -173,62 +173,62 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// commands go to the message bar
 		//
 		case ':':
-			c.ParseEval("(command-mode)")
+			c.parseEval("(command-mode)")
 		//
 		// lisp commands go to the message bar
 		//
 		case '(':
-			c.ParseEval("(lisp-mode)")
+			c.parseEval("(lisp-mode)")
 		//
 		// search queries go to the message bar
 		//
 		case '/':
-			c.ParseEval("(search-mode)")
+			c.parseEval("(search-mode)")
 		//
 		// repeat the last search
 		//
 		case 'n':
-			c.ParseEval("(repeat-search)")
+			c.parseEval("(repeat-search)")
 		//
 		// cursor movement isn't logged
 		//
 		case 'h':
-			c.ParseEval("(left)")
+			c.parseEval("(left)")
 		case 'j':
-			c.ParseEval("(down)")
+			c.parseEval("(down)")
 		case 'k':
-			c.ParseEval("(up)")
+			c.parseEval("(up)")
 		case 'l':
-			c.ParseEval("(right)")
+			c.parseEval("(right)")
 		case 'w':
-			c.ParseEval("(next-word)")
+			c.parseEval("(next-word)")
 		case 'b':
-			c.ParseEval("(previous-word)")
+			c.parseEval("(previous-word)")
 		case '>':
-			c.ParseEval("(change-window)")
+			c.parseEval("(change-window)")
 		//
 		// "performed" operations are saved for undo and repetition
 		//
 		case 'i':
-			c.ParseEval("(insert-at-cursor)")
+			c.parseEval("(insert-at-cursor)")
 		case 'a':
-			c.ParseEval("(insert-after-cursor)")
+			c.parseEval("(insert-after-cursor)")
 		case 'I':
-			c.ParseEval("(insert-at-start-of-line)")
+			c.parseEval("(insert-at-start-of-line)")
 		case 'A':
-			c.ParseEval("(insert-after-end-of-line)")
+			c.parseEval("(insert-after-end-of-line)")
 		case 'o':
-			c.ParseEval("(insert-at-new-line-below-cursor)")
+			c.parseEval("(insert-at-new-line-below-cursor)")
 		case 'O':
-			c.ParseEval("(insert-at-new-line-above-cursor)")
+			c.parseEval("(insert-at-new-line-above-cursor)")
 		case 'x':
-			c.ParseEval("(delete-character)")
+			c.parseEval("(delete-character)")
 		case 'J':
-			c.ParseEval("(join-line)")
+			c.parseEval("(join-line)")
 		case 'p':
-			c.ParseEval("(paste)")
+			c.parseEval("(paste)")
 		case '~':
-			c.ParseEval("(reverse-case-character)")
+			c.parseEval("(reverse-case-character)")
 		//
 		// a few keys open multi-key commands
 		//
@@ -244,18 +244,18 @@ func (c *Commander) ProcessKeyEditMode(event *gott.Event) error {
 		// undo
 		//
 		case 'u':
-			c.ParseEval("(undo)")
+			c.parseEval("(undo)")
 		//
 		// repeat
 		//
 		case '.':
-			c.ParseEval("(repeat)")
+			c.parseEval("(repeat)")
 		}
 	}
 	return nil
 }
 
-func (c *Commander) ProcessKeyInsertMode(event *gott.Event) error {
+func (c *Commander) processKeyInsertMode(event *gott.Event) error {
 	e := c.editor
 
 	key := event.Key
@@ -288,7 +288,7 @@ func (c *Commander) ProcessKeyInsertMode(event *gott.Event) error {
 	return nil
 }
 
-func (c *Commander) ProcessKeyCommandMode(event *gott.Event) error {
+func (c *Commander) processKeyCommandMode(event *gott.Event) error {
 	key := event.Key
 	ch := event.Ch
 	if key != 0 {
@@ -296,7 +296,7 @@ func (c *Commander) ProcessKeyCommandMode(event *gott.Event) error {
 		case gott.KeyEsc:
 			c.mode = gott.ModeEdit
 		case gott.KeyEnter:
-			c.PerformCommand()
+			c.performCommand()
 		case gott.KeyBackspace2:
 			if len(c.commandText) > 0 {
 				c.commandText = c.commandText[0 : len(c.commandText)-1]
@@ -311,7 +311,7 @@ func (c *Commander) ProcessKeyCommandMode(event *gott.Event) error {
 	return nil
 }
 
-func (c *Commander) ProcessKeySearchMode(event *gott.Event) error {
+func (c *Commander) processKeySearchMode(event *gott.Event) error {
 	e := c.editor
 
 	key := event.Key
@@ -337,7 +337,7 @@ func (c *Commander) ProcessKeySearchMode(event *gott.Event) error {
 	return nil
 }
 
-func (c *Commander) ProcessKeyLispMode(event *gott.Event) error {
+func (c *Commander) processKeyLispMode(event *gott.Event) error {
 	key := event.Key
 	ch := event.Ch
 	if key != 0 {
@@ -345,7 +345,7 @@ func (c *Commander) ProcessKeyLispMode(event *gott.Event) error {
 		case gott.KeyEsc:
 			c.mode = gott.ModeEdit
 		case gott.KeyEnter:
-			c.message = c.ParseEval(c.lispText)
+			c.message = c.parseEval(c.lispText)
 			// if evaluation didn't change the mode, set it back to edit
 			if c.mode == gott.ModeLisp {
 				c.mode = gott.ModeEdit
@@ -365,24 +365,24 @@ func (c *Commander) ProcessKeyLispMode(event *gott.Event) error {
 	return nil
 }
 
-func (c *Commander) ProcessKey(event *gott.Event) error {
+func (c *Commander) processKey(event *gott.Event) error {
 	var err error
 	switch c.mode {
 	case gott.ModeEdit:
-		err = c.ProcessKeyEditMode(event)
+		err = c.processKeyEditMode(event)
 	case gott.ModeInsert:
-		err = c.ProcessKeyInsertMode(event)
+		err = c.processKeyInsertMode(event)
 	case gott.ModeCommand:
-		err = c.ProcessKeyCommandMode(event)
+		err = c.processKeyCommandMode(event)
 	case gott.ModeSearchForward:
-		err = c.ProcessKeySearchMode(event)
+		err = c.processKeySearchMode(event)
 	case gott.ModeLisp:
-		err = c.ProcessKeyLispMode(event)
+		err = c.processKeyLispMode(event)
 	}
 	return err
 }
 
-func (c *Commander) PerformCommand() {
+func (c *Commander) performCommand() {
 
 	e := c.editor
 
@@ -479,7 +479,7 @@ func (c *Commander) PerformCommand() {
 		case "clear":
 			e.GetActiveWindow().GetBuffer().LoadBytes([]byte{})
 		case "eval":
-			output := c.ParseEval(string(e.Bytes()))
+			output := c.parseEval(string(e.Bytes()))
 			e.SelectWindow(0)
 			e.GetActiveWindow().GetBuffer().AppendBytes([]byte(output))
 		case "split":
@@ -500,7 +500,7 @@ func (c *Commander) PerformCommand() {
 	c.mode = gott.ModeEdit
 }
 
-func (c *Commander) GetMultiplier() int {
+func (c *Commander) getMultiplier() int {
 	if c.multiplierText == "" {
 		return 1
 	}
@@ -513,35 +513,35 @@ func (c *Commander) GetMultiplier() int {
 	return int(i)
 }
 
-func (c *Commander) GetSearchText() string {
+func (c *Commander) getSearchText() string {
 	return c.searchText
 }
 
-func (c *Commander) GetLispText() string {
+func (c *Commander) getLispText() string {
 	return c.lispText
 }
 
-func (c *Commander) GetCommandText() string {
+func (c *Commander) getCommandText() string {
 	return c.commandText
 }
 
-func (c *Commander) GetMessage() string {
+func (c *Commander) getMessage() string {
 	return c.message
 }
 
 func (c *Commander) GetMessageBarText(length int) string {
 	var line string
-	switch c.GetMode() {
+	switch c.getMode() {
 	case gott.ModeCommand:
-		line += ":" + c.GetCommandText()
+		line += ":" + c.getCommandText()
 	case gott.ModeSearchForward:
-		line += "/" + c.GetSearchText()
+		line += "/" + c.getSearchText()
 	case gott.ModeSearchBackward:
-		line += "?" + c.GetSearchText()
+		line += "?" + c.getSearchText()
 	case gott.ModeLisp:
-		line += c.GetLispText()
+		line += c.getLispText()
 	default:
-		line += c.GetMessage()
+		line += c.getMessage()
 	}
 	if len(line) > length {
 		line = line[0:length]
