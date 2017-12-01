@@ -18,6 +18,8 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
+// operation is a utility class that is composed into all operation classes.
+// It provides common data storage and services for operations.
 type operation struct {
 	Cursor     gott.Point
 	Multiplier int

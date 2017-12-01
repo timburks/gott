@@ -18,8 +18,7 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// Replace a character
-
+// ReplaceCharacter replaces a character at the current cursor position.
 type ReplaceCharacter struct {
 	operation
 	Character rune

@@ -18,8 +18,7 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// Join the current line with the next one.
-
+// JoinLine joins the current line with the next one.
 type JoinLine struct {
 	operation
 }

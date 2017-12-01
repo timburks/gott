@@ -18,8 +18,7 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// Reverse the case of a character
-
+// ReverseCaseCharacter reverses the case of a character.
 type ReverseCaseCharacter struct {
 	operation
 }

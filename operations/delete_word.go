@@ -18,8 +18,7 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// Delete a word
-
+// DeleteWord deletes words at the cursor position.
 type DeleteWord struct {
 	operation
 }

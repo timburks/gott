@@ -18,8 +18,8 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// Sequence
-
+// Sequence combines a series of operations into a performable sequence.
+// It is used to represent inverse operations when inverses require multiple steps.
 type Sequence struct {
 	operation
 	Operations []gott.Operation

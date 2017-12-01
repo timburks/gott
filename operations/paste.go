@@ -18,8 +18,7 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// Paste
-
+// Paste pastes the contents of the pasteboard into a buffer.
 type Paste struct {
 	operation
 }

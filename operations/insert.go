@@ -18,8 +18,10 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// Insert
-
+// Insert inserts text at a specified position relative to the cursor.
+// In edit mode, insert invocations are followed by key inputs until
+// the user exits insert mode. When used in undo operations, inserts
+// are performed immediately.
 type Insert struct {
 	operation
 	Position  int

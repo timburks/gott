@@ -18,8 +18,7 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// Delete a row
-
+// DeleteRow deletes rows at the current cursor position.
 type DeleteRow struct {
 	operation
 }

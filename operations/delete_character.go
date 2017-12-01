@@ -18,8 +18,7 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// Delete a character
-
+// DeleteCharacter deletes characters at the current cursor position.
 type DeleteCharacter struct {
 	operation
 	FinallyDeleteRow bool

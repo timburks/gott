@@ -18,8 +18,8 @@ import (
 	gott "github.com/timburks/gott/types"
 )
 
-// Delete a word
-
+// ChangeWord changes words at the current cursor position.
+// ChangeWord is similar to Insert: it also puts the editor in insert mode.
 type ChangeWord struct {
 	operation
 	Text      string
