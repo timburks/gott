@@ -163,6 +163,14 @@ func (e *Editor) Bytes() []byte {
 	return e.focusedWindow.GetBuffer().GetBytes()
 }
 
+func (e *Editor) LoadBytes(b []byte) {
+	e.GetActiveWindow().GetBuffer().LoadBytes(b)
+}
+
+func (e *Editor) AppendBytes(b []byte) {
+	e.GetActiveWindow().GetBuffer().AppendBytes(b)
+}
+
 func (e *Editor) WriteFile(path string) error {
 	f, err := os.Create(path)
 	if err != nil {
@@ -181,6 +189,10 @@ func (e *Editor) WriteFile(path string) error {
 		f.Write(b)
 	}
 	return nil
+}
+
+func (e *Editor) GetFileName() string {
+	return e.GetActiveWindow().GetBuffer().GetFileName()
 }
 
 func (e *Editor) Perform(op gott.Operation, multiplier int) {
@@ -270,6 +282,20 @@ func (e *Editor) MoveCursorBackToStartOfCurrentWord() {
 
 func (e *Editor) MoveCursorToPreviousWord(multiplier int) {
 	e.focusedWindow.MoveCursorToPreviousWord(multiplier)
+}
+
+func (e *Editor) MoveCursorToLine(line int) {
+	newRow := line-1
+	if newRow > e.GetActiveWindow().GetBuffer().GetRowCount()-1 {
+		newRow = e.GetActiveWindow().GetBuffer().GetRowCount() - 1
+	}
+	if newRow < 0 {
+		newRow = 0
+	}
+	cursor := e.GetCursor()
+	cursor.Row = newRow
+	cursor.Col = 0
+	e.SetCursor(cursor)
 }
 
 // These editor primitives will make changes in insert mode and associate them with to the current operation.

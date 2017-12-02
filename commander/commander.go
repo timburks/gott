@@ -408,17 +408,7 @@ func (c *Commander) performCommand() {
 
 		i, err := strconv.ParseInt(parts[0], 10, 64)
 		if err == nil {
-			newRow := int(i - 1)
-			if newRow > e.GetActiveWindow().GetBuffer().GetRowCount()-1 {
-				newRow = e.GetActiveWindow().GetBuffer().GetRowCount() - 1
-			}
-			if newRow < 0 {
-				newRow = 0
-			}
-			cursor := e.GetCursor()
-			cursor.Row = newRow
-			cursor.Col = 0
-			e.SetCursor(cursor)
+			e.MoveCursorToLine(int(i))
 		}
 		switch parts[0] {
 		case "q":
@@ -446,7 +436,7 @@ func (c *Commander) performCommand() {
 			if len(parts) == 2 {
 				filename = parts[1]
 			} else {
-				filename = e.GetActiveWindow().GetBuffer().GetFileName()
+				filename = e.GetFileName()
 			}
 			e.WriteFile(filename)
 		case "wq":
@@ -454,25 +444,18 @@ func (c *Commander) performCommand() {
 			if len(parts) == 2 {
 				filename = parts[1]
 			} else {
-				filename = e.GetActiveWindow().GetBuffer().GetFileName()
+				filename = e.GetFileName()
 			}
 			e.WriteFile(filename)
 			c.mode = gott.ModeQuit
 			return
 		case "fmt":
-			out, err := e.Gofmt(e.GetActiveWindow().GetBuffer().GetFileName(), e.Bytes())
+			out, err := e.Gofmt(e.GetFileName(), e.Bytes())
 			if err == nil {
-				e.GetActiveWindow().GetBuffer().LoadBytes(out)
+				e.LoadBytes(out)
 			}
 		case "$":
-			newRow := e.GetActiveWindow().GetBuffer().GetRowCount() - 1
-			if newRow < 0 {
-				newRow = 0
-			}
-			cursor := e.GetCursor()
-			cursor.Row = newRow
-			cursor.Col = 0
-			e.SetCursor(cursor)
+			e.MoveCursorToLine(1e9)
 		case "cursor":
 			cursor := e.GetCursor()
 			c.message = fmt.Sprintf("%d,%d", cursor.Row, cursor.Col)
@@ -497,11 +480,11 @@ func (c *Commander) performCommand() {
 		case "windows":
 			e.ListWindows()
 		case "clear":
-			e.GetActiveWindow().GetBuffer().LoadBytes([]byte{})
+			e.LoadBytes([]byte{})
 		case "eval":
 			output := c.parseEval(string(e.Bytes()))
 			e.SelectWindow(0)
-			e.GetActiveWindow().GetBuffer().AppendBytes([]byte(output))
+			e.AppendBytes([]byte(output))
 		case "split":
 			e.SplitWindowVertically()
 		case "vsplit":

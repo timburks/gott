@@ -91,7 +91,14 @@ type Editor interface {
 	// File operations.
 	ReadFile(path string) error
 	WriteFile(path string) error
+
+	// Direct content manipulation
 	Bytes() []byte
+	LoadBytes([]byte)
+	AppendBytes([]byte)
+
+	// File information;
+	GetFileName() string
 
 	// Text being edited is displayed in windows.
 	GetActiveWindow() Window
@@ -113,6 +120,7 @@ type Editor interface {
 	MoveCursorToStartOfLineBelowCursor()
 	MoveToBeginningOfLine()
 	MoveToEndOfLine()
+	MoveCursorToLine(line int)
 	KeepCursorInRow()
 	PageUp(multiplier int)
 	PageDown(multiplier int)

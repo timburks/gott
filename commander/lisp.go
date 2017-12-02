@@ -247,7 +247,7 @@ func init() {
 		} else {
 			// if we are running in the editor, write to buffer 0
 			editor.SelectWindow(0)
-			editor.GetActiveWindow().GetBuffer().AppendBytes([]byte(s))
+			editor.AppendBytes([]byte(s))
 		}
 	})
 }
