@@ -79,7 +79,7 @@ func TestDeleteWord(t *testing.T) {
 	e.SetCursor(gott.Point{Row: 19, Col: 0})
 	e.Perform(&operations.DeleteWord{}, 5)
 	expected := "remaining before us--that from these"
-	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(19, 0); remainder != expected {
+	if remainder := e.GetActiveWindow().GetBuffer().TextFromPosition(19, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after deletion: '%s' expected '%s'", remainder, expected)
 	}
 	e.PerformUndo()
@@ -91,7 +91,7 @@ func TestDeleteCharacter(t *testing.T) {
 	e.SetCursor(gott.Point{Row: 19, Col: 0})
 	e.Perform(&operations.DeleteCharacter{}, 28)
 	expected := "remaining before us--that from these"
-	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(19, 0); remainder != expected {
+	if remainder := e.GetActiveWindow().GetBuffer().TextFromPosition(19, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
 	}
 	e.PerformUndo()
@@ -104,42 +104,42 @@ func TestInsert(t *testing.T) {
 	insert := &operations.Insert{Position: gott.InsertAtCursor, Text: "hello, world!"}
 	e.Perform(insert, 1)
 	expected := "hello, world!"
-	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(1, 0); remainder != expected {
+	if remainder := e.GetActiveWindow().GetBuffer().TextFromPosition(1, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
 	e.SetCursor(gott.Point{Row: 0, Col: 3})
 	insert = &operations.Insert{Position: gott.InsertAfterCursor, Text: "BIG LEAGUE "}
 	e.Perform(insert, 1)
 	expected = "THE BIG LEAGUE GETTYSBURG ADDRESS:"
-	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(0, 0); remainder != expected {
+	if remainder := e.GetActiveWindow().GetBuffer().TextFromPosition(0, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
 	e.SetCursor(gott.Point{Row: 3, Col: 3})
 	insert = &operations.Insert{Position: gott.InsertAfterEndOfLine, Text: " very"}
 	e.Perform(insert, 1)
 	expected = "Four score and seven years ago our fathers brought forth on this very"
-	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(3, 0); remainder != expected {
+	if remainder := e.GetActiveWindow().GetBuffer().TextFromPosition(3, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
 	e.SetCursor(gott.Point{Row: 4, Col: 3})
 	insert = &operations.Insert{Position: gott.InsertAtStartOfLine, Text: "nice "}
 	e.Perform(insert, 1)
 	expected = "nice continent a new nation, conceived in liberty and dedicated to the"
-	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(4, 0); remainder != expected {
+	if remainder := e.GetActiveWindow().GetBuffer().TextFromPosition(4, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
 	e.SetCursor(gott.Point{Row: 21, Col: 3})
 	insert = &operations.Insert{Position: gott.InsertAtNewLineAboveCursor, Text: "most"}
 	e.Perform(insert, 1)
 	expected = "most"
-	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(21, 0); remainder != expected {
+	if remainder := e.GetActiveWindow().GetBuffer().TextFromPosition(21, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
 	e.SetCursor(gott.Point{Row: 22, Col: 3})
 	insert = &operations.Insert{Position: gott.InsertAtNewLineBelowCursor, Text: "excellent"}
 	e.Perform(insert, 1)
 	expected = "excellent"
-	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(23, 0); remainder != expected {
+	if remainder := e.GetActiveWindow().GetBuffer().TextFromPosition(23, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after insertion: '%s'", remainder)
 	}
 	e.PerformUndo()
@@ -156,7 +156,7 @@ func TestReverseCase(t *testing.T) {
 	e.SetCursor(gott.Point{Row: 0, Col: 1})
 	e.Perform(&operations.ReverseCaseCharacter{}, 20)
 	expected := "The gettysburg addresS:"
-	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(0, 0); remainder != expected {
+	if remainder := e.GetActiveWindow().GetBuffer().TextFromPosition(0, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
 	}
 	e.PerformUndo()
@@ -172,7 +172,7 @@ func TestReplaceCharacter(t *testing.T) {
 	e.SetCursor(gott.Point{Row: 0, Col: 2})
 	e.Perform(&operations.ReplaceCharacter{Character: 'X'}, 1)
 	expected := "XXX GETTYSBURG ADDRESS:"
-	if remainder := e.GetActiveWindow().GetBuffer().TextAfter(0, 0); remainder != expected {
+	if remainder := e.GetActiveWindow().GetBuffer().TextFromPosition(0, 0); remainder != expected {
 		t.Errorf("Unexpected remainder after deletion: '%s'", remainder)
 	}
 	e.PerformUndo()
@@ -195,16 +195,16 @@ func TestCopyPaste(t *testing.T) {
 	}
 	// sample the expected text
 	expected := "Four score and seven years ago our fathers brought forth on this"
-	if sample := e.GetActiveWindow().GetBuffer().TextAfter(3, 0); sample != expected {
+	if sample := e.GetActiveWindow().GetBuffer().TextFromPosition(3, 0); sample != expected {
 		t.Errorf("Unexpected sample after paste: '%s'", sample)
 	}
-	if sample := e.GetActiveWindow().GetBuffer().TextAfter(6, 0); sample != expected {
+	if sample := e.GetActiveWindow().GetBuffer().TextFromPosition(6, 0); sample != expected {
 		t.Errorf("Unexpected sample after paste: '%s'", sample)
 	}
-	if sample := e.GetActiveWindow().GetBuffer().TextAfter(9, 0); sample != expected {
+	if sample := e.GetActiveWindow().GetBuffer().TextFromPosition(9, 0); sample != expected {
 		t.Errorf("Unexpected sample after paste: '%s'", sample)
 	}
-	if sample := e.GetActiveWindow().GetBuffer().TextAfter(12, 0); sample != expected {
+	if sample := e.GetActiveWindow().GetBuffer().TextFromPosition(12, 0); sample != expected {
 		t.Errorf("Unexpected sample after paste: '%s'", sample)
 	}
 	e.PerformUndo()
@@ -218,7 +218,7 @@ func TestJoinRow(t *testing.T) {
 	e.Perform(&operations.JoinLine{}, 3)
 	// sample the expected text
 	expected := "THE GETTYSBURG ADDRESS:Four score and seven years ago our fathers brought forth on this"
-	if sample := e.GetActiveWindow().GetBuffer().TextAfter(0, 0); sample != expected {
+	if sample := e.GetActiveWindow().GetBuffer().TextFromPosition(0, 0); sample != expected {
 		t.Errorf("Unexpected sample after paste: '%s'", sample)
 	}
 	e.PerformUndo()
@@ -232,7 +232,7 @@ func TestChangeWord(t *testing.T) {
 	e.Perform(&operations.ChangeWord{Text: "87 "}, 4)
 	// sample the expected text
 	expected := "87 years ago our fathers brought forth on this"
-	if sample := e.GetActiveWindow().GetBuffer().TextAfter(3, 0); sample != expected {
+	if sample := e.GetActiveWindow().GetBuffer().TextFromPosition(3, 0); sample != expected {
 		t.Errorf("Unexpected sample after paste: '%s'", sample)
 	}
 	e.PerformUndo()

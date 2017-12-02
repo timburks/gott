@@ -149,7 +149,8 @@ type Editor interface {
 	CloseInsert()
 
 	// Search.
-	PerformSearch(text string)
+	PerformSearchForward(text string)
+	PerformSearchBackward(text string)
 
 	// Additional features.
 	Gofmt(filename string, inputBytes []byte) (outputBytes []byte, err error)
@@ -176,7 +177,8 @@ type Window interface {
 	SetCursor(cursor Point)
 
 	SetCursorForDisplay(d Display)
-	PerformSearch(text string)
+	PerformSearchForward(text string)
+	PerformSearchBackward(text string)
 	MoveCursor(direction int, multiplier int)
 	MoveCursorForward() int
 	MoveCursorBackward() int
@@ -239,7 +241,7 @@ type Buffer interface {
 	GetFileName() string
 	GetRowCount() int
 	GetBytes() []byte
-	TextAfter(row, col int) string
+	TextFromPosition(row, col int) string
 
 	SetNameAndReadOnly(string, bool)
 	SetFileName(string)

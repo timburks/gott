@@ -216,8 +216,12 @@ func (e *Editor) PerformUndo() {
 	}
 }
 
-func (e *Editor) PerformSearch(text string) {
-	e.focusedWindow.PerformSearch(text)
+func (e *Editor) PerformSearchForward(text string) {
+	e.focusedWindow.PerformSearchForward(text)
+}
+
+func (e *Editor) PerformSearchBackward(text string) {
+	e.focusedWindow.PerformSearchBackward(text)
 }
 
 func (e *Editor) MoveCursor(direction int, multiplier int) {

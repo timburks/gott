@@ -119,9 +119,9 @@ func (b *Buffer) GetCharacterAtCursor(cursor gott.Point) rune {
 	return rune(0)
 }
 
-func (b *Buffer) TextAfter(row, col int) string {
+func (b *Buffer) TextFromPosition(row, col int) string {
 	if row < len(b.rows) {
-		return b.rows[row].TextAfter(col)
+		return b.rows[row].TextFromColumn(col)
 	} else {
 		return ""
 	}
@@ -161,6 +161,14 @@ func (b *Buffer) DeleteCharacters(row int, col int, count int, joinLines bool) s
 		}
 	}
 	return deletedText
+}
+
+func (b *Buffer) LastPositionInRowBeforeCol(row int, col int, text string) int {
+	if row < b.GetRowCount() {
+		return b.rows[row].LastPositionBeforeCol(col, text)
+	} else {
+		return -1
+	}
 }
 
 func checkalphanum(line string, start, end int) bool {

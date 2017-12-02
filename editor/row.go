@@ -117,10 +117,33 @@ func (r *Row) Join(other *Row) {
 }
 
 // returns the text after a specified column
-func (r *Row) TextAfter(col int) string {
+func (r *Row) TextFromColumn(col int) string {
 	if col < len(r.text) {
 		return string(r.text[col:])
 	} else {
 		return ""
 	}
 }
+
+func (r *Row) LastPositionBeforeCol(col int, text string) int {
+	foundposition := -1
+	searchposition := 0
+	searchtext := r.TextFromColumn(searchposition)
+	for {
+		i := strings.Index(searchtext, text)
+		if i == -1 {
+			return foundposition
+		} else {
+			newfoundposition := searchposition + i
+			if newfoundposition >= col {
+				return foundposition
+			} else {
+				foundposition = newfoundposition
+				searchposition = foundposition+1
+				searchtext = r.TextFromColumn(searchposition)
+			}
+		}
+	}
+	return foundposition
+}
+

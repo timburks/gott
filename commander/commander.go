@@ -31,6 +31,7 @@ type Commander struct {
 	editKeys       string   // edit key sequences in progress
 	commandText    string   // command as it is being typed on the command line
 	searchText     string   // text for searches as it is being typed
+	searchForward  bool	// true to search forward, false to search backward
 	lispText       string   // lisp command as it is being typed
 	multiplierText string   // multiplier string as it is being entered
 	message        string   // status message
@@ -67,7 +68,9 @@ func (c *Commander) getModeName() string {
 	case gott.ModeCommand:
 		return "command"
 	case gott.ModeSearchForward:
-		return "search"
+		return "search-forward"
+	case gott.ModeSearchBackward:
+		return "search-backward"
 	case gott.ModeLisp:
 		return "lisp"
 	case gott.ModeQuit:
@@ -183,12 +186,18 @@ func (c *Commander) processKeyEditMode(event *gott.Event) error {
 		// search queries go to the message bar
 		//
 		case '/':
-			c.parseEval("(search-mode)")
+			c.parseEval("(search-forward-mode)")
+		case '?':
+			c.parseEval("(search-backward-mode)")
 		//
 		// repeat the last search
 		//
 		case 'n':
-			c.parseEval("(repeat-search)")
+			if c.searchForward {
+				c.parseEval("(repeat-search-forward)")
+			} else {
+				c.parseEval("(repeat-search-backward)")
+			}
 		//
 		// cursor movement isn't logged
 		//
@@ -321,7 +330,13 @@ func (c *Commander) processKeySearchMode(event *gott.Event) error {
 		case gott.KeyEsc:
 			c.mode = gott.ModeEdit
 		case gott.KeyEnter:
-			e.PerformSearch(c.searchText)
+			if c.mode == gott.ModeSearchForward {
+				c.searchForward = true
+				e.PerformSearchForward(c.searchText)
+			} else {
+				c.searchForward = false
+				e.PerformSearchBackward(c.searchText)
+			}
 			c.mode = gott.ModeEdit
 		case gott.KeyBackspace2:
 			if len(c.searchText) > 0 {
@@ -375,6 +390,8 @@ func (c *Commander) processKey(event *gott.Event) error {
 	case gott.ModeCommand:
 		err = c.processKeyCommandMode(event)
 	case gott.ModeSearchForward:
+		err = c.processKeySearchMode(event)
+	case gott.ModeSearchBackward:
 		err = c.processKeySearchMode(event)
 	case gott.ModeLisp:
 		err = c.processKeyLispMode(event)

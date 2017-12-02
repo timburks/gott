@@ -16,6 +16,7 @@ package editor
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"unicode"
 
@@ -381,7 +382,7 @@ func (w *Window) SetCursorForDisplay(d gott.Display) {
 	})
 }
 
-func (w *Window) PerformSearch(text string) {
+func (w *Window) PerformSearchForward(text string) {
 	if w.buffer.GetRowCount() == 0 {
 		return
 	}
@@ -391,7 +392,7 @@ func (w *Window) PerformSearch(text string) {
 	for {
 		var s string
 		if col < w.buffer.GetRowLength(row) {
-			s = w.buffer.TextAfter(row, col)
+			s = w.buffer.TextFromPosition(row, col)
 		} else {
 			s = ""
 		}
@@ -412,6 +413,37 @@ func (w *Window) PerformSearch(text string) {
 			break
 		}
 	}
+}
+
+func (w *Window) PerformSearchBackward(text string) {
+	if w.buffer.GetRowCount() == 0 {
+		return
+	}
+	row := w.cursor.Row
+	col := w.cursor.Col
+
+	for {
+		position := w.buffer.LastPositionInRowBeforeCol(row, col, text)
+		if position != -1 {
+			// found it
+			w.cursor.Row = row
+			w.cursor.Col = position
+			return
+		} else {
+			row = row - 1
+			if row < 0 {
+				row = w.buffer.GetRowCount() - 1
+			}
+			col = w.buffer.GetRowLength(row)
+			if col < 0 {
+				col = 0
+			}
+		}
+		if row == w.cursor.Row {
+			break
+		}
+	}
+
 }
 
 func (w *Window) MoveCursor(direction int, multiplier int) {

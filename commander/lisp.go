@@ -214,13 +214,22 @@ func init() {
 		commander.lispText = "("
 	})
 
-	makePrimitiveFunction("search-mode", func() {
+	makePrimitiveFunction("search-forward-mode", func() {
 		commander.mode = gott.ModeSearchForward
 		commander.searchText = ""
 	})
 
-	makePrimitiveFunction("repeat-search", func() {
-		editor.PerformSearch(commander.searchText)
+	makePrimitiveFunction("search-backward-mode", func() {
+		commander.mode = gott.ModeSearchBackward
+		commander.searchText = ""
+	})
+
+	makePrimitiveFunction("repeat-search-forward", func() {
+		editor.PerformSearchForward(commander.searchText)
+	})
+
+	makePrimitiveFunction("repeat-search-backward", func() {
+		editor.PerformSearchBackward(commander.searchText)
 	})
 
 	makePrimitiveFunctionWithMultiplier("replace-character", func(m int) {
