@@ -16,8 +16,6 @@ package editor
 
 import (
 	"fmt"
-	"log"
-	"strings"
 	"unicode"
 
 	gott "github.com/timburks/gott/types"
@@ -387,20 +385,13 @@ func (w *Window) PerformSearchForward(text string) {
 		return
 	}
 	row := w.cursor.Row
-	col := w.cursor.Col + 1
-
+	col := w.cursor.Col
 	for {
-		var s string
-		if col < w.buffer.GetRowLength(row) {
-			s = w.buffer.TextFromPosition(row, col)
-		} else {
-			s = ""
-		}
-		i := strings.Index(s, text)
-		if i != -1 {
+		position := w.buffer.FirstPositionInRowAfterCol(row, col, text)
+		if position != -1 {
 			// found it
 			w.cursor.Row = row
-			w.cursor.Col = col + i
+			w.cursor.Col = position
 			return
 		} else {
 			col = 0
@@ -421,7 +412,6 @@ func (w *Window) PerformSearchBackward(text string) {
 	}
 	row := w.cursor.Row
 	col := w.cursor.Col
-
 	for {
 		position := w.buffer.LastPositionInRowBeforeCol(row, col, text)
 		if position != -1 {

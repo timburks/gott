@@ -125,6 +125,17 @@ func (r *Row) TextFromColumn(col int) string {
 	}
 }
 
+func (r *Row) FirstPositionAfterCol(col int, text string) int {
+	searchposition := col+1
+	searchtext := r.TextFromColumn(searchposition)
+	i := strings.Index(searchtext, text)
+	if i == -1 {
+		return -1
+	} else {
+		return searchposition + i
+	}
+}
+
 func (r *Row) LastPositionBeforeCol(col int, text string) int {
 	foundposition := -1
 	searchposition := 0

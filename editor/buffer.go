@@ -163,6 +163,14 @@ func (b *Buffer) DeleteCharacters(row int, col int, count int, joinLines bool) s
 	return deletedText
 }
 
+func (b *Buffer) FirstPositionInRowAfterCol(row int, col int, text string) int {
+	if row < b.GetRowCount() {
+		return b.rows[row].FirstPositionAfterCol(col, text)
+	} else {
+		return -1
+	}
+}
+
 func (b *Buffer) LastPositionInRowBeforeCol(row int, col int, text string) int {
 	if row < b.GetRowCount() {
 		return b.rows[row].LastPositionBeforeCol(col, text)
