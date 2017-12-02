@@ -238,3 +238,54 @@ func TestChangeWord(t *testing.T) {
 	e.PerformUndo()
 	final(t, e)
 }
+
+type Position struct {
+	Row int
+	Col int
+}
+
+func TestSearchForward(t *testing.T) {
+	e := setup(t)
+	text := "nation"
+	positions := []Position{
+		{4, 16},
+		{6, 40},
+		{6, 54},
+		{10, 16},
+		{23, 0},
+		{4, 16},
+	}
+	for _, p := range positions {
+		e.PerformSearchForward(text)
+		cursor := e.GetCursor()
+		if cursor.Row != p.Row || cursor.Col != p.Col {
+			t.Errorf("Unexpected search location (%d,%d) expected (%d,%d)",
+				cursor.Row, cursor.Col,
+				p.Row, p.Col)
+		}
+	}
+	final(t, e)
+}
+
+func TestSearchBackward(t *testing.T) {
+	e := setup(t)
+	text := "nation"
+	positions := []Position{
+		{23, 0},
+		{10, 16},
+		{6, 54},
+		{6, 40},
+		{4, 16},
+		{23, 0},
+	}
+	for _, p := range positions {
+		e.PerformSearchBackward(text)
+		cursor := e.GetCursor()
+		if cursor.Row != p.Row || cursor.Col != p.Col {
+			t.Errorf("Unexpected search location (%d,%d) expected (%d,%d)",
+				cursor.Row, cursor.Col,
+				p.Row, p.Col)
+		}
+	}
+	final(t, e)
+}

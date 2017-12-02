@@ -331,7 +331,7 @@ func (w *Window) RenderBuffer(display gott.Display) {
 // Compute the text to display on the info bar.
 func (w *Window) computeInfoBarText(length int) string {
 	b := w.buffer
-	finalText := fmt.Sprintf(" %d/%d ", w.cursor.Row, b.GetRowCount())
+	finalText := fmt.Sprintf(" %d/%d ", w.cursor.Row+1, b.GetRowCount())
 	text := fmt.Sprintf("%d> %s ", w.GetIndex(), b.GetName())
 	if b.GetReadOnly() {
 		text = text + "(read-only) "
@@ -394,7 +394,7 @@ func (w *Window) PerformSearchForward(text string) {
 			w.cursor.Col = position
 			return
 		} else {
-			col = 0
+			col = -1
 			row = row + 1
 			if row == w.buffer.GetRowCount() {
 				row = 0

@@ -473,6 +473,9 @@ func (c *Commander) performCommand() {
 			cursor.Row = newRow
 			cursor.Col = 0
 			e.SetCursor(cursor)
+		case "cursor":
+			cursor := e.GetCursor()
+			c.message = fmt.Sprintf("%d,%d", cursor.Row, cursor.Col)
 		case "window":
 			if len(parts) > 1 {
 				number, err := strconv.Atoi(parts[1])
