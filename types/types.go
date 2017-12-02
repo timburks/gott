@@ -16,13 +16,13 @@ package types
 
 // The gott editor is modal and is always in one of these modes.
 const (
-	ModeEdit           = 0
-	ModeInsert         = 1
-	ModeCommand        = 2
-	ModeLisp           = 3
-	ModeSearchForward  = 4
-	ModeSearchBackward = 5
-	ModeQuit           = 9999
+	ModeEdit           = 0 // Normal editing, command keys are active.
+	ModeInsert         = 1 // Input inserts text in the active buffer.
+	ModeCommand        = 2 // Input enters command names.
+	ModeLisp           = 3 // Input enters Lisp expressions.
+	ModeSearchForward  = 4 // Input enters search terms.
+	ModeSearchBackward = 5 // Key input enters search terms.
+	ModeQuit           = 9 // The editor is ready to exit.
 )
 
 // These are the possible directions for cursor movement.
@@ -61,8 +61,8 @@ const (
 // These specify different types of words for use in the editor.
 const (
 	WordAlphaNumeric = 0
-	WordPunctuation = 1
-	WordSpace = 2
+	WordPunctuation  = 1
+	WordSpace        = 2
 )
 
 // A Point represents a cursor or character position in a buffer or a window.
@@ -293,7 +293,7 @@ const (
 
 // The Display interface supports text and cursor display.
 type Display interface {
-	Close() 
+	Close()
 	GetNextEvent() *Event
 	Render(Editor, Commander)
 	SetCell(j int, i int, c rune, color Color)
