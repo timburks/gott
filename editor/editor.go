@@ -294,19 +294,6 @@ func (e *Editor) KeepCursorInRow() {
 	e.focusedWindow.KeepCursorInRow()
 }
 
-/*
-func (e *Editor) AppendBlankRow() {
-	e.focusedWindow.AppendBlankRow()
-}
-
-func (e *Editor) InsertLineAboveCursor() {
-	e.focusedWindow.InsertLineAboveCursor()
-}
-
-func (e *Editor) InsertLineBelowCursor() {
-	e.focusedWindow.InsertLineBelowCursor()
-}
-*/
 func (e *Editor) MoveCursorToStartOfLine() {
 	e.focusedWindow.MoveCursorToStartOfLine()
 }
