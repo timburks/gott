@@ -13,4 +13,8 @@
 //
 
 // Package commander converts user input and scripts into commands for gott.
+// Many of these commands are undoable. To support undo, the commander creates
+// Operation objects that return their inverses when they are performed.
+// Commands which are not undoable are implemented directly with calls
+// to the editor or other subsystems..
 package commander

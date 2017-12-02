@@ -57,18 +57,22 @@ func (op *Insert) Perform(e gott.Editor, multiplier int) gott.Operation {
 	return inverse
 }
 
+// Length returns the length of text added by the insert operation.
 func (op *Insert) Length() int {
 	return len(op.Text)
 }
 
+// AddCharacter adds a character to the insert operation.
 func (op *Insert) AddCharacter(c rune) {
 	op.Text += string(c)
 }
 
+// DeleteCharacter deletes a character from the end of the insert operation.
 func (op *Insert) DeleteCharacter() {
 	op.Text = op.Text[0 : len(op.Text)-1]
 }
 
+// Close completes an insert operation.
 func (op *Insert) Close() {
 	op.Inverse.Multiplier = len(op.Text)
 }

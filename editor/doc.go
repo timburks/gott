@@ -13,4 +13,10 @@
 //
 
 // Package editor implements the core text editing functions of gott.
+// Many of these functions are accessed only through operations; this
+// makes it possible to easily repeat and undo them.
+// An editor manages multiple windows; windows are rectangular 
+// subdivisions of a screen and each window edits an associated
+// buffer. It is possible for multiple windows to concurrently edit
+// a single buffer.
 package editor

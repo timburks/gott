@@ -13,4 +13,7 @@
 //
 
 // Package operations wraps editing operations into repeatable and undoable units.
+// Operations are created by the commander, and operations call services that
+// are implemented by the editor. To support undo, when an operation is performed,
+// it returns another operation that can be performed as its inverse.
 package operations
