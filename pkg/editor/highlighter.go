@@ -57,63 +57,52 @@ func (h *GoHighlighter) Highlight(b *Buffer) {
 
 		line := string(r.GetText())
 		matches := h.keywordPattern.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				// if there's an alphanumeric character on either side, skip this
-				if !checkalphanum(line, match[0], match[1]) {
-					for k := match[0]; k < match[1]; k++ {
-						colors[k] = 0x70
-					}
+		for _, match := range matches {
+			// if there's an alphanumeric character on either side, skip this
+			if !checkalphanum(line, match[0], match[1]) {
+				for k := match[0]; k < match[1]; k++ {
+					colors[k] = 0x70
 				}
 			}
 		}
 
 		matches = h.numberPattern.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				// if there's an alphanumeric character on either side, skip this
-				if !checkalphanum(line, match[0], match[1]) {
-					for k := match[0]; k < match[1]; k++ {
-						colors[k] = 0x83
-					}
+		for _, match := range matches {
+			// if there's an alphanumeric character on either side, skip this
+			if !checkalphanum(line, match[0], match[1]) {
+				for k := match[0]; k < match[1]; k++ {
+					colors[k] = 0x83
 				}
 			}
 		}
 
 		matches = h.punctuationPattern.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				for k := match[0]; k < match[1]; k++ {
-					colors[k] = 0x71
-				}
+		for _, match := range matches {
+			for k := match[0]; k < match[1]; k++ {
+				colors[k] = 0x71
 			}
 		}
 
 		matches = h.hexPattern.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				for k := match[0]; k < match[1]; k++ {
-					x, _ := hex.DecodeString(line[match[0]+2 : match[1]])
-					colors[k] = gott.Color(x[0])
-				}
+		for _, match := range matches {
+			for k := match[0]; k < match[1]; k++ {
+				x, _ := hex.DecodeString(line[match[0]+2 : match[1]])
+				colors[k] = gott.Color(x[0])
 			}
 		}
+
 		matches = h.quotedStringPattern.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				for k := match[0]; k < match[1]; k++ {
-					colors[k] = 0xe0
-				}
+		for _, match := range matches {
+			for k := match[0]; k < match[1]; k++ {
+				colors[k] = 0xe0
 			}
 		}
+
 		matches = h.commentPattern.FindAllSubmatchIndex([]byte(line), -1)
-		if matches != nil {
-			for _, match := range matches {
-				for k := match[0]; k < match[1]; k++ {
-					colors[k] = 0xf8
-				}
+		for _, match := range matches {
+			for k := match[0]; k < match[1]; k++ {
+				colors[k] = 0xf8
 			}
 		}
 	}
-
 }
