@@ -1,6 +1,6 @@
 module github.com/timburks/gott
 
-go 1.23.5
+go 1.23
 
 require (
 	github.com/nsf/termbox-go v1.1.1
