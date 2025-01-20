@@ -303,7 +303,7 @@ func (w *Window) RenderBuffer(display gott.Display) {
 			}
 		} else {
 			line = "~"
-			colors = make([]gott.Color, 1, 1)
+			colors = make([]gott.Color, 1)
 			colors[0] = gott.ColorWhite
 		}
 		// truncate line to fit screen

@@ -42,7 +42,7 @@ func (r *Row) GetText() []rune {
 // Setting the text ensure that a colors array exists with the appropriate length.
 func (r *Row) SetText(text []rune) {
 	r.text = text
-	r.colors = make([]gott.Color, len(r.text), len(r.text))
+	r.colors = make([]gott.Color, len(r.text))
 	for j := range r.colors {
 		r.colors[j] = 0xff
 	}

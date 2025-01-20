@@ -34,13 +34,13 @@ type GoHighlighter struct {
 func NewGoHighlighter() *GoHighlighter {
 	h := &GoHighlighter{}
 
-	h.hexPattern, _ = regexp.Compile("0x[0-9|a-f][0-9|a-f]")
-	h.punctuationPattern, _ = regexp.Compile("\\(|\\)|,|:|=|\\[|\\]|\\{|\\}|\\+|-|\\*|<|>|;")
-	h.commentPattern, _ = regexp.Compile("\\/\\/.*$")
-	h.quotedStringPattern, _ = regexp.Compile("\"[^\"]*\"")
-	h.keywordPattern, _ = regexp.Compile("break|default|func|interface|select|case|defer|go|map|struct|chan|else|goto|package|switch|const|fallthrough|if|range|type|continue|for|import|return|var")
+	h.hexPattern, _ = regexp.Compile(`0x[0-9|a-f][0-9|a-f]`)
+	h.punctuationPattern, _ = regexp.Compile(`\(|\)|,|:|=|\[|\]|\{|\}|\+|-|\*|<|>|;`)
+	h.commentPattern, _ = regexp.Compile(`\/\/.*$`)
+	h.quotedStringPattern, _ = regexp.Compile(`"[^"]*"`)
+	h.keywordPattern, _ = regexp.Compile(`break|default|func|interface|select|case|defer|go|map|struct|chan|else|goto|package|switch|const|fallthrough|if|range|type|continue|for|import|return|var`)
 	h.keywordPattern.Longest()
-	h.numberPattern, _ = regexp.Compile("([0-9]+(\\.[0-9]*)?)|(([0-9]*\\.)?[0-9]+)")
+	h.numberPattern, _ = regexp.Compile(`([0-9]+(\.[0-9]*)?)|(([0-9]*\.)?[0-9]+)`)
 
 	return h
 }
