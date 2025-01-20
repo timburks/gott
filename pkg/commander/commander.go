@@ -59,7 +59,7 @@ func (c *Commander) SetMode(m int) {
 	c.mode = m
 }
 
-func (c *Commander) getModeName() string {
+func (c *Commander) GetModeName() string {
 	switch c.mode {
 	case gott.ModeEdit:
 		return "edit"

@@ -904,7 +904,7 @@ func (w *Window) DeleteRowsAtCursor(multiplier int) string {
 	return deletedText
 }
 
-func kindOfWord(c rune) int {
+func KindOfWord(c rune) int {
 	if c == ' ' {
 		return gott.WordSpace
 	} else if isAlphaNumeric(c) {

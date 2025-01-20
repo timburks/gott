@@ -155,5 +155,4 @@ func (r *Row) LastPositionBeforeCol(col int, text string) int {
 			}
 		}
 	}
-	return foundposition
 }
