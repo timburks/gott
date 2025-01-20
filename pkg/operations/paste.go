@@ -15,7 +15,7 @@
 package operations
 
 import (
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 // Paste pastes the contents of the pasteboard into a buffer.

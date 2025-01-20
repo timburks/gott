@@ -15,22 +15,30 @@
 package operations
 
 import (
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
-// ReverseCaseCharacter reverses the case of a character.
-type ReverseCaseCharacter struct {
-	operation
+// operation is a utility class that is composed into all operation classes.
+// It provides common data storage and services for operations.
+type operation struct {
+	Cursor     gott.Point
+	Multiplier int
+	Undo       bool
 }
 
-func (op *ReverseCaseCharacter) Perform(e gott.Editor, multiplier int) gott.Operation {
-	op.init(e, multiplier)
-	e.ReverseCaseCharactersAtCursor(op.Multiplier)
+func (op *operation) init(e gott.Editor, multiplier int) {
 	if op.Undo {
 		e.SetCursor(op.Cursor)
+	} else {
+		op.Cursor = e.GetCursor()
+		if op.Multiplier == 0 {
+			op.Multiplier = multiplier
+		}
 	}
+}
 
-	inverse := &ReverseCaseCharacter{}
-	inverse.copyForUndo(&op.operation)
-	return inverse
+func (op *operation) copyForUndo(other *operation) {
+	op.Cursor = other.Cursor
+	op.Multiplier = other.Multiplier
+	op.Undo = true
 }

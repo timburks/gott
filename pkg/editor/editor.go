@@ -24,7 +24,7 @@ import (
 	"strings"
 	"unicode"
 
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 // The Editor manages text editing in associated buffers and windows.
@@ -285,7 +285,7 @@ func (e *Editor) MoveCursorToPreviousWord(multiplier int) {
 }
 
 func (e *Editor) MoveCursorToLine(line int) {
-	newRow := line-1
+	newRow := line - 1
 	if newRow > e.GetActiveWindow().GetBuffer().GetRowCount()-1 {
 		newRow = e.GetActiveWindow().GetBuffer().GetRowCount() - 1
 	}

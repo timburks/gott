@@ -15,21 +15,21 @@
 package operations
 
 import (
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
-// DeleteCharacter deletes characters at the current cursor position.
-type DeleteCharacter struct {
+// DeleteWord deletes words at the cursor position.
+type DeleteWord struct {
 	operation
-	FinallyDeleteRow bool
 }
 
-func (op *DeleteCharacter) Perform(e gott.Editor, multiplier int) gott.Operation {
+func (op *DeleteWord) Perform(e gott.Editor, multiplier int) gott.Operation {
 	op.init(e, multiplier)
-	deletedText := e.DeleteCharactersAtCursor(op.Multiplier, op.Undo, op.FinallyDeleteRow)
+	deletedText := e.DeleteWordsAtCursor(op.Multiplier)
+	e.SetPasteBoard(deletedText, gott.InsertAtCursor)
 	inverse := &Insert{
 		Position: gott.InsertAtCursor,
-		Text:     deletedText,
+		Text:     string(deletedText),
 	}
 	inverse.copyForUndo(&op.operation)
 	return inverse

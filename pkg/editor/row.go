@@ -17,7 +17,7 @@ package editor
 import (
 	"strings"
 
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 // A Row manages a row of text in a buffer.
@@ -126,7 +126,7 @@ func (r *Row) TextFromColumn(col int) string {
 }
 
 func (r *Row) FirstPositionAfterCol(col int, text string) int {
-	searchposition := col+1
+	searchposition := col + 1
 	searchtext := r.TextFromColumn(searchposition)
 	i := strings.Index(searchtext, text)
 	if i == -1 {
@@ -150,11 +150,10 @@ func (r *Row) LastPositionBeforeCol(col int, text string) int {
 				return foundposition
 			} else {
 				foundposition = newfoundposition
-				searchposition = foundposition+1
+				searchposition = foundposition + 1
 				searchtext = r.TextFromColumn(searchposition)
 			}
 		}
 	}
 	return foundposition
 }
-

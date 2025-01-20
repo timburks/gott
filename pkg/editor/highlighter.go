@@ -18,7 +18,7 @@ import (
 	"encoding/hex"
 	"regexp"
 
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 // The GoHighlighter highlights Go code.

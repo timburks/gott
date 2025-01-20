@@ -15,31 +15,22 @@
 package operations
 
 import (
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
-// JoinLine joins the current line with the next one.
-type JoinLine struct {
+// ReverseCaseCharacter reverses the case of a character.
+type ReverseCaseCharacter struct {
 	operation
 }
 
-func (op *JoinLine) Perform(e gott.Editor, multiplier int) gott.Operation {
+func (op *ReverseCaseCharacter) Perform(e gott.Editor, multiplier int) gott.Operation {
 	op.init(e, multiplier)
-	cursors := e.JoinRow(op.Multiplier)
-	operations := make([]gott.Operation, 0)
-	for i := len(cursors) - 1; i >= 0; i-- {
-		insert := &Insert{}
-		insert.Cursor = cursors[i]
-		insert.Multiplier = 1
-		insert.Undo = true
-		insert.Position = gott.InsertAtCursor
-		insert.Text = "\n"
-		operations = append(operations, insert)
+	e.ReverseCaseCharactersAtCursor(op.Multiplier)
+	if op.Undo {
+		e.SetCursor(op.Cursor)
 	}
-	inverse := &Sequence{
-		Operations: operations,
-	}
+
+	inverse := &ReverseCaseCharacter{}
 	inverse.copyForUndo(&op.operation)
-	inverse.Multiplier = 1
 	return inverse
 }

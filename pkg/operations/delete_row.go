@@ -15,20 +15,23 @@
 package operations
 
 import (
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
-// ReplaceCharacter replaces a character at the current cursor position.
-type ReplaceCharacter struct {
+// DeleteRow deletes rows at the current cursor position.
+type DeleteRow struct {
 	operation
-	Character rune
 }
 
-func (op *ReplaceCharacter) Perform(e gott.Editor, multiplier int) gott.Operation {
+func (op *DeleteRow) Perform(e gott.Editor, multiplier int) gott.Operation {
+	e.MoveCursorToStartOfLine()
 	op.init(e, multiplier)
-	old := e.ReplaceCharacterAtCursor(op.Cursor, op.Character)
-	inverse := &ReplaceCharacter{}
+	deletedText := e.DeleteRowsAtCursor(op.Multiplier)
+	e.SetPasteBoard(deletedText, gott.PasteNewLine)
+	inverse := &Insert{
+		Position: gott.InsertAtCursor,
+		Text:     deletedText,
+	}
 	inverse.copyForUndo(&op.operation)
-	inverse.Character = old
 	return inverse
 }

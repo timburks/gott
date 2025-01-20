@@ -21,8 +21,8 @@ import (
 	"os"
 
 	"github.com/steelseries/golisp"
-	"github.com/timburks/gott/operations"
-	gott "github.com/timburks/gott/types"
+	"github.com/timburks/gott/pkg/operations"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 // file-global pointers to editor objects

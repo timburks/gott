@@ -15,30 +15,20 @@
 package operations
 
 import (
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
-// operation is a utility class that is composed into all operation classes.
-// It provides common data storage and services for operations.
-type operation struct {
-	Cursor     gott.Point
-	Multiplier int
-	Undo       bool
+// ReplaceCharacter replaces a character at the current cursor position.
+type ReplaceCharacter struct {
+	operation
+	Character rune
 }
 
-func (op *operation) init(e gott.Editor, multiplier int) {
-	if op.Undo {
-		e.SetCursor(op.Cursor)
-	} else {
-		op.Cursor = e.GetCursor()
-		if op.Multiplier == 0 {
-			op.Multiplier = multiplier
-		}
-	}
-}
-
-func (op *operation) copyForUndo(other *operation) {
-	op.Cursor = other.Cursor
-	op.Multiplier = other.Multiplier
-	op.Undo = true
+func (op *ReplaceCharacter) Perform(e gott.Editor, multiplier int) gott.Operation {
+	op.init(e, multiplier)
+	old := e.ReplaceCharacterAtCursor(op.Cursor, op.Character)
+	inverse := &ReplaceCharacter{}
+	inverse.copyForUndo(&op.operation)
+	inverse.Character = old
+	return inverse
 }

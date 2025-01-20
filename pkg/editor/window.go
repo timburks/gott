@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"unicode"
 
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 // This is the number of the last window created. Use it to uniquely number windows.
@@ -938,7 +938,7 @@ func (w *Window) DeleteWordsAtCursor(multiplier int) string {
 				if w.cursor.Col > w.buffer.rows[w.cursor.Row].Length()-1 {
 					break
 				}
- 				if c == ' ' {
+				if c == ' ' {
 					break
 				}
 				c = w.buffer.rows[w.cursor.Row].DeleteChar(w.cursor.Col)

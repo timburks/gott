@@ -15,23 +15,31 @@
 package operations
 
 import (
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
-// DeleteRow deletes rows at the current cursor position.
-type DeleteRow struct {
+// JoinLine joins the current line with the next one.
+type JoinLine struct {
 	operation
 }
 
-func (op *DeleteRow) Perform(e gott.Editor, multiplier int) gott.Operation {
-	e.MoveCursorToStartOfLine()
+func (op *JoinLine) Perform(e gott.Editor, multiplier int) gott.Operation {
 	op.init(e, multiplier)
-	deletedText := e.DeleteRowsAtCursor(op.Multiplier)
-	e.SetPasteBoard(deletedText, gott.PasteNewLine)
-	inverse := &Insert{
-		Position: gott.InsertAtCursor,
-		Text:     deletedText,
+	cursors := e.JoinRow(op.Multiplier)
+	operations := make([]gott.Operation, 0)
+	for i := len(cursors) - 1; i >= 0; i-- {
+		insert := &Insert{}
+		insert.Cursor = cursors[i]
+		insert.Multiplier = 1
+		insert.Undo = true
+		insert.Position = gott.InsertAtCursor
+		insert.Text = "\n"
+		operations = append(operations, insert)
+	}
+	inverse := &Sequence{
+		Operations: operations,
 	}
 	inverse.copyForUndo(&op.operation)
+	inverse.Multiplier = 1
 	return inverse
 }

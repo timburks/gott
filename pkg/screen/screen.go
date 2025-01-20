@@ -18,7 +18,7 @@ import (
 	"log"
 
 	"github.com/nsf/termbox-go"
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 // Screen draws the state of an editor.

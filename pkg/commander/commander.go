@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 // The Commander converts user input into commands to the editor.
@@ -31,7 +31,7 @@ type Commander struct {
 	editKeys       string   // edit key sequences in progress
 	commandText    string   // command as it is being typed on the command line
 	searchText     string   // text for searches as it is being typed
-	searchForward  bool	// true to search forward, false to search backward
+	searchForward  bool     // true to search forward, false to search backward
 	lispText       string   // lisp command as it is being typed
 	multiplierText string   // multiplier string as it is being entered
 	message        string   // status message

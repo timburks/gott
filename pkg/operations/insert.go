@@ -15,7 +15,7 @@
 package operations
 
 import (
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 // Insert inserts text at a specified position relative to the cursor.

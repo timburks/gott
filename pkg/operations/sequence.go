@@ -15,7 +15,7 @@
 package operations
 
 import (
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 // Sequence combines a series of operations into a performable sequence.

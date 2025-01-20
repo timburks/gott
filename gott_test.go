@@ -19,9 +19,9 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/timburks/gott/editor"
-	"github.com/timburks/gott/operations"
-	gott "github.com/timburks/gott/types"
+	"github.com/timburks/gott/pkg/editor"
+	"github.com/timburks/gott/pkg/operations"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
 const source = "test/gettysburg-address.txt"

@@ -19,9 +19,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/timburks/gott/commander"
-	"github.com/timburks/gott/editor"
-	"github.com/timburks/gott/screen"
+	"github.com/timburks/gott/pkg/commander"
+	"github.com/timburks/gott/pkg/editor"
+	"github.com/timburks/gott/pkg/screen"
 )
 
 func main() {

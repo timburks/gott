@@ -18,10 +18,10 @@ import (
 	"strings"
 	"unicode"
 
-	gott "github.com/timburks/gott/types"
+	gott "github.com/timburks/gott/pkg/types"
 )
 
-// A Buffer represents a file being edited. 
+// A Buffer represents a file being edited.
 // Buffers are displayed in windows but also may be manipulated offscreen.
 type Buffer struct {
 	Name         string
