@@ -15,9 +15,7 @@
 package editor
 
 import (
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"sort"
@@ -129,7 +127,7 @@ func (e *Editor) SelectWindow(number int) error {
 		}
 	}
 	// if we get here, the window doesn't exist
-	return errors.New(fmt.Sprintf("No window exists for identifier %d", number))
+	return fmt.Errorf("no window exists for identifier %d", number)
 }
 
 func (e *Editor) SelectWindowNext() error {
@@ -149,7 +147,7 @@ func (e *Editor) ReadFile(path string) error {
 	window := e.CreateWindow()
 	window.GetBuffer().SetFileName(path)
 	// read the specified file into the buffer
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}

@@ -15,9 +15,7 @@
 package commander
 
 import (
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/steelseries/golisp"
@@ -38,11 +36,11 @@ func makePrimitiveFunction(name string, action func()) {
 }
 
 func argumentCountValue(name string, args *golisp.Data, env *golisp.SymbolTableFrame) (int, error) {
-	n := 1
+	var n int
 	val := golisp.Car(args)
 	if val != nil {
 		if !golisp.IntegerP(val) {
-			return 0, errors.New(fmt.Sprintf("%s requires an integer argument", name))
+			return 0, fmt.Errorf("%s requires an integer argument", name)
 		}
 		n = int(golisp.IntegerValue(val))
 	} else {
@@ -66,7 +64,7 @@ func argumentStringValue(name string, args *golisp.Data, env *golisp.SymbolTable
 	val := golisp.Car(args)
 	if val != nil {
 		if !golisp.StringP(val) {
-			return "", errors.New(fmt.Sprintf("%s requires a string argument", name))
+			return "", fmt.Errorf("%s requires a string argument", name)
 		}
 		n = golisp.StringValue(val)
 	}
@@ -264,7 +262,7 @@ func (c *Commander) parseEval(command string) string {
 }
 
 func (c *Commander) ParseEvalFile(filename string) string {
-	bytes, err := ioutil.ReadFile(filename)
+	bytes, err := os.ReadFile(filename)
 	if err == nil {
 		contents := string(bytes)
 		c.batch = true

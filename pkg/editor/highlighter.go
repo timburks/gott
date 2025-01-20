@@ -51,7 +51,7 @@ func (h *GoHighlighter) Highlight(b *Buffer) {
 
 		colors := r.GetColors()
 
-		for j, _ := range colors {
+		for j := range colors {
 			colors[j] = 0xff
 		}
 

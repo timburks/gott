@@ -15,7 +15,7 @@
 package editor
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 	"os/exec"
 	"runtime"
@@ -38,8 +38,8 @@ func (e *Editor) Gofmt(filename string, inputBytes []byte) (outputBytes []byte, 
 	input.Write(inputBytes)
 	input.Close()
 
-	outputBytes, _ = ioutil.ReadAll(output)
-	errors, _ := ioutil.ReadAll(cmderr)
+	outputBytes, _ = io.ReadAll(output)
+	errors, _ := io.ReadAll(cmderr)
 	if len(errors) > 0 {
 		errors := strings.Replace(string(errors), "<standard input>", filename, -1)
 		log.Printf("Syntax errors in code:\n%s", errors)
