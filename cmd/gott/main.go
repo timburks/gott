@@ -37,7 +37,7 @@ func main() {
 			if i < len(os.Args) {
 				script = os.Args[i]
 			} else {
-				log.Output(1, "No file specified for --eval option")
+				_ = log.Output(1, "No file specified for --eval option")
 				return
 			}
 		default:
@@ -71,7 +71,7 @@ func main() {
 			} else {
 				err = e.ReadFile(filename)
 				if err != nil {
-					log.Output(1, err.Error())
+					_ = log.Output(1, err.Error())
 				}
 			}
 		}
@@ -90,7 +90,7 @@ func main() {
 			os.Getenv("HOME")+"/.gottlog",
 			os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
-			log.Output(1, err.Error())
+			_ = log.Output(1, err.Error())
 			return
 		}
 		log.SetOutput(f)
@@ -101,7 +101,7 @@ func main() {
 			s.Render(e, c)
 			err = c.ProcessEvent(s.GetNextEvent())
 			if err != nil {
-				log.Output(1, err.Error())
+				_ = log.Output(1, err.Error())
 			}
 		}
 	}

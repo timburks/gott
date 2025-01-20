@@ -36,8 +36,11 @@ func setup(t *testing.T) gott.Editor {
 }
 
 func final(t *testing.T, e gott.Editor) {
-	e.WriteFile("test-final.txt")
-	err := exec.Command("diff", "test-final.txt", source).Run()
+	err := e.WriteFile("test-final.txt")
+	if err != nil {
+		t.Fatalf("failed to write file: %s", err)
+	}
+	err = exec.Command("diff", "test-final.txt", source).Run()
 	if err != nil {
 		t.Errorf("Diff failed: %+v", err)
 	} else { // the test succeeded, clean up
